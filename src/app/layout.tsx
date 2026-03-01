@@ -1,28 +1,15 @@
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
-
-// Primary font: Inter (Google Fonts, always available)
-// To add Pretendard Variable:
-//   1. Download PretendardVariable.woff2 from https://github.com/orioncactus/pretendard/releases
-//   2. Place at /public/fonts/PretendardVariable.woff2
-//   3. Uncomment the localFont block below and add pretendard.variable to <html>
-//
-// import localFont from "next/font/local";
-// const pretendard = localFont({
-//   src: "../../public/fonts/PretendardVariable.woff2",
-//   variable: "--font-pretendard",
-//   weight: "45 920",
-//   display: "swap",
-//   preload: true,
-//   fallback: ["Pretendard", "Apple SD Gothic Neo", "sans-serif"],
-// });
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { QueryProvider } from '@/components/providers/query-provider';
+import { SupabaseProvider } from '@/components/providers/supabase-provider';
+import { Toaster } from '@/components/ui/sonner';
+import './globals.css';
 
 const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -76,15 +63,22 @@ export default function RootLayout({ children }: RootLayoutProps) {
       suppressHydrationWarning
       className={inter.variable}
     >
-      <body className="font-[family-name:var(--font-inter),sans-serif] antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+      <body className="font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
+        {/* Pretendard from CDN - preconnect for performance */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          as="style"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+        <QueryProvider>
+          <SupabaseProvider>
+            <ThemeProvider>
+              {children}
+              <Toaster position="bottom-right" richColors />
+            </ThemeProvider>
+          </SupabaseProvider>
+        </QueryProvider>
       </body>
     </html>
   );
