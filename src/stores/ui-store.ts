@@ -18,6 +18,7 @@ interface UIState {
   sortBy: ClipSortBy;
   sortOrder: SortOrder;
   filters: UIFilters;
+  omniSearchOpen: boolean;
 }
 
 interface UIActions {
@@ -25,6 +26,7 @@ interface UIActions {
   toggleSidebar: () => void;
   setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
+  setOmniSearchOpen: (open: boolean) => void;
   selectClip: (id: string) => void;
   deselectClip: (id: string) => void;
   toggleClipSelection: (id: string) => void;
@@ -56,12 +58,14 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   sortBy: 'created_at',
   sortOrder: 'desc',
   filters: DEFAULT_FILTERS,
+  omniSearchOpen: false,
 
   // Actions
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setViewMode: (mode) => set({ viewMode: mode }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setOmniSearchOpen: (open) => set({ omniSearchOpen: open }),
 
   selectClip: (id) =>
     set((s) => {

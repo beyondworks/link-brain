@@ -9,6 +9,9 @@ import { useUIStore } from '@/stores/ui-store';
 import { useRealtimeInvalidation } from '@/lib/hooks/use-realtime-invalidation';
 import { supabase } from '@/lib/supabase/client';
 import { MAIN_NAV, BOTTOM_NAV } from '@/config/navigation';
+import { AppHeader } from '@/components/layout/app-header';
+import { OmniSearch } from '@/components/layout/omni-search';
+import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -215,8 +218,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </span>
         </header>
 
+        {/* Desktop header */}
+        <div className="hidden lg:block">
+          <AppHeader />
+        </div>
+
+        {/* OmniSearch — available on all screen sizes via Cmd+K */}
+        <OmniSearch />
+
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">{children}</main>
+
+        {/* Mobile bottom nav */}
+        <MobileBottomNav />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { SupabaseProvider } from '@/components/providers/supabase-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import './globals.css';
 
 const inter = Inter({
@@ -74,8 +75,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <QueryProvider>
           <SupabaseProvider>
             <ThemeProvider>
-              {children}
-              <Toaster position="bottom-right" richColors />
+              <TooltipProvider delayDuration={300}>
+                {children}
+                <Toaster position="bottom-right" richColors />
+              </TooltipProvider>
             </ThemeProvider>
           </SupabaseProvider>
         </QueryProvider>
