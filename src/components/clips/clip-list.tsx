@@ -62,15 +62,15 @@ export function ClipList({ clips }: ClipListProps) {
             )}
           </div>
 
-          {clip.description && (
+          {clip.summary && (
             <p className="text-xs text-muted-foreground line-clamp-2">
-              {clip.description}
+              {clip.summary}
             </p>
           )}
 
           <div className="flex items-center gap-2 mt-auto">
             <Badge variant="outline" className="text-xs">
-              {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+              {(clip.platform && PLATFORM_LABELS[clip.platform]) ?? clip.platform ?? 'web'}
             </Badge>
             <span className="ml-auto text-xs text-muted-foreground">
               {formatDate(clip.created_at)}

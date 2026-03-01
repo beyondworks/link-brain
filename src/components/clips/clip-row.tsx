@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Heart, ExternalLink } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import type { ClipData, ClipPlatform } from '@/types/database';
+import type { ClipData } from '@/types/database';
 
 interface ClipRowProps {
   clip: ClipData;
@@ -13,24 +13,30 @@ interface ClipRowProps {
   onArchive?: (id: string) => void;
 }
 
-const PLATFORM_COLORS: Record<ClipPlatform, string> = {
+const PLATFORM_COLORS: Record<string, string> = {
   twitter: 'bg-sky-400',
   youtube: 'bg-red-500',
   instagram: 'bg-pink-500',
   tiktok: 'bg-black',
   linkedin: 'bg-blue-600',
   github: 'bg-gray-800',
+  medium: 'bg-gray-700',
+  substack: 'bg-orange-500',
+  reddit: 'bg-orange-600',
   web: 'bg-gray-400',
   other: 'bg-gray-400',
 };
 
-const PLATFORM_LABELS: Record<ClipPlatform, string> = {
+const PLATFORM_LABELS: Record<string, string> = {
   twitter: 'Twitter',
   youtube: 'YouTube',
   instagram: 'Instagram',
   tiktok: 'TikTok',
   linkedin: 'LinkedIn',
   github: 'GitHub',
+  medium: 'Medium',
+  substack: 'Substack',
+  reddit: 'Reddit',
   web: 'Web',
   other: '기타',
 };
@@ -81,9 +87,9 @@ export function ClipRow({
     >
       {/* Thumbnail */}
       <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-        {clip.thumbnail_url ? (
+        {clip.image ? (
           <Image
-            src={clip.thumbnail_url}
+            src={clip.image}
             alt={clip.title ?? ''}
             fill
             className="object-cover"
@@ -107,17 +113,19 @@ export function ClipRow({
       </p>
 
       {/* Platform badge */}
-      <div className="hidden flex-shrink-0 items-center gap-1.5 sm:flex">
-        <span
-          className={cn(
-            'inline-block h-2 w-2 rounded-full',
-            PLATFORM_COLORS[clip.platform]
-          )}
-        />
-        <span className="text-xs text-muted-foreground">
-          {PLATFORM_LABELS[clip.platform]}
-        </span>
-      </div>
+      {clip.platform && (
+        <div className="hidden flex-shrink-0 items-center gap-1.5 sm:flex">
+          <span
+            className={cn(
+              'inline-block h-2 w-2 rounded-full',
+              PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
+            )}
+          />
+          <span className="text-xs text-muted-foreground">
+            {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+          </span>
+        </div>
+      )}
 
       {/* Time */}
       <span className="hidden flex-shrink-0 text-xs text-muted-foreground md:block">

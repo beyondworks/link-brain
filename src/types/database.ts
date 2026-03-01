@@ -1,66 +1,29 @@
-export type UserRole = 'free' | 'pro' | 'team' | 'enterprise';
-export type SubscriptionStatus =
-  | 'active'
-  | 'canceled'
-  | 'past_due'
-  | 'trialing'
-  | 'incomplete';
+// =============================================================================
+// Database types aligned with SQL schema (001_initial_schema.sql)
+// =============================================================================
+
+export type UserRole = 'user' | 'admin';
+export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'team';
+export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'paused';
 export type ClipPlatform =
-  | 'twitter'
-  | 'youtube'
-  | 'instagram'
-  | 'tiktok'
-  | 'linkedin'
-  | 'github'
-  | 'web'
-  | 'other';
-export type ContentType =
-  | 'article'
-  | 'video'
-  | 'image'
-  | 'audio'
-  | 'document'
-  | 'social_post'
-  | 'other';
-export type ProcessingStatus = 'pending' | 'processing' | 'done' | 'failed';
+  | 'web' | 'twitter' | 'youtube' | 'github'
+  | 'medium' | 'substack' | 'reddit' | 'linkedin'
+  | 'instagram' | 'tiktok' | 'other';
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 export interface User {
   id: string;
+  auth_id: string;
   email: string;
-  full_name: string | null;
+  display_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
+  language: string;
+  theme: 'light' | 'dark' | 'system';
   role: UserRole;
-  clip_count: number;
-  storage_used_bytes: number;
-  created_at: string;
-  updated_at: string;
-}
-
-// ─── Subscriptions ────────────────────────────────────────────────────────────
-
-export interface Subscription {
-  id: string;
-  user_id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  plan: UserRole;
-  status: SubscriptionStatus;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// ─── Credits ─────────────────────────────────────────────────────────────────
-
-export interface Credits {
-  id: string;
-  user_id: string;
-  balance: number;
-  lifetime_earned: number;
+  openai_api_key: string | null;
+  google_ai_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,10 +34,8 @@ export interface Category {
   id: string;
   user_id: string;
   name: string;
-  slug: string;
   color: string | null;
-  icon: string | null;
-  clip_count: number;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -86,22 +47,10 @@ export interface Collection {
   user_id: string;
   name: string;
   description: string | null;
-  cover_image_url: string | null;
+  color: string | null;
   is_public: boolean;
-  clip_count: number;
   created_at: string;
   updated_at: string;
-}
-
-// ─── Tags ─────────────────────────────────────────────────────────────────────
-
-export interface Tag {
-  id: string;
-  user_id: string;
-  name: string;
-  slug: string;
-  usage_count: number;
-  created_at: string;
 }
 
 // ─── Clips ───────────────────────────────────────────────────────────────────
@@ -111,101 +60,151 @@ export interface ClipData {
   user_id: string;
   url: string;
   title: string | null;
-  description: string | null;
-  thumbnail_url: string | null;
-  favicon_url: string | null;
-  platform: ClipPlatform;
-  content_type: ContentType;
-  category_id: string | null;
-  collection_id: string | null;
+  summary: string | null;
+  image: string | null;
+  platform: ClipPlatform | null;
+  author: string | null;
+  author_handle: string | null;
+  author_avatar: string | null;
+  read_time: number | null;
+  ai_score: number | null;
   is_favorite: boolean;
+  is_read_later: boolean;
   is_archived: boolean;
   is_public: boolean;
-  view_count: number;
-  processing_status: ProcessingStatus;
+  category_id: string | null;
+  views: number;
+  likes_count: number;
   created_at: string;
   updated_at: string;
-  // Relations (optionally joined)
-  category?: Category | null;
-  collection?: Collection | null;
-  tags?: Tag[];
-  content?: ClipContent | null;
 }
 
-// ─── Clip Content ─────────────────────────────────────────────────────────────
+// ─── Clip Content ────────────────────────────────────────────────────────────
 
 export interface ClipContent {
-  id: string;
   clip_id: string;
-  raw_text: string | null;
-  summary: string | null;
-  key_points: string[] | null;
-  ai_tags: string[] | null;
-  sentiment: 'positive' | 'negative' | 'neutral' | null;
-  reading_time_minutes: number | null;
-  language: string | null;
-  word_count: number | null;
-  embedding: number[] | null;
+  html_content: string | null;
+  content_markdown: string | null;
+  raw_markdown: string | null;
+}
+
+// ─── Tags ────────────────────────────────────────────────────────────────────
+
+export interface Tag {
+  id: string;
+  name: string;
+}
+
+// ─── Subscriptions ───────────────────────────────────────────────────────────
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  lemon_squeezy_id: string | null;
+  trial_start_date: string | null;
+  current_period_end: string | null;
   created_at: string;
   updated_at: string;
 }
 
-// ─── Supabase Database shape ──────────────────────────────────────────────────
-// Minimal shape — will be replaced by `supabase gen types` output.
+// ─── Credits ─────────────────────────────────────────────────────────────────
+
+export interface Credits {
+  user_id: string;
+  monthly_used: number;
+  monthly_limit: number;
+  reset_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  actor_id: string | null;
+  clip_id: string | null;
+  message: string | null;
+  is_read: boolean;
+  timestamp: string;
+}
+
+// ─── Clip Annotations ────────────────────────────────────────────────────────
+
+export interface ClipAnnotation {
+  id: string;
+  clip_id: string;
+  user_id: string;
+  type: 'highlight' | 'note' | 'bookmark';
+  selected_text: string | null;
+  note_text: string | null;
+  position_data: Record<string, unknown> | null;
+  color: string;
+  created_at: string;
+}
+
+// ─── API Keys ─────────────────────────────────────────────────────────────────
+
+export interface ApiKey {
+  id: string;
+  user_id: string;
+  key_hash: string;
+  key_prefix: string;
+  name: string;
+  last_used_at: string | null;
+  timestamp: string;
+}
+
+// ─── Webhooks ─────────────────────────────────────────────────────────────────
+
+export interface Webhook {
+  id: string;
+  user_id: string;
+  url: string;
+  events: string[];
+  secret: string | null;
+  is_active: boolean;
+  timestamp: string;
+}
+
+// ─── Reading Progress ────────────────────────────────────────────────────────
+
+export interface ReadingProgress {
+  clip_id: string;
+  user_id: string;
+  scroll_percentage: number;
+  time_spent_seconds: number;
+  completed_at: string | null;
+  last_read_at: string;
+}
+
+// ─── Supabase Database shape ─────────────────────────────────────────────────
 
 export interface Database {
   public: {
     Tables: {
-      users: {
-        Row: User;
-        Insert: Omit<User, 'created_at' | 'updated_at' | 'clip_count' | 'storage_used_bytes'> &
-          Partial<Pick<User, 'clip_count' | 'storage_used_bytes'>>;
-        Update: Partial<Omit<User, 'id'>>;
-      };
-      subscriptions: {
-        Row: Subscription;
-        Insert: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Subscription, 'id'>>;
-      };
-      credits: {
-        Row: Credits;
-        Insert: Omit<Credits, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Credits, 'id'>>;
-      };
-      categories: {
-        Row: Category;
-        Insert: Omit<Category, 'id' | 'created_at' | 'updated_at' | 'clip_count'>;
-        Update: Partial<Omit<Category, 'id'>>;
-      };
-      collections: {
-        Row: Collection;
-        Insert: Omit<Collection, 'id' | 'created_at' | 'updated_at' | 'clip_count'>;
-        Update: Partial<Omit<Collection, 'id'>>;
-      };
-      tags: {
-        Row: Tag;
-        Insert: Omit<Tag, 'id' | 'created_at' | 'usage_count'>;
-        Update: Partial<Omit<Tag, 'id'>>;
-      };
-      clips: {
-        Row: ClipData;
-        Insert: Omit<ClipData, 'id' | 'created_at' | 'updated_at' | 'view_count' | 'category' | 'collection' | 'tags' | 'content'>;
-        Update: Partial<Omit<ClipData, 'id' | 'category' | 'collection' | 'tags' | 'content'>>;
-      };
-      clip_contents: {
-        Row: ClipContent;
-        Insert: Omit<ClipContent, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<ClipContent, 'id'>>;
-      };
+      users: { Row: User; Insert: Partial<User> & Pick<User, 'auth_id' | 'email'>; Update: Partial<User>; Relationships: []; };
+      categories: { Row: Category; Insert: Partial<Category> & Pick<Category, 'user_id' | 'name'>; Update: Partial<Category>; Relationships: []; };
+      collections: { Row: Collection; Insert: Partial<Collection> & Pick<Collection, 'user_id' | 'name'>; Update: Partial<Collection>; Relationships: []; };
+      clips: { Row: ClipData; Insert: Partial<ClipData> & Pick<ClipData, 'user_id' | 'url'>; Update: Partial<ClipData>; Relationships: []; };
+      clip_contents: { Row: ClipContent; Insert: Partial<ClipContent> & Pick<ClipContent, 'clip_id'>; Update: Partial<ClipContent>; Relationships: []; };
+      tags: { Row: Tag; Insert: Partial<Tag> & Pick<Tag, 'name'>; Update: Partial<Tag>; Relationships: []; };
+      clip_tags: { Row: { clip_id: string; tag_id: string }; Insert: { clip_id: string; tag_id: string }; Update: never; Relationships: []; };
+      clip_collections: { Row: { clip_id: string; collection_id: string }; Insert: { clip_id: string; collection_id: string }; Update: never; Relationships: []; };
+      subscriptions: { Row: Subscription; Insert: Partial<Subscription> & Pick<Subscription, 'user_id'>; Update: Partial<Subscription>; Relationships: []; };
+      credits: { Row: Credits; Insert: Partial<Credits> & Pick<Credits, 'user_id'>; Update: Partial<Credits>; Relationships: []; };
+      notifications: { Row: Notification; Insert: Partial<Notification> & Pick<Notification, 'user_id' | 'type'>; Update: Partial<Notification>; Relationships: []; };
+      clip_annotations: { Row: ClipAnnotation; Insert: Partial<ClipAnnotation> & Pick<ClipAnnotation, 'clip_id' | 'user_id' | 'type'>; Update: Partial<ClipAnnotation>; Relationships: []; };
+      reading_progress: { Row: ReadingProgress; Insert: Partial<ReadingProgress> & Pick<ReadingProgress, 'clip_id' | 'user_id'>; Update: Partial<ReadingProgress>; Relationships: []; };
+      api_keys: { Row: ApiKey; Insert: Omit<ApiKey, 'id' | 'timestamp' | 'last_used_at'>; Update: Partial<ApiKey>; Relationships: []; };
+      webhooks: { Row: Webhook; Insert: Omit<Webhook, 'id' | 'timestamp'>; Update: Partial<Webhook>; Relationships: []; };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: {
-      user_role: UserRole;
-      subscription_status: SubscriptionStatus;
-      clip_platform: ClipPlatform;
-      content_type: ContentType;
-      processing_status: ProcessingStatus;
-    };
+    Enums: Record<string, never>;
   };
 }

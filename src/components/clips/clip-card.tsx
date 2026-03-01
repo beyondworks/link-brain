@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Heart, Archive, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import type { ClipData, ClipPlatform } from '@/types/database';
+import type { ClipData } from '@/types/database';
 
 interface ClipCardProps {
   clip: ClipData;
@@ -14,24 +14,30 @@ interface ClipCardProps {
   onArchive?: (id: string) => void;
 }
 
-const PLATFORM_COLORS: Record<ClipPlatform, string> = {
+const PLATFORM_COLORS: Record<string, string> = {
   twitter: 'bg-sky-400',
   youtube: 'bg-red-500',
   instagram: 'bg-pink-500',
   tiktok: 'bg-black',
   linkedin: 'bg-blue-600',
   github: 'bg-gray-800',
+  medium: 'bg-gray-700',
+  substack: 'bg-orange-500',
+  reddit: 'bg-orange-600',
   web: 'bg-gray-400',
   other: 'bg-gray-400',
 };
 
-const PLATFORM_LABELS: Record<ClipPlatform, string> = {
+const PLATFORM_LABELS: Record<string, string> = {
   twitter: 'Twitter',
   youtube: 'YouTube',
   instagram: 'Instagram',
   tiktok: 'TikTok',
   linkedin: 'LinkedIn',
   github: 'GitHub',
+  medium: 'Medium',
+  substack: 'Substack',
+  reddit: 'Reddit',
   web: 'Web',
   other: '기타',
 };
@@ -58,7 +64,6 @@ export function ClipCard({
 }: ClipCardProps) {
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
-  const summary = clip.content?.summary ?? clip.description;
 
   function handleCardClick() {
     onSelect?.(clip.id);
@@ -89,9 +94,9 @@ export function ClipCard({
     >
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
-        {clip.thumbnail_url ? (
+        {clip.image ? (
           <Image
-            src={clip.thumbnail_url}
+            src={clip.image}
             alt={clip.title ?? ''}
             fill
             className="object-cover"
@@ -142,24 +147,28 @@ export function ClipCard({
         <p className="line-clamp-2 text-sm font-medium leading-snug">
           {clip.title ?? clip.url}
         </p>
-        {summary && (
+        {clip.summary && (
           <p className="line-clamp-2 text-xs text-muted-foreground leading-snug">
-            {summary}
+            {clip.summary}
           </p>
         )}
 
         {/* Bottom row */}
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span
-              className={cn(
-                'inline-block h-2 w-2 flex-shrink-0 rounded-full',
-                PLATFORM_COLORS[clip.platform]
-              )}
-            />
-            <span className="truncate text-xs text-muted-foreground">
-              {PLATFORM_LABELS[clip.platform]}
-            </span>
+            {clip.platform && (
+              <>
+                <span
+                  className={cn(
+                    'inline-block h-2 w-2 flex-shrink-0 rounded-full',
+                    PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
+                  )}
+                />
+                <span className="truncate text-xs text-muted-foreground">
+                  {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+                </span>
+              </>
+            )}
           </div>
           <div className="flex flex-shrink-0 items-center gap-1.5">
             <span className="text-xs text-muted-foreground">
