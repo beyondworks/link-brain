@@ -104,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Authenticate
-    const userId = body.userId ?? (await resolveUserId(req));
+    const userId = await resolveUserId(req);
     if (!userId) {
       return withCors(
         NextResponse.json(
