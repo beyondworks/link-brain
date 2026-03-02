@@ -1,6 +1,6 @@
 'use client';
 
-import { BookmarkPlus, X } from 'lucide-react';
+import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge } from 'lucide-react';
 import { ClipList } from '@/components/clips/clip-list';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { useUIStore } from '@/stores/ui-store';
 import { useClips } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { SEED_CLIPS } from '@/config/seed-clips';
+import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
+import { useCredits } from '@/lib/hooks/use-credits';
 
 type QuickFilter = 'all' | 'favorite' | 'readLater';
 
@@ -62,10 +64,46 @@ function ActiveCategoryBadge({ categoryId }: { categoryId: string }) {
   );
 }
 
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  loading,
+}: {
+  icon: React.ElementType;
+  value: string;
+  label: string;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
+      <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+        <Icon size={16} />
+      </div>
+      {loading ? (
+        <div className="mb-1.5 h-8 w-16 animate-pulse rounded-md bg-muted" />
+      ) : (
+        <p className="mb-1 text-3xl font-black tracking-tight text-foreground">{value}</p>
+      )}
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
 export function DashboardClient() {
   const openModal = useUIStore((s) => s.openModal);
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
+
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: credits, isLoading: creditsLoading } = useCredits();
+
+  function formatCredits(): string {
+    if (creditsLoading || !credits) return '—';
+    if (credits.creditsLimit === -1) return '무제한';
+    const remaining = credits.creditsLimit - credits.creditsUsed;
+    return `${remaining} / ${credits.creditsLimit}`;
+  }
 
   // Derive active quick filter from Zustand (single source of truth)
   const activeFilter: QuickFilter =
@@ -110,6 +148,34 @@ export function DashboardClient() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard
+          icon={BookOpen}
+          value={statsLoading ? '—' : String(stats?.totalClips ?? 0)}
+          label="총 클립 수"
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={TrendingUp}
+          value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)}
+          label="이번 달 저장"
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={Star}
+          value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)}
+          label="즐겨찾기"
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={Gauge}
+          value={formatCredits()}
+          label="크레딧 잔여"
+          loading={creditsLoading}
+        />
       </div>
 
       {/* Active category filter indicator */}

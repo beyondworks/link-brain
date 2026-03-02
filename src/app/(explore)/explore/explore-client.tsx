@@ -1,63 +1,199 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Search,
   TrendingUp,
   Star,
   Clock,
-  ExternalLink,
-  Heart,
-  BookmarkPlus,
+  AlertCircle,
+  Globe,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useUIStore } from '@/stores/ui-store';
-import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
+import { formatRelativeTime } from '@/lib/utils';
+import { useTrendingClips, useFeaturedClips, type ExploreClip } from '@/lib/hooks/use-explore';
 
-type ExploreTab = 'trending' | 'picks' | 'recent';
+type ExploreTab = 'trending' | 'featured' | 'recent';
 
 const TABS: { key: ExploreTab; label: string; icon: React.ElementType }[] = [
   { key: 'trending', label: '트렌딩', icon: TrendingUp },
-  { key: 'picks', label: "에디터's 픽", icon: Star },
+  { key: 'featured', label: "에디터's 픽", icon: Star },
   { key: 'recent', label: '최신', icon: Clock },
 ];
 
-// Use seed clips as explore placeholder data (peek panel recognizes seed-* IDs)
-import { SEED_CLIPS } from '@/config/seed-clips';
-const PLACEHOLDER_CLIPS = SEED_CLIPS.map((clip) => ({
-  id: clip.id,
-  title: clip.title ?? '',
-  summary: clip.summary ?? '',
-  url: clip.url,
-  image: clip.image,
-  platform: clip.platform ?? 'web',
-  author: clip.author ?? '',
-  likes_count: clip.likes_count,
-  created_at: clip.created_at,
-}));
+const PLATFORM_LABELS: Record<string, string> = {
+  youtube: 'YouTube',
+  twitter: 'Twitter',
+  github: 'GitHub',
+  web: 'Web',
+  notion: 'Notion',
+  substack: 'Substack',
+  medium: 'Medium',
+};
 
-const GRADIENT_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-green-500 to-emerald-600',
-  'from-orange-500 to-red-600',
-  'from-pink-500 to-rose-600',
-];
+function getPlatformLabel(platform: string): string {
+  return PLATFORM_LABELS[platform.toLowerCase()] ?? platform;
+}
 
-function getGradient(id: string): string {
-  const index = id.charCodeAt(0) % GRADIENT_COLORS.length;
-  return GRADIENT_COLORS[index];
+function ExploreCardSkeleton() {
+  return (
+    <Card className="flex flex-col gap-3 p-4 rounded-2xl border-border/60">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-5/6" />
+      <Skeleton className="h-3 w-4/6" />
+      <Skeleton className="h-3 w-20 mt-1" />
+    </Card>
+  );
+}
+
+function ExploreCard({ clip }: { clip: ExploreClip }) {
+  return (
+    <Link href={`/clip/${clip.id}`}>
+      <Card className="group flex flex-col gap-2 p-4 rounded-2xl border-border/60 hover:shadow-card-hover hover:border-border transition-spring cursor-pointer h-full">
+        {/* Platform badge */}
+        <div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <Globe className="h-3 w-3" />
+            {getPlatformLabel(clip.platform)}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="line-clamp-2 text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors">
+          {clip.title ?? '제목 없음'}
+        </h3>
+
+        {/* Summary */}
+        {clip.summary && (
+          <p className="line-clamp-3 text-xs text-muted-foreground leading-relaxed">
+            {clip.summary}
+          </p>
+        )}
+
+        {/* Time */}
+        <p className="mt-auto pt-1 text-xs text-subtle">
+          {formatRelativeTime(clip.created_at)}
+        </p>
+      </Card>
+    </Link>
+  );
+}
+
+function ClipGrid({ clips }: { clips: ExploreClip[] }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {clips.map((clip) => (
+        <ExploreCard key={clip.id} clip={clip} />
+      ))}
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <ExploreCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Globe className="h-12 w-12 text-muted-foreground/40 mb-4" />
+      <p className="text-sm font-medium text-muted-foreground">
+        아직 공개된 클립이 없습니다
+      </p>
+      <p className="mt-1 text-xs text-subtle">
+        클립을 공개로 설정하면 여기에 표시됩니다.
+      </p>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <AlertCircle className="h-12 w-12 text-destructive/60 mb-4" />
+      <p className="text-sm font-medium text-muted-foreground">
+        클립을 불러오지 못했습니다
+      </p>
+      <p className="mt-1 text-xs text-subtle">{message}</p>
+    </div>
+  );
+}
+
+function TrendingSection({ searchQuery }: { searchQuery: string }) {
+  const { data, isLoading, error } = useTrendingClips();
+
+  if (isLoading) return <SkeletonGrid />;
+  if (error) return <ErrorState message={(error as Error).message} />;
+
+  const filtered = searchQuery.trim()
+    ? (data ?? []).filter(
+        (c) =>
+          c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (data ?? []);
+
+  if (filtered.length === 0) return <EmptyState />;
+  return <ClipGrid clips={filtered} />;
+}
+
+function FeaturedSection({ searchQuery }: { searchQuery: string }) {
+  const { data, isLoading, error } = useFeaturedClips();
+
+  if (isLoading) return <SkeletonGrid />;
+
+  // Featured hook already returns [] on error (graceful fallback)
+  if (error) return <EmptyState />;
+
+  const filtered = searchQuery.trim()
+    ? (data ?? []).filter(
+        (c) =>
+          c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (data ?? []);
+
+  if (filtered.length === 0) return <EmptyState />;
+  return <ClipGrid clips={filtered} />;
+}
+
+function RecentSection({ searchQuery }: { searchQuery: string }) {
+  // Recent re-uses trending data but sorted by created_at (same query, different label)
+  const { data, isLoading, error } = useTrendingClips();
+
+  if (isLoading) return <SkeletonGrid />;
+  if (error) return <ErrorState message={(error as Error).message} />;
+
+  const filtered = searchQuery.trim()
+    ? (data ?? []).filter(
+        (c) =>
+          c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (data ?? []);
+
+  if (filtered.length === 0) return <EmptyState />;
+  return <ClipGrid clips={filtered} />;
 }
 
 export function ExploreClient() {
   const [activeTab, setActiveTab] = useState<ExploreTab>('trending');
   const [searchQuery, setSearchQuery] = useState('');
-  const openClipPeek = useUIStore((s) => s.openClipPeek);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -95,89 +231,10 @@ export function ExploreClient() {
         ))}
       </div>
 
-      {/* Clip Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {PLACEHOLDER_CLIPS.map((clip) => {
-          const firstLetter = clip.title.charAt(0).toUpperCase();
-          const gradient = getGradient(clip.id);
-
-          return (
-            <Card
-              key={clip.id}
-              onClick={() => openClipPeek(clip.id)}
-              className="card-glow group h-full flex flex-col cursor-pointer overflow-hidden p-0 gap-0 rounded-2xl border-border/60 hover:shadow-card-hover transition-spring"
-            >
-              {/* Thumbnail */}
-              <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                {clip.image ? (
-                  <Image
-                    src={clip.image}
-                    alt={clip.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      'flex h-full w-full items-center justify-center bg-gradient-to-br',
-                      gradient
-                    )}
-                  >
-                    <span className="text-3xl font-bold text-white">
-                      {firstLetter}
-                    </span>
-                  </div>
-                )}
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40">
-                    <Heart className="h-4 w-4" />
-                  </button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40">
-                    <BookmarkPlus className="h-4 w-4" />
-                  </button>
-                  <Link
-                    href={clip.url}
-                    target="_blank"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/40"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 p-4">
-                <h3 className="line-clamp-2 text-sm font-medium leading-snug">
-                  {clip.title}
-                </h3>
-                {clip.summary && (
-                  <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
-                    {clip.summary}
-                  </p>
-                )}
-                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{clip.author}</span>
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-3 w-3" />
-                    {clip.likes_count}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Load More */}
-      <div className="mt-8 text-center">
-        <Button variant="outline">더 보기</Button>
-      </div>
-
-      {/* Clip peek panel (side/center/full modes) */}
-      <ClipPeekPanel />
+      {/* Content */}
+      {activeTab === 'trending' && <TrendingSection searchQuery={searchQuery} />}
+      {activeTab === 'featured' && <FeaturedSection searchQuery={searchQuery} />}
+      {activeTab === 'recent' && <RecentSection searchQuery={searchQuery} />}
     </div>
   );
 }
