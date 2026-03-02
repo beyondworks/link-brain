@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useToggleFavorite } from '@/hooks/mutations/use-toggle-favorite';
 import { useArchiveClip } from '@/hooks/mutations/use-archive-clip';
+import { useReadingProgress } from '@/hooks/mutations/use-reading-progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -31,7 +32,7 @@ import { cn, formatRelativeTime } from '@/lib/utils';
 import { shareClip } from '@/lib/utils/share';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
-import type { ClipData } from '@/types/database';
+import type { ClipData, ClipContent } from '@/types/database';
 
 interface Props {
   clipId: string;
@@ -457,6 +458,45 @@ function TagList({ clipId }: { clipId: string }) {
   );
 }
 
+/* ─── Real content renderer ──────────────────────────────────────────── */
+function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: string }) {
+  const first = clipContents[0];
+  const text = first?.content_markdown ?? first?.raw_markdown;
+
+  if (text) {
+    return (
+      <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
+        <MarkdownContent content={text} />
+      </div>
+    );
+  }
+
+  if (first?.html_content) {
+    // Render HTML as plain text (strip tags) — no sanitizer available
+    const plainText = first.html_content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return (
+      <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{plainText}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
+      <p className="text-sm text-muted-foreground">본문 콘텐츠가 아직 수집되지 않았습니다.</p>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+      >
+        <ArrowUpRight size={13} />
+        원본 페이지에서 읽기
+      </a>
+    </div>
+  );
+}
+
 /* ─── Main component ─────────────────────────────────────────────────── */
 export function ClipDetailClient({ clipId }: Props) {
   const isSeed = clipId.startsWith('seed-');
@@ -466,8 +506,34 @@ export function ClipDetailClient({ clipId }: Props) {
   const { data: apiClip, isLoading } = useClip(isSeed ? '' : clipId);
   const toggleFavorite = useToggleFavorite();
   const archiveClip = useArchiveClip();
+  const { progress, update } = useReadingProgress(isSeed ? '' : clipId);
+
+  const [scrollPct, setScrollPct] = useState(progress?.scroll_percentage ?? 0);
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (progress?.scroll_percentage != null) {
+      setScrollPct(progress.scroll_percentage);
+    }
+  }, [progress?.scroll_percentage]);
+
+  useEffect(() => {
+    if (isSeed) return;
+
+    const handleScroll = () => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) return;
+      const pct = Math.min(100, Math.round((window.scrollY / docHeight) * 100));
+      setScrollPct(pct);
+      update({ scroll_percentage: pct });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isSeed, update]);
 
   const clip = seedClip ?? apiClip;
+  const clipContents = !isSeed && apiClip ? apiClip.clip_contents : undefined;
 
   if (!isSeed && isLoading) {
     return (
@@ -507,7 +573,17 @@ export function ClipDetailClient({ clipId }: Props) {
   const platformIcon = PLATFORM_ICONS[platform] ?? '🌐';
 
   return (
-    <div className="animate-blur-in mx-auto max-w-3xl px-4 py-8 md:px-6">
+    <div ref={articleRef} className="animate-blur-in mx-auto max-w-3xl px-4 py-8 md:px-6">
+
+      {/* Reading progress bar */}
+      {!isSeed && (
+        <div className="fixed left-0 top-0 z-[var(--z-sticky)] h-1 w-full bg-border/30">
+          <div
+            className="h-full bg-[#21DBA4] transition-[width] duration-300"
+            style={{ width: `${scrollPct}%` }}
+          />
+        </div>
+      )}
 
       {/* Back */}
       <Link
@@ -668,6 +744,11 @@ export function ClipDetailClient({ clipId }: Props) {
         <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
           <MarkdownContent content={seedContent} />
         </div>
+      )}
+
+      {/* Full content (real clips) */}
+      {clipContents && (
+        <RealContent clipContents={clipContents} url={clip.url} />
       )}
 
       {/* Source link */}

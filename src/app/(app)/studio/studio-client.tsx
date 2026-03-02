@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CONTENT_STUDIO_TYPES } from '@/config/constants';
 import type { ContentStudioType } from '@/config/constants';
 import { useClips } from '@/lib/hooks/use-clips';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,6 +38,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StudioOutputPanel } from './studio-output-panel';
+import type { HistoryItem } from './studio-output-panel';
 
 // ─── 콘텐츠 타입 메타데이터 ───────────────────────────────────────────────────
 
@@ -143,9 +145,13 @@ const LENGTH_OPTIONS = [
   { value: 'long', label: '길게 (1000자 이상)' },
 ];
 
+const MAX_HISTORY = 10;
+
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
 export function StudioClient() {
+  const queryClient = useQueryClient();
+
   const [selectedType, setSelectedType] = useState<ContentStudioType>('blog_post');
   const [selectedClipIds, setSelectedClipIds] = useState<Set<string>>(new Set());
   const [tone, setTone] = useState('professional');
@@ -153,6 +159,7 @@ export function StudioClient() {
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAllClips, setShowAllClips] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const { data, isLoading: clipsLoading } = useClips();
   const allClips = useMemo(
@@ -174,6 +181,39 @@ export function StudioClient() {
   };
 
   const clearClips = () => setSelectedClipIds(new Set());
+
+  // ── Save as clip mutation ─────────────────────────────────────────────────
+
+  const saveClipMutation = useMutation({
+    mutationFn: async () => {
+      const meta = STUDIO_META[selectedType];
+      const res = await fetch('/api/v1/clips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: `studio://${Date.now()}`,
+          title: `[${meta.label}] ${new Date().toLocaleDateString('ko-KR')}`,
+          summary: output.slice(0, 300),
+          platform: 'studio',
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null) as Record<string, unknown> | null;
+        const msg = (errData?.error as string | undefined) ?? '클립 저장 중 오류가 발생했습니다.';
+        throw new Error(msg);
+      }
+      return res.json() as Promise<Record<string, unknown>>;
+    },
+    onSuccess: () => {
+      toast.success('클립으로 저장되었습니다.');
+      void queryClient.invalidateQueries({ queryKey: ['clips'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  // ── Generate ──────────────────────────────────────────────────────────────
 
   const handleGenerate = async () => {
     if (selectedClipIds.size === 0) {
@@ -211,11 +251,24 @@ export function StudioClient() {
       }
 
       const decoder = new TextDecoder();
+      let generated = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+        generated += chunk;
         setOutput((prev) => prev + chunk);
+      }
+
+      // Push to history (FIFO, max 10)
+      if (generated) {
+        const meta = STUDIO_META[selectedType];
+        const newItem: HistoryItem = {
+          prompt: `${meta.label} · ${TONE_OPTIONS.find((t) => t.value === tone)?.label ?? tone}`,
+          output: generated,
+          createdAt: new Date(),
+        };
+        setHistory((prev) => [newItem, ...prev].slice(0, MAX_HISTORY));
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다.';
@@ -502,64 +555,22 @@ export function StudioClient() {
             )}
           </div>
 
-          {/* ── 5. 결과 영역 ─────────────────────────────────────────── */}
-          {output ? (
-            <div className="card-glow card-inner-glow animate-blur-in animation-delay-100 overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-center gap-2 border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3">
-                <div className="icon-glow relative rounded-lg bg-primary/10 p-1.5">
-                  <Sparkles size={12} className="text-primary" />
-                </div>
-                <span className="text-sm font-semibold text-foreground">생성 결과</span>
-                <Badge
-                  variant="secondary"
-                  className="ml-1 rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] text-primary"
-                >
-                  {STUDIO_META[selectedType].label}
-                </Badge>
-                <div className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-              </div>
-              <Textarea
-                value={output}
-                onChange={(e) => setOutput(e.target.value)}
-                className="min-h-[280px] resize-none border-0 bg-transparent p-5 text-sm leading-relaxed focus-visible:ring-0"
-                placeholder="생성된 콘텐츠가 여기에 표시됩니다..."
-              />
-              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-4 py-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl text-xs transition-spring hover:border-primary/30 hover:glow-brand-sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(output);
-                    toast.success('클립보드에 복사되었습니다.');
-                  }}
-                >
-                  복사
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl text-xs transition-spring hover:border-destructive/30"
-                  onClick={() => setOutput('')}
-                >
-                  초기화
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="animate-fade-in-up animation-delay-400 relative overflow-hidden rounded-2xl border border-dashed border-border/60 bg-muted/10 p-12 text-center">
-              <div className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-3xl" />
-              <div className="relative mx-auto mb-4 w-fit rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 p-5 ring-1 ring-primary/15">
-                <Sparkles size={28} className="animate-float text-primary" />
-              </div>
-              <p className="relative text-base font-semibold text-foreground">
-                콘텐츠가 여기에 표시됩니다
-              </p>
-              <p className="relative mt-1.5 text-sm text-muted-foreground">
-                유형과 클립을 선택한 후 AI로 생성 버튼을 누르세요
-              </p>
-            </div>
-          )}
+          {/* ── 5. 결과 + 이전 생성 기록 ─────────────────────────────── */}
+          <StudioOutputPanel
+            output={output}
+            onOutputChange={setOutput}
+            onCopy={() => {
+              void navigator.clipboard.writeText(output);
+              toast.success('클립보드에 복사되었습니다.');
+            }}
+            onReset={() => setOutput('')}
+            onSave={() => saveClipMutation.mutate()}
+            isSaving={saveClipMutation.isPending}
+            isGenerating={isGenerating}
+            contentTypeLabel={STUDIO_META[selectedType].label}
+            history={history}
+            onHistorySelect={(item) => setOutput(item.output)}
+          />
         </div>
       </div>
     </div>
