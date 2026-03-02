@@ -43,11 +43,13 @@ import {
   Gauge,
   Upload,
   Tags,
+  Link2,
 } from 'lucide-react';
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
 import { ProfileEditor } from '@/components/settings/profile-editor';
 import { TagManager } from '@/components/settings/tag-manager';
+import { WebhookManager } from '@/components/settings/webhook-manager';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -657,6 +659,18 @@ export function SettingsClient() {
               {creatingKey ? '생성 중...' : '생성'}
             </Button>
           </div>
+        </section>
+
+        {/* Webhook section */}
+        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-650 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 ring-1 ring-indigo-500/20">
+              <Link2 size={15} className="text-indigo-500" />
+            </div>
+            <h2 className="text-base font-semibold text-foreground">웹훅 관리</h2>
+          </div>
+
+          <WebhookManager />
         </section>
 
         {/* Danger zone */}

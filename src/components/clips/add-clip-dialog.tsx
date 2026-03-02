@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUIStore } from '@/stores/ui-store';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useTags } from '@/lib/hooks/use-tags';
+import { addNotification } from '@/lib/hooks/use-notifications';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabase } from '@/components/providers/supabase-provider';
@@ -201,6 +202,11 @@ export function AddClipDialog() {
       setSummary(data.summary ?? '');
       setPlatform(data.platform ?? 'web');
       setStep(2);
+      addNotification({
+        type: 'clip_analyzed',
+        title: 'AI 분석이 완료되었습니다',
+        message: data.title ?? trimmed,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'URL 분석에 실패했습니다.';
       toast.error(message);
@@ -244,6 +250,11 @@ export function AddClipDialog() {
 
       await queryClient.invalidateQueries({ queryKey: ['clips'] });
       toast.success('클립이 추가되었습니다');
+      addNotification({
+        type: 'clip_saved',
+        title: '클립이 저장되었습니다',
+        message: title || url.trim(),
+      });
       handleClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : '저장에 실패했습니다.';

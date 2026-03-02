@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useUIStore } from '@/stores/ui-store';
 import { AdvancedFilters } from '@/components/layout/advanced-filters';
+import { NotificationCenter } from '@/components/layout/notification-center';
 import { SORT_OPTIONS, VIEW_MODES } from '@/config/constants';
 import type { ViewMode } from '@/config/constants';
 import type { ClipSortBy } from '@/types/clip';
@@ -146,6 +147,9 @@ export function AppHeader({ title, titleKo }: AppHeaderProps) {
 
         {/* Advanced filters */}
         <AdvancedFilters />
+
+        {/* Notification center */}
+        <NotificationCenter />
 
         {/* Add clip button */}
         <Button
