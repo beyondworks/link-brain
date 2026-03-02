@@ -76,6 +76,54 @@ const fetchVideoMetadata = async (videoId: string, apiKey: string): Promise<Part
 };
 
 /**
+ * Fetch transcript from YouTube video page via captionTracks
+ */
+const fetchTranscript = async (videoId: string): Promise<string | null> => {
+    try {
+        const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const res = await fetch(pageUrl, {
+            headers: { 'Accept-Language': 'ko,en;q=0.9' },
+            signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) return null;
+        const html = await res.text();
+
+        const captionMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
+        if (!captionMatch) return null;
+
+        const tracks = JSON.parse(captionMatch[1]) as Array<{
+            baseUrl: string;
+            languageCode: string;
+            kind?: string;
+        }>;
+        if (!tracks.length) return null;
+
+        const track =
+            tracks.find(t => t.languageCode === 'ko') ??
+            tracks.find(t => t.languageCode === 'en') ??
+            tracks[0];
+
+        const captionUrl = `${track.baseUrl}&fmt=json3`;
+        const captionRes = await fetch(captionUrl, { signal: AbortSignal.timeout(10000) });
+        if (!captionRes.ok) return null;
+
+        const captionData = await captionRes.json() as {
+            events?: Array<{ segs?: Array<{ utf8: string }> }>;
+        };
+
+        const texts = (captionData.events ?? [])
+            .flatMap(e => e.segs ?? [])
+            .map(s => s.utf8)
+            .filter(Boolean);
+
+        return texts.join('').replace(/\n{3,}/g, '\n\n').trim() || null;
+    } catch (err) {
+        console.warn('[YouTube Extractor] Transcript fetch failed:', err);
+        return null;
+    }
+};
+
+/**
  * Extract YouTube content (metadata + transcript when available)
  */
 export const extractYouTubeContent = async (url: string): Promise<YouTubeVideoData | null> => {
@@ -114,8 +162,9 @@ export const extractYouTubeContent = async (url: string): Promise<YouTubeVideoDa
     const metadata = await fetchVideoMetadata(videoId, apiKey);
     if (!metadata) return null;
 
-    // Transcript fetching is not implemented in this stub
-    // Add timedtext API or third-party transcript service here if needed
+    // Transcript 페칭 시도
+    const transcript = await fetchTranscript(videoId);
+
     return {
         videoId,
         title: metadata.title || '',
@@ -123,7 +172,8 @@ export const extractYouTubeContent = async (url: string): Promise<YouTubeVideoDa
         channelTitle: metadata.channelTitle || '',
         thumbnailUrl: metadata.thumbnailUrl || '',
         duration: metadata.duration,
-        hasTranscript: false,
+        hasTranscript: !!transcript,
+        transcript: transcript ?? undefined,
     };
 };
 

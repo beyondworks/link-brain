@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
@@ -17,12 +17,67 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { User, Palette, Globe, Settings, Bell, Database, Key, Trash2, Download, Shield } from 'lucide-react';
+import {
+  User,
+  Palette,
+  Globe,
+  Settings,
+  Bell,
+  Database,
+  Key,
+  Trash2,
+  Download,
+  Copy,
+  Plus,
+  X,
+} from 'lucide-react';
 import type { ClipData } from '@/types/database';
 
+const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
+
+interface NotifSettings {
+  emailNotif: boolean;
+  aiNotif: boolean;
+  followerNotif: boolean;
+}
+
+function loadNotifSettings(): NotifSettings {
+  try {
+    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as NotifSettings;
+  } catch {
+    // localStorage 접근 불가 시 기본값 사용
+  }
+  return { emailNotif: true, aiNotif: true, followerNotif: false };
+}
+
+function saveNotifSettings(settings: NotifSettings) {
+  try {
+    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // localStorage 접근 불가 시 무시
+  }
+}
+
+// API 키 뷰 타입 (key_hash 제외)
+interface ApiKeyView {
+  id: string;
+  key_prefix: string;
+  name: string;
+  last_used_at: string | null;
+  timestamp: string;
+}
+
 export function SettingsClient() {
-  const { user, isLoading } = useCurrentUser();
+  const { user, authUser, isLoading } = useCurrentUser();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
@@ -37,30 +92,86 @@ export function SettingsClient() {
 
   // 언어 상태
   const [language, setLanguage] = useState('ko');
+  const [languagePending, setLanguagePending] = useState(false);
 
   // 내보내기 로딩 상태
   const [exportingJson, setExportingJson] = useState(false);
   const [exportingMd, setExportingMd] = useState(false);
 
+  // API 키 상태
+  const [apiKeys, setApiKeys] = useState<ApiKeyView[]>([]);
+  const [apiKeysLoading, setApiKeysLoading] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [creatingKey, setCreatingKey] = useState(false);
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const [revealDialogOpen, setRevealDialogOpen] = useState(false);
+  const [deletingKeyId, setDeletingKeyId] = useState<string | null>(null);
+
+  // 프로필 및 언어 초기화
   useEffect(() => {
     if (user && !initialized) {
       setDisplayName(user.display_name ?? '');
       setBio(user.bio ?? '');
+      setLanguage(user.language ?? 'ko');
       setInitialized(true);
     }
   }, [user, initialized]);
 
+  // 알림 설정 localStorage 초기화
+  useEffect(() => {
+    const saved = loadNotifSettings();
+    setEmailNotif(saved.emailNotif);
+    setAiNotif(saved.aiNotif);
+    setFollowerNotif(saved.followerNotif);
+  }, []);
+
+  // API 키 목록 로드
+  const loadApiKeys = useCallback(async () => {
+    setApiKeysLoading(true);
+    try {
+      const res = await fetch('/api/v1/keys');
+      if (!res.ok) throw new Error('Failed to load API keys');
+      const json = (await res.json()) as { success: boolean; data: ApiKeyView[] };
+      if (json.success) setApiKeys(json.data);
+    } catch {
+      toast.error('API 키 목록을 불러오지 못했습니다');
+    } finally {
+      setApiKeysLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadApiKeys();
+  }, [loadApiKeys]);
+
   function handleNotifChange(
+    key: keyof NotifSettings,
     setter: React.Dispatch<React.SetStateAction<boolean>>,
     value: boolean,
   ) {
     setter(value);
+    const current = loadNotifSettings();
+    saveNotifSettings({ ...current, [key]: value });
     toast.success('알림 설정이 변경되었습니다');
   }
 
-  function handleLanguageChange(value: string) {
+  async function handleLanguageChange(value: string) {
     setLanguage(value);
-    toast.success('언어가 변경되었습니다');
+    if (!user) return;
+    setLanguagePending(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ language: value })
+        .eq('id', user.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['user', authUser?.id] });
+      toast.success('언어가 변경되었습니다');
+    } catch {
+      toast.error('언어 변경에 실패했습니다');
+    } finally {
+      setLanguagePending(false);
+    }
   }
 
   async function fetchAllClips(): Promise<ClipData[]> {
@@ -121,17 +232,82 @@ export function SettingsClient() {
     }
   }
 
+  async function handleCreateKey() {
+    const name = newKeyName.trim();
+    if (!name) {
+      toast.error('키 이름을 입력해 주세요');
+      return;
+    }
+    setCreatingKey(true);
+    try {
+      const res = await fetch('/api/v1/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const json = (await res.json()) as {
+        success: boolean;
+        data?: { key: string; id: string; keyPrefix: string };
+        error?: { message: string };
+      };
+      if (!res.ok || !json.success || !json.data) {
+        toast.error(json.error?.message ?? 'API 키 생성에 실패했습니다');
+        return;
+      }
+      setRevealedKey(json.data.key);
+      setRevealDialogOpen(true);
+      setNewKeyName('');
+      await loadApiKeys();
+    } catch {
+      toast.error('API 키 생성에 실패했습니다');
+    } finally {
+      setCreatingKey(false);
+    }
+  }
+
+  async function handleDeleteKey(keyId: string) {
+    setDeletingKeyId(keyId);
+    try {
+      const res = await fetch(`/api/v1/keys/${keyId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('API 키 삭제에 실패했습니다');
+        return;
+      }
+      setApiKeys((prev) => prev.filter((k) => k.id !== keyId));
+      toast.success('API 키가 삭제되었습니다');
+    } catch {
+      toast.error('API 키 삭제에 실패했습니다');
+    } finally {
+      setDeletingKeyId(null);
+    }
+  }
+
+  function handleCopyKey() {
+    if (!revealedKey) return;
+    void navigator.clipboard.writeText(revealedKey);
+    toast.success('클립보드에 복사되었습니다');
+  }
+
+  function formatDate(iso: string | null) {
+    if (!iso) return '사용 없음';
+    return new Date(iso).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
   const updateProfile = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('users')
-        .update({ display_name: displayName, bio })
+        .update({ display_name: displayName, bio, language })
         .eq('id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['user', authUser?.id] });
       toast.success('프로필이 업데이트되었습니다');
     },
     onError: () => toast.error('프로필 업데이트 실패'),
@@ -268,7 +444,7 @@ export function SettingsClient() {
 
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-foreground">인터페이스 언어</Label>
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select value={language} onValueChange={handleLanguageChange} disabled={languagePending}>
               <SelectTrigger className="w-52 rounded-xl focus:ring-primary/30">
                 <SelectValue />
               </SelectTrigger>
@@ -297,7 +473,7 @@ export function SettingsClient() {
               </div>
               <Switch
                 checked={emailNotif}
-                onCheckedChange={(v) => handleNotifChange(setEmailNotif, v)}
+                onCheckedChange={(v) => handleNotifChange('emailNotif', setEmailNotif, v)}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -307,7 +483,7 @@ export function SettingsClient() {
               </div>
               <Switch
                 checked={aiNotif}
-                onCheckedChange={(v) => handleNotifChange(setAiNotif, v)}
+                onCheckedChange={(v) => handleNotifChange('aiNotif', setAiNotif, v)}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -317,7 +493,7 @@ export function SettingsClient() {
               </div>
               <Switch
                 checked={followerNotif}
-                onCheckedChange={(v) => handleNotifChange(setFollowerNotif, v)}
+                onCheckedChange={(v) => handleNotifChange('followerNotif', setFollowerNotif, v)}
               />
             </div>
           </div>
@@ -363,17 +539,82 @@ export function SettingsClient() {
             <h2 className="text-base font-semibold text-foreground">API 키</h2>
           </div>
 
-          <p className="mb-3 text-xs text-muted-foreground">
-            외부 앱이나 자동화에서 LinkBrain API를 사용할 수 있습니다.
+          <p className="mb-4 text-xs text-muted-foreground">
+            외부 앱이나 자동화에서 Linkbrain API를 사용할 수 있습니다. Free 플랜 최대 2개, Pro 플랜 최대 5개.
           </p>
-          <Button
-            variant="outline"
-            className="gap-2 rounded-xl transition-spring hover:border-primary/30 hover:glow-brand-sm"
-            onClick={() => toast.info('API 키 생성은 Pro 플랜에서 사용 가능합니다.')}
-          >
-            <Shield size={15} />
-            API 키 생성
-          </Button>
+
+          {/* 키 목록 */}
+          {apiKeysLoading ? (
+            <div className="mb-4 space-y-2">
+              <Skeleton className="h-10 w-full rounded-xl shimmer" />
+              <Skeleton className="h-10 w-full rounded-xl shimmer" />
+            </div>
+          ) : apiKeys.length === 0 ? (
+            <div className="mb-4 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                API 키가 없습니다. 외부 앱 연동을 위해 키를 생성하세요.
+              </p>
+            </div>
+          ) : (
+            <div className="mb-4 overflow-hidden rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">이름</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">프리픽스</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">마지막 사용</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {apiKeys.map((apiKey) => (
+                    <tr
+                      key={apiKey.id}
+                      className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="px-4 py-2.5 font-medium text-foreground">{apiKey.name}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{apiKey.key_prefix}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{formatDate(apiKey.last_used_at)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 rounded-lg p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-spring"
+                          disabled={deletingKeyId === apiKey.id}
+                          onClick={() => void handleDeleteKey(apiKey.id)}
+                          aria-label="API 키 삭제"
+                        >
+                          <X size={13} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 키 생성 폼 */}
+          <div className="flex gap-2">
+            <Input
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder="키 이름 (예: iPhone Shortcuts)"
+              className="rounded-xl focus-visible:ring-primary/30 transition-spring"
+              maxLength={64}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleCreateKey();
+              }}
+            />
+            <Button
+              onClick={() => void handleCreateKey()}
+              disabled={creatingKey || !newKeyName.trim()}
+              className="shrink-0 gap-1.5 rounded-xl bg-gradient-brand glow-brand shadow-none transition-spring hover-scale font-semibold"
+            >
+              <Plus size={14} />
+              {creatingKey ? '생성 중...' : '생성'}
+            </Button>
+          </div>
         </section>
 
         {/* Danger zone */}
@@ -399,6 +640,45 @@ export function SettingsClient() {
         </section>
 
       </div>
+
+      {/* Raw key 공개 Dialog */}
+      <Dialog open={revealDialogOpen} onOpenChange={setRevealDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+              <Key size={16} className="text-cyan-500" />
+              API 키가 생성되었습니다
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              이 키는 다시 볼 수 없습니다. 지금 복사해 안전한 곳에 보관하세요.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 rounded-xl border border-border bg-muted/40 p-3">
+            <p className="break-all font-mono text-xs text-foreground select-all">{revealedKey}</p>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <Button
+              className="flex-1 gap-2 rounded-xl bg-gradient-brand glow-brand shadow-none transition-spring hover-scale font-semibold"
+              onClick={handleCopyKey}
+            >
+              <Copy size={14} />
+              복사
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl transition-spring"
+              onClick={() => {
+                setRevealDialogOpen(false);
+                setRevealedKey(null);
+              }}
+            >
+              닫기
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
