@@ -30,6 +30,8 @@ import {
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { shareClip } from '@/lib/utils/share';
+import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
+import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import type { ClipData, ClipContent } from '@/types/database';
@@ -725,6 +727,14 @@ export function ClipDetailClient({ clipId }: Props) {
 
       {/* Tags */}
       {isSeed && <TagList clipId={clipId} />}
+      {!isSeed && <ClipTagEditor clipId={clipId} />}
+
+      {/* Collection assignment */}
+      {!isSeed && (
+        <div className="mb-5 animate-fade-in-up animation-delay-200">
+          <ClipCollectionAssigner clipId={clipId} />
+        </div>
+      )}
 
       {/* Summary */}
       {clip.summary && !['twitter', 'reddit'].includes(platform) && (
