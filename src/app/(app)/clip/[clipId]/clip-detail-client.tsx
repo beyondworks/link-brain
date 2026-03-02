@@ -42,6 +42,7 @@ import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assig
 import { ClipNotes } from '@/components/clips/clip-notes';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
+import { estimateReadingTime } from '@/lib/utils/reading-time';
 import type { ClipData, ClipContent } from '@/types/database';
 
 interface Props {
@@ -599,6 +600,19 @@ export function ClipDetailClient({ clipId }: Props) {
   const clip = seedClip ?? apiClip;
   const clipContents = !isSeed && apiClip ? apiClip.clip_contents : undefined;
 
+  // 읽기 시간: clip.read_time 우선, 없으면 콘텐츠 텍스트로 추정
+  const estimatedReadMinutes = useMemo(() => {
+    if (clip?.read_time != null) return null; // DB 값 있으면 추정 불필요
+    const text =
+      (seedContent ?? '') ||
+      (clipContents?.[0]?.content_markdown ??
+      clipContents?.[0]?.raw_markdown ??
+      clip?.summary ??
+      '');
+    if (!text) return null;
+    return estimateReadingTime(text).minutes;
+  }, [clip?.read_time, clip?.summary, seedContent, clipContents]);
+
   if (!isSeed && isLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -769,10 +783,10 @@ export function ClipDetailClient({ clipId }: Props) {
               {clip.author}
             </span>
           )}
-          {clip.read_time != null && (
+          {(clip.read_time != null || estimatedReadMinutes != null) && (
             <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
               <Clock size={11} />
-              {clip.read_time}분 읽기
+              약 {clip.read_time ?? estimatedReadMinutes}분 읽기
             </span>
           )}
           <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground">

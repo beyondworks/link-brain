@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: ['/', '/features', '/pricing', '/explore', '/p/'],
-        disallow: ['/dashboard', '/settings', '/studio', '/insights', '/api/', '/callback'],
+        disallow: ['/dashboard', '/settings', '/studio', '/insights', '/api/', '/callback', '/login', '/signup'],
       },
     ],
     sitemap: 'https://linkbrain.cloud/sitemap.xml',

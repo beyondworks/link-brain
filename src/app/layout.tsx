@@ -5,6 +5,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { SupabaseProvider } from '@/components/providers/supabase-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { SwRegister } from '@/components/pwa/sw-register';
 import './globals.css';
 
 const inter = Inter({
@@ -15,28 +16,34 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Linkbrain',
-    template: '%s — Linkbrain',
+    default: 'Linkbrain — AI-powered Bookmark Manager',
+    template: '%s | Linkbrain',
   },
-  description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
-  keywords: ['AI', '세컨드 브레인', '북마크', '지식 관리', '링크', 'second brain', 'knowledge management'],
+  description: 'Save anything from the web, let AI organize it, and turn your bookmarks into a second brain. Supports YouTube, Twitter, blogs, and more.',
+  keywords: ['AI', '세컨드 브레인', '북마크', '지식 관리', '링크', 'second brain', 'knowledge management', 'bookmark manager', 'AI bookmark'],
   authors: [{ name: 'Linkbrain' }],
   creator: 'Linkbrain',
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? 'https://linkbrain.cloud'
   ),
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
     siteName: 'Linkbrain',
-    title: 'Linkbrain',
-    description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
+    title: 'Linkbrain — AI-powered Bookmark Manager',
+    description: 'Save anything from the web, let AI organize it, and turn your bookmarks into a second brain.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Linkbrain',
-    description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
+    site: '@linkbrain_app',
+    title: 'Linkbrain — AI-powered Bookmark Manager',
+    description: 'Save anything from the web, let AI organize it, and turn your bookmarks into a second brain.',
   },
+  manifest: '/manifest.json',
   icons: {
     icon: '/icons/favicon.ico',
     apple: '/icons/apple-touch-icon.png',
@@ -69,6 +76,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           as="style"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        <SwRegister />
         <QueryProvider>
           <SupabaseProvider>
             <ThemeProvider>
