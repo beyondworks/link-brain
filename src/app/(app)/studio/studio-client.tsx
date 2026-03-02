@@ -181,21 +181,48 @@ export function StudioClient() {
       return;
     }
     setIsGenerating(true);
-    // AI API 연결 전 placeholder — Phase 4에서 실제 API 연결
-    await new Promise((r) => setTimeout(r, 1200));
-    setIsGenerating(false);
-    toast.info('AI 콘텐츠 생성은 Phase 4에서 연결됩니다. 선택한 클립과 설정이 저장되었습니다.', {
-      duration: 4000,
-    });
-    const meta = STUDIO_META[selectedType];
-    setOutput(
-      `[ ${meta.label} 미리보기 ]\n\n` +
-      `선택된 클립: ${selectedClipIds.size}개\n` +
-      `톤: ${TONE_OPTIONS.find((o) => o.value === tone)?.label}\n` +
-      `길이: ${LENGTH_OPTIONS.find((o) => o.value === length)?.label}\n\n` +
-      `AI 콘텐츠 생성 기능이 연결되면 이 영역에 실제 생성 결과가 표시됩니다.\n` +
-      `현재 선택된 설정이 유효하며, API 연결 즉시 동작할 준비가 완료되었습니다.`
-    );
+    setOutput('');
+
+    try {
+      const res = await fetch('/api/v1/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clipIds: Array.from(selectedClipIds),
+          type: selectedType,
+          tone,
+          length,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null) as Record<string, unknown> | null;
+        const msg =
+          (errData?.error as Record<string, unknown> | undefined)?.message as string | undefined ??
+          'AI 생성 중 오류가 발생했습니다.';
+        toast.error(msg);
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        toast.error('응답 스트림을 읽을 수 없습니다.');
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setOutput((prev) => prev + chunk);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const selectedMeta = STUDIO_META[selectedType];

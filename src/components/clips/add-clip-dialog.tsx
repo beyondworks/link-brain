@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { Loader2, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,44 +17,15 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useUIStore } from '@/stores/ui-store';
 import { useCategories } from '@/lib/hooks/use-categories';
+import { useTags } from '@/lib/hooks/use-tags';
 import { cn } from '@/lib/utils';
 
-function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace('www.', '');
-  } catch {
-    return '';
-  }
-}
-
-function detectPlatform(url: string): string {
-  const domain = extractDomain(url);
-  if (domain.includes('youtube')) return 'youtube';
-  if (domain.includes('twitter') || domain.includes('x.com')) return 'twitter';
-  if (domain.includes('instagram')) return 'instagram';
-  if (domain.includes('threads')) return 'threads';
-  if (domain.includes('naver')) return 'naver';
-  if (domain.includes('pinterest')) return 'pinterest';
-  return 'web';
-}
-
-function buildSimulatedPreview(url: string) {
-  const domain = extractDomain(url);
-  const platform = detectPlatform(url);
-  return {
-    title: `${domain} 에서 저장된 콘텐츠`,
-    summary: `${domain}의 콘텐츠입니다. AI가 분석하여 요약을 생성합니다.`,
-    platform,
-  };
-}
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
+interface AnalyzeResult {
+  title: string;
+  summary: string;
+  platform: string;
+  image: string | null;
+  author: string;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -65,28 +38,42 @@ const PLATFORM_LABELS: Record<string, string> = {
   web: '웹',
 };
 
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function AddClipDialog() {
   const activeModal = useUIStore((s) => s.activeModal);
   const closeModal = useUIStore((s) => s.closeModal);
+  const queryClient = useQueryClient();
 
   const { data: categories = [] } = useCategories();
+  const { data: existingTags = [] } = useTags();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
-  const [platform, setPlatform] = useState('');
+  const [platform, setPlatform] = useState('web');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
 
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   const isOpen = activeModal === 'addClip';
 
   function handleOpenChange(open: boolean) {
-    if (!open) {
-      handleClose();
-    }
+    if (!open) handleClose();
   }
 
   function handleClose() {
@@ -95,10 +82,14 @@ export function AddClipDialog() {
       setStep(1);
       setUrl('');
       setUrlError('');
+      setIsAnalyzing(false);
+      setIsSaving(false);
       setTitle('');
       setSummary('');
-      setPlatform('');
+      setPlatform('web');
       setSelectedCategoryId(null);
+      setSelectedTags([]);
+      setTagInput('');
     }, 200);
   }
 
@@ -113,37 +104,131 @@ export function AddClipDialog() {
     }
   }
 
-  function handleAnalyze() {
-    if (!url.trim()) {
+  async function handleAnalyze() {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setUrlError('URL을 입력해주세요.');
       return;
     }
-    if (!isValidUrl(url.trim())) {
+    if (!isValidUrl(trimmed)) {
       setUrlError('유효한 URL을 입력해주세요.');
       return;
     }
     setUrlError('');
-    const preview = buildSimulatedPreview(url.trim());
-    setTitle(preview.title);
-    setSummary(preview.summary);
-    setPlatform(preview.platform);
-    setStep(2);
-  }
+    setIsAnalyzing(true);
 
-  function handleUrlKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      handleAnalyze();
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? 'URL 분석에 실패했습니다.');
+      }
+
+      const data = (await res.json()) as AnalyzeResult;
+      setTitle(data.title ?? trimmed);
+      setSummary(data.summary ?? '');
+      setPlatform(data.platform ?? 'web');
+      setStep(2);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'URL 분석에 실패했습니다.';
+      toast.error(message);
+    } finally {
+      setIsAnalyzing(false);
     }
   }
 
-  function handleSave() {
-    toast.success('클립이 추가되었습니다');
-    handleClose();
+  function handleUrlKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') handleAnalyze();
   }
+
+  async function handleSave() {
+    setIsSaving(true);
+
+    // Resolve category name from selectedCategoryId
+    const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+
+    try {
+      const res = await fetch('/api/v1/clips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: url.trim(),
+          title,
+          summary,
+          ...(selectedCategory ? { category: selectedCategory.name } : {}),
+          ...(selectedTags.length > 0 ? { keywords: selectedTags } : {}),
+        }),
+      });
+
+      if (res.status === 409) {
+        toast.warning('이미 저장된 URL입니다.');
+        return;
+      }
+
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        throw new Error(err.error ?? '저장에 실패했습니다.');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['clips'] });
+      toast.success('클립이 추가되었습니다');
+      handleClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const addTag = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (selectedTags.includes(trimmed)) return;
+      setSelectedTags((prev) => [...prev, trimmed]);
+    },
+    [selectedTags]
+  );
+
+  function removeTag(name: string) {
+    setSelectedTags((prev) => prev.filter((t) => t !== name));
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+      setTagInput('');
+    } else if (e.key === 'Backspace' && !tagInput && selectedTags.length > 0) {
+      setSelectedTags((prev) => prev.slice(0, -1));
+    }
+  }
+
+  // Suggestions: existing tags not already selected, filtered by current input
+  const tagSuggestions = useMemo(
+    () =>
+      existingTags
+        .filter(
+          (t) =>
+            !selectedTags.includes(t.name) &&
+            (tagInput ? t.name.toLowerCase().includes(tagInput.toLowerCase()) : true)
+        )
+        .slice(0, 5),
+    [existingTags, selectedTags, tagInput]
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent aria-describedby={undefined} className="border-gradient bg-glass-heavy overflow-y-auto max-h-[85vh] rounded-2xl shadow-elevated sm:max-w-lg">
+      <DialogContent
+        aria-describedby={undefined}
+        className="border-gradient bg-glass-heavy overflow-y-auto max-h-[85vh] rounded-2xl shadow-elevated sm:max-w-lg"
+      >
         <DialogHeader>
           <div className="mb-1 flex items-center gap-3">
             {/* Step indicator — gradient progress bar */}
@@ -151,17 +236,13 @@ export function AddClipDialog() {
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-spring',
-                  step >= 1
-                    ? 'w-8 bg-gradient-brand'
-                    : 'w-6 bg-muted'
+                  step >= 1 ? 'w-8 bg-gradient-brand' : 'w-6 bg-muted'
                 )}
               />
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-spring',
-                  step >= 2
-                    ? 'w-8 bg-gradient-brand glow-brand-sm'
-                    : 'w-6 bg-muted'
+                  step >= 2 ? 'w-8 bg-gradient-brand glow-brand-sm' : 'w-6 bg-muted'
                 )}
               />
             </div>
@@ -175,7 +256,9 @@ export function AddClipDialog() {
         {step === 1 ? (
           <div className="space-y-4 animate-blur-in">
             <div className="space-y-2">
-              <Label htmlFor="clip-url" className="text-sm font-medium">URL</Label>
+              <Label htmlFor="clip-url" className="text-sm font-medium">
+                URL
+              </Label>
               <Input
                 id="clip-url"
                 ref={urlInputRef}
@@ -194,6 +277,7 @@ export function AddClipDialog() {
                   url && isValidUrl(url) && 'focus-visible:ring-primary/50 glow-brand-sm'
                 )}
                 autoFocus
+                disabled={isAnalyzing}
               />
               {urlError && (
                 <p className="text-sm text-destructive animate-pop-in">{urlError}</p>
@@ -202,16 +286,26 @@ export function AddClipDialog() {
             <div className="flex justify-end">
               <Button
                 onClick={handleAnalyze}
+                disabled={isAnalyzing}
                 className="w-full bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
               >
-                분석
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    분석 중...
+                  </>
+                ) : (
+                  '분석'
+                )}
               </Button>
             </div>
           </div>
         ) : (
           <div className="space-y-4 animate-blur-in">
             <div className="space-y-2">
-              <Label htmlFor="clip-title" className="text-sm font-medium">제목</Label>
+              <Label htmlFor="clip-title" className="text-sm font-medium">
+                제목
+              </Label>
               <Input
                 id="clip-title"
                 value={title}
@@ -222,7 +316,9 @@ export function AddClipDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="clip-summary" className="text-sm font-medium">요약</Label>
+              <Label htmlFor="clip-summary" className="text-sm font-medium">
+                요약
+              </Label>
               <Textarea
                 id="clip-summary"
                 value={summary}
@@ -284,24 +380,86 @@ export function AddClipDialog() {
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">태그</Label>
-              <div className="flex h-9 items-center rounded-xl border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                태그 입력 (Phase 4에서 연결 예정)
+              {/* Tag input area */}
+              <div
+                className={cn(
+                  'flex min-h-9 flex-wrap items-center gap-1.5 rounded-xl border border-input bg-muted/40 px-3 py-1.5 transition-spring',
+                  'focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20'
+                )}
+                onClick={() => tagInputRef.current?.focus()}
+              >
+                {selectedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeTag(tag);
+                      }}
+                      className="ml-0.5 rounded-full hover:text-destructive transition-colors"
+                      aria-label={`${tag} 태그 제거`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  ref={tagInputRef}
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  placeholder={selectedTags.length === 0 ? '태그 입력 후 Enter...' : ''}
+                  className="min-w-[80px] flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
               </div>
+              {/* Autocomplete suggestions */}
+              {tagInput && tagSuggestions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {tagSuggestions.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        addTag(t.name);
+                        setTagInput('');
+                        tagInputRef.current?.focus();
+                      }}
+                      className="rounded-md border border-border/60 bg-surface px-2 py-0.5 text-xs text-muted-foreground transition-spring hover:border-primary/30 hover:text-primary"
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
               <Button
                 variant="outline"
                 onClick={handleClose}
+                disabled={isSaving}
                 className="rounded-xl border-border transition-spring hover-lift"
               >
                 취소
               </Button>
               <Button
                 onClick={handleSave}
+                disabled={isSaving}
                 className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring"
               >
-                저장
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    저장 중...
+                  </>
+                ) : (
+                  '저장'
+                )}
               </Button>
             </div>
           </div>

@@ -23,22 +23,33 @@ interface AnalyzeBody {
 /**
  * Validate URL for SSRF prevention
  */
+function isPrivateHostname(hostname: string): boolean {
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname === '::1' ||
+    hostname.endsWith('.local') ||
+    hostname === 'metadata.google.internal'
+  ) return true;
+  // RFC 1918: 10.0.0.0/8
+  if (hostname.startsWith('10.')) return true;
+  // RFC 1918: 192.168.0.0/16
+  if (hostname.startsWith('192.168.')) return true;
+  // RFC 1918: 172.16.0.0/12 (172.16.* ~ 172.31.*)
+  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)) return true;
+  // AWS IMDS / link-local
+  if (hostname.startsWith('169.254.')) return true;
+  return false;
+}
+
 function validateUrl(url: string): { valid: boolean; error?: string } {
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return { valid: false, error: 'Only HTTP/HTTPS URLs are supported' };
     }
-    const hostname = parsed.hostname.toLowerCase();
-    // Block internal/private addresses
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.endsWith('.local')
-    ) {
+    if (isPrivateHostname(parsed.hostname.toLowerCase())) {
       return { valid: false, error: 'Private/internal URLs are not allowed' };
     }
     return { valid: true };
