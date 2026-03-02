@@ -1,13 +1,13 @@
 'use client';
 
-import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge } from 'lucide-react';
+import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
 import { useClips } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
-import { SEED_CLIPS } from '@/config/seed-clips';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
 
@@ -91,7 +91,6 @@ function StatCard({
 }
 
 export function DashboardClient() {
-  const openModal = useUIStore((s) => s.openModal);
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
 
@@ -124,7 +123,6 @@ export function DashboardClient() {
   const hasActiveFilters =
     filters.categoryId || filters.collectionId || filters.platform ||
     filters.isFavorite || filters.isReadLater;
-  const displayClips = (!hasActiveFilters && clips.length === 0) ? SEED_CLIPS : clips;
 
   function handleFilterClick(key: QuickFilter) {
     setQuickFilter(key);
@@ -211,29 +209,51 @@ export function DashboardClient() {
           <div className="flex items-center justify-center py-32 text-muted-foreground text-sm">
             불러오는 중...
           </div>
+        ) : clips.length === 0 && !hasActiveFilters ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/5">
+              <Sparkles size={28} className="text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground">첫 번째 클립을 저장해보세요</h2>
+            <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+              URL을 입력하면 AI가 자동으로 분석하고 정리합니다
+            </p>
+            <Button
+              onClick={() => useUIStore.getState().openModal('addClip')}
+              className="mt-6 rounded-xl bg-gradient-brand px-6 text-white shadow-brand hover-scale"
+            >
+              <BookmarkPlus size={15} className="mr-2" />
+              클립 추가
+            </Button>
+            <p className="mt-4 text-xs text-muted-foreground/70">
+              또는{' '}
+              <Link href="/features" className="underline underline-offset-2 hover:text-primary transition-colors">
+                브라우저 확장 프로그램을 사용해보세요
+              </Link>
+            </p>
+          </div>
+        ) : clips.length === 0 && hasActiveFilters ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-base font-semibold text-foreground">검색 결과가 없습니다</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              다른 필터를 선택하거나 필터를 초기화해보세요
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => useUIStore.getState().clearFilters()}
+              className="mt-5 rounded-xl"
+            >
+              <RotateCcw size={14} className="mr-2" />
+              필터 초기화
+            </Button>
+          </div>
         ) : (
-          <>
-            {clips.length === 0 && displayClips.length > 0 && (
-              <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-                <span>데모 클립이 표시되고 있습니다. 클립을 추가하면 실제 데이터로 대체됩니다.</span>
-                <Button
-                  size="sm"
-                  onClick={() => openModal('addClip')}
-                  className="shrink-0 rounded-lg bg-gradient-brand text-white shadow-brand hover-scale"
-                >
-                  <BookmarkPlus size={13} className="mr-1" />
-                  클립 추가
-                </Button>
-              </div>
-            )}
-            <ClipList
-                clips={displayClips}
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-                fetchNextPage={fetchNextPage}
-              />
-
-          </>
+          <ClipList
+            clips={clips}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+          />
         )}
       </div>
 

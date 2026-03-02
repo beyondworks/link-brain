@@ -20,8 +20,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { FolderOpen, Pencil, Trash2, X } from 'lucide-react';
+import { FolderOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { ClipData } from '@/types/database';
+import { AddClipsToCollectionDialog } from '@/components/collections/add-clips-to-collection-dialog';
 
 interface Props {
   collectionId: string;
@@ -42,6 +43,7 @@ export function CollectionDetailClient({ collectionId }: Props) {
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addClipsOpen, setAddClipsOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editColor, setEditColor] = useState('');
@@ -144,6 +146,14 @@ export function CollectionDetailClient({ collectionId }: Props) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              size="sm"
+              className="rounded-xl gap-1.5 bg-gradient-brand glow-brand font-semibold shadow-none transition-spring"
+              onClick={() => setAddClipsOpen(true)}
+            >
+              <Plus size={14} />
+              클립 추가
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -308,6 +318,14 @@ export function CollectionDetailClient({ collectionId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Clips Dialog */}
+      <AddClipsToCollectionDialog
+        open={addClipsOpen}
+        onOpenChange={setAddClipsOpen}
+        collectionId={collectionId}
+        existingClipIds={new Set(validClips.map((c) => c.id))}
+      />
     </div>
   );
 }
