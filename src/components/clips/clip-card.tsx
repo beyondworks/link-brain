@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Heart, Archive, ExternalLink, Share2 } from 'lucide-react';
+import { Heart, Archive, ExternalLink, Share2, MessageSquare } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { Card } from '@/components/ui/card';
@@ -206,11 +206,20 @@ export const ClipCard = memo(function ClipCard({
           <span className="text-[11px] font-medium text-muted-foreground/60">
             {formatRelativeTime(clip.created_at)}
           </span>
-          {clip.is_read_later && (
-            <span className="rounded-full bg-gradient-brand px-2.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
-              나중에
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {(clip as ClipData & { notes?: string | null }).notes && (
+              <MessageSquare
+                size={12}
+                className="text-primary/60"
+                aria-label="메모 있음"
+              />
+            )}
+            {clip.is_read_later && (
+              <span className="rounded-full bg-gradient-brand px-2.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
+                나중에
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Card>

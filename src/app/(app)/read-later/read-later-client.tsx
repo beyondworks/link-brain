@@ -3,12 +3,24 @@
 import { useReadLaterClips } from '@/lib/hooks/use-clips';
 import { ClipList } from '@/components/clips/clip-list';
 import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
-import { Bookmark } from 'lucide-react';
+import { Bookmark, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function ReadLaterClient() {
-  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useReadLaterClips();
+  const { data, isLoading, isError, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } = useReadLaterClips();
 
   const clips = data?.pages.flatMap((p) => p.data) ?? [];
+
+  if (isError) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="text-lg font-semibold">클립을 불러오지 못했습니다</h2>
+        <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'}</p>
+        <Button onClick={() => refetch()} variant="outline">다시 시도</Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

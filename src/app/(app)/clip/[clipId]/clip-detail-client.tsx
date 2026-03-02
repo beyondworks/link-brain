@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useToggleFavorite } from '@/hooks/mutations/use-toggle-favorite';
 import { useArchiveClip } from '@/hooks/mutations/use-archive-clip';
 import { useReadingProgress } from '@/hooks/mutations/use-reading-progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import {
   Star,
   Archive,
@@ -26,12 +28,17 @@ import {
   ArrowUpRight,
   BookOpen,
   Hash,
+  Link2,
+  Link2Off,
+  Copy,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { shareClip } from '@/lib/utils/share';
 import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
+import { ClipNotes } from '@/components/clips/clip-notes';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import type { ClipData, ClipContent } from '@/types/database';
@@ -513,6 +520,60 @@ export function ClipDetailClient({ clipId }: Props) {
   const [scrollPct, setScrollPct] = useState(progress?.scroll_percentage ?? 0);
   const articleRef = useRef<HTMLDivElement>(null);
 
+  // Share state — initialise from clip data once loaded
+  const [isPublic, setIsPublic] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Sync from loaded clip
+  useEffect(() => {
+    if (apiClip) {
+      setIsPublic(apiClip.is_public);
+      if (apiClip.share_token && apiClip.is_public) {
+        const base = typeof window !== 'undefined' ? window.location.origin : '';
+        setShareUrl(`${base}/s/${apiClip.share_token}`);
+      }
+    }
+  }, [apiClip]);
+
+  const enableShare = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v1/clips/${clipId}/share`, { method: 'POST' });
+      if (!res.ok) throw new Error('공유 링크 생성에 실패했습니다');
+      const json = (await res.json()) as { data: { shareUrl: string } };
+      return json.data.shareUrl;
+    },
+    onSuccess: (url) => {
+      setIsPublic(true);
+      setShareUrl(url);
+    },
+    onError: () => toast.error('공유 링크 생성에 실패했습니다'),
+  });
+
+  const disableShare = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v1/clips/${clipId}/share`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('공유 링크 해제에 실패했습니다');
+    },
+    onSuccess: () => {
+      setIsPublic(false);
+      setShareUrl(null);
+    },
+    onError: () => toast.error('공유 링크 해제에 실패했습니다'),
+  });
+
+  async function handleCopyShareUrl() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('공유 링크가 복사되었습니다');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('복사에 실패했습니다');
+    }
+  }
+
   useEffect(() => {
     if (progress?.scroll_percentage != null) {
       setScrollPct(progress.scroll_percentage);
@@ -736,6 +797,55 @@ export function ClipDetailClient({ clipId }: Props) {
         </div>
       )}
 
+      {/* 공유 링크 */}
+      {!isSeed && (
+        <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-5 shadow-card animate-fade-in-up animation-delay-200">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              {isPublic ? (
+                <Link2 size={15} className="shrink-0 text-primary" />
+              ) : (
+                <Link2Off size={15} className="shrink-0 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-semibold text-foreground">공유 링크</p>
+                <p className="text-xs text-muted-foreground">
+                  {isPublic ? '누구나 이 링크로 클립을 볼 수 있습니다' : '이 클립은 비공개입니다'}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant={isPublic ? 'destructive' : 'outline'}
+              size="sm"
+              className="shrink-0 rounded-xl text-xs"
+              disabled={enableShare.isPending || disableShare.isPending}
+              onClick={() => isPublic ? disableShare.mutate() : enableShare.mutate()}
+            >
+              {isPublic ? '공유 해제' : '공유 링크 생성'}
+            </Button>
+          </div>
+
+          {isPublic && shareUrl && (
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+              <span className="flex-1 truncate text-xs text-foreground/70">{shareUrl}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 rounded-lg"
+                onClick={handleCopyShareUrl}
+                aria-label="링크 복사"
+              >
+                {copied ? (
+                  <Check size={13} className="text-primary" />
+                ) : (
+                  <Copy size={13} className="text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Summary */}
       {clip.summary && !['twitter', 'reddit'].includes(platform) && (
         <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-200">
@@ -759,6 +869,14 @@ export function ClipDetailClient({ clipId }: Props) {
       {/* Full content (real clips) */}
       {clipContents && (
         <RealContent clipContents={clipContents} url={clip.url} />
+      )}
+
+      {/* Personal notes (non-seed clips only) */}
+      {!isSeed && (
+        <ClipNotes
+          clipId={clipId}
+          initialNotes={(clip as ClipData & { notes?: string | null }).notes}
+        />
       )}
 
       {/* Source link */}

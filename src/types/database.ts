@@ -72,6 +72,7 @@ export interface ClipData {
   is_read_later: boolean;
   is_archived: boolean;
   is_public: boolean;
+  share_token: string | null;
   category_id: string | null;
   views: number;
   likes_count: number;

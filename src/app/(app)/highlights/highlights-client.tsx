@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Download, Trash2, ExternalLink, Highlighter } from 'lucide-react';
+import { Download, Trash2, ExternalLink, Highlighter, AlertTriangle } from 'lucide-react';
 
 // ─── 마크다운 내보내기 ─────────────────────────────────────────────────────────
 
@@ -210,7 +210,7 @@ export function HighlightsClient() {
   const [colorFilter, setColorFilter] = useState<string>('all');
   const [groupByClip, setGroupByClip] = useState(false);
 
-  const { data: annotations = [], isLoading } = useAllAnnotations(
+  const { data: annotations = [], isLoading, isError, error, refetch } = useAllAnnotations(
     colorFilter === 'all' ? undefined : colorFilter
   );
 
@@ -223,6 +223,17 @@ export function HighlightsClient() {
     }
     return map;
   }, [annotations, groupByClip]);
+
+  if (isError) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h2 className="text-lg font-semibold">하이라이트를 불러오지 못했습니다</h2>
+        <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'}</p>
+        <Button onClick={() => refetch()} variant="outline">다시 시도</Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
