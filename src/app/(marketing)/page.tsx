@@ -1,5 +1,27 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+
+export const metadata: Metadata = {
+  title: 'Linkbrain — AI 세컨드 브레인 | 웹 콘텐츠 저장 & 지식 관리',
+  description: '웹의 모든 콘텐츠를 저장하고, AI로 정리하고, 지식으로 연결하세요. YouTube, Twitter, 블로그 등 모든 플랫폼을 지원합니다.',
+  openGraph: {
+    title: 'Linkbrain — AI 세컨드 브레인',
+    description: '웹의 모든 콘텐츠를 저장하고, AI로 정리하고, 지식으로 연결하세요.',
+    url: 'https://linkbrain.cloud',
+    siteName: 'Linkbrain',
+    type: 'website',
+    locale: 'ko_KR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Linkbrain — AI 세컨드 브레인',
+    description: '웹의 모든 콘텐츠를 저장하고, AI로 정리하고, 지식으로 연결하세요.',
+  },
+  alternates: {
+    canonical: 'https://linkbrain.cloud',
+  },
+};
 import {
   Brain,
   Zap,

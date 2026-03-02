@@ -15,34 +15,31 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "LinkBrain - AI Second Brain",
-    template: "%s | LinkBrain",
+    default: 'Linkbrain',
+    template: '%s — Linkbrain',
   },
-  description:
-    "AI-powered second brain for saving, organizing, and discovering knowledge from links, articles, and the web.",
-  keywords: ["AI", "second brain", "bookmarks", "knowledge management", "links"],
-  authors: [{ name: "LinkBrain" }],
-  creator: "LinkBrain",
+  description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
+  keywords: ['AI', '세컨드 브레인', '북마크', '지식 관리', '링크', 'second brain', 'knowledge management'],
+  authors: [{ name: 'Linkbrain' }],
+  creator: 'Linkbrain',
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://linkbrain.app"
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://linkbrain.cloud'
   ),
   openGraph: {
-    type: "website",
-    locale: "ko_KR",
-    siteName: "LinkBrain",
-    title: "LinkBrain - AI Second Brain",
-    description:
-      "AI-powered second brain for saving, organizing, and discovering knowledge.",
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: 'Linkbrain',
+    title: 'Linkbrain',
+    description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "LinkBrain - AI Second Brain",
-    description:
-      "AI-powered second brain for saving, organizing, and discovering knowledge.",
+    card: 'summary_large_image',
+    title: 'Linkbrain',
+    description: 'AI 세컨드 브레인 — 웹 콘텐츠 저장 & 지식 관리',
   },
   icons: {
-    icon: "/icons/favicon.ico",
-    apple: "/icons/apple-touch-icon.png",
+    icon: '/icons/favicon.ico',
+    apple: '/icons/apple-touch-icon.png',
   },
 };
 

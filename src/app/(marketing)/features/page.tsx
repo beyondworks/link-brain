@@ -1,5 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+
+export const metadata: Metadata = {
+  title: '기능 — Linkbrain',
+  description: '멀티 플랫폼 클리핑, AI 자동 정리, 시맨틱 연결, Content Studio 등 Linkbrain의 모든 기능을 알아보세요.',
+  openGraph: {
+    title: '기능 — Linkbrain',
+    description: 'Linkbrain의 모든 기능을 알아보세요. 저장부터 창작까지, 지식의 전 과정을 하나의 도구로.',
+    url: 'https://linkbrain.cloud/features',
+  },
+  alternates: { canonical: 'https://linkbrain.cloud/features' },
+};
 import {
   Globe,
   Sparkles,
