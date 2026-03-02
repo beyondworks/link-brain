@@ -23,6 +23,7 @@ import {
 import { FolderOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { ClipData } from '@/types/database';
 import { AddClipsToCollectionDialog } from '@/components/collections/add-clips-to-collection-dialog';
+import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 
 interface Props {
   collectionId: string;
@@ -103,6 +104,16 @@ export function CollectionDetailClient({ collectionId }: Props) {
 
   return (
     <div className="relative">
+      {/* Breadcrumb */}
+      <div className="px-6 pt-5 pb-0 lg:px-8">
+        <Breadcrumbs
+          items={[
+            { label: '컬렉션', href: '/collections' },
+            { label: collection.name, href: undefined },
+          ]}
+        />
+      </div>
+
       {/* Hero header */}
       <div className="relative overflow-hidden bg-gradient-mesh px-6 py-8 lg:px-8 lg:py-10">
         <div

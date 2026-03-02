@@ -14,6 +14,7 @@ import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
+import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 
 type QuickFilter = 'all' | 'favorite' | 'readLater';
 
@@ -272,6 +273,7 @@ export function DashboardClient() {
       </div>
 
       <AddClipDialog />
+      <WelcomeDialog />
     </div>
   );
 }

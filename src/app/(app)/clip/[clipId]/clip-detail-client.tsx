@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { shareClip } from '@/lib/utils/share';
 import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
@@ -648,14 +649,12 @@ export function ClipDetailClient({ clipId }: Props) {
         </div>
       )}
 
-      {/* Back */}
-      <Link
-        href="/dashboard"
-        className="mb-7 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover-lift"
-      >
-        <ArrowLeft size={15} />
-        돌아가기
-      </Link>
+      {/* Breadcrumb */}
+      <div className="mb-7">
+        <Breadcrumbs
+          items={[{ label: clip.title ?? '클립', href: undefined }]}
+        />
+      </div>
 
       {/* Demo banner */}
       {isSeed && <DemoBanner />}

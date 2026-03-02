@@ -50,6 +50,7 @@ import { importClips } from '@/lib/utils/import';
 import { ProfileEditor } from '@/components/settings/profile-editor';
 import { TagManager } from '@/components/settings/tag-manager';
 import { WebhookManager } from '@/components/settings/webhook-manager';
+import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -312,6 +313,11 @@ export function SettingsClient() {
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="glow-orb absolute -right-16 -top-16 h-48 w-48 opacity-20" />
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Breadcrumbs items={[{ label: '설정', href: undefined }]} />
       </div>
 
       {/* Page header */}
