@@ -6,7 +6,7 @@ import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
 import { Star } from 'lucide-react';
 
 export function FavoritesClient() {
-  const { data, isLoading } = useFavoriteClips();
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useFavoriteClips();
 
   const clips = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -63,7 +63,12 @@ export function FavoritesClient() {
         </div>
       ) : (
         <div className="relative animate-blur-in animation-delay-100">
-          <ClipList clips={clips} />
+          <ClipList
+            clips={clips}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+          />
         </div>
       )}
     </div>

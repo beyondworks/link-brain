@@ -4,7 +4,7 @@ import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-qu
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { supabase } from '@/lib/supabase/client';
-import type { ClipData } from '@/types/database';
+import type { ClipData, ClipContent } from '@/types/database';
 import type { ClipFilters, ClipSortBy, SortOrder } from '@/types/clip';
 
 const PAGE_SIZE = 30;
@@ -110,7 +110,7 @@ export function useClip(clipId: string | null) {
         .single();
 
       if (error) throw error;
-      return data as ClipData & { clip_contents: unknown };
+      return data as ClipData & { clip_contents: ClipContent[] };
     },
     enabled: !!clipId && !!user,
     staleTime: 60_000,

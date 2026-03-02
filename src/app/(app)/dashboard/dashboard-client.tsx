@@ -118,7 +118,7 @@ export function DashboardClient() {
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
   };
 
-  const { data, isLoading, isFetching } = useClips({ filters: clipsFilter });
+  const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter });
 
   const clips = data?.pages.flatMap((page) => page.data) ?? [];
   const hasActiveFilters =
@@ -226,7 +226,12 @@ export function DashboardClient() {
                 </Button>
               </div>
             )}
-            <ClipList clips={displayClips} />
+            <ClipList
+                clips={displayClips}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                fetchNextPage={fetchNextPage}
+              />
 
           </>
         )}

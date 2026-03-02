@@ -6,7 +6,7 @@ import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
 import { Archive } from 'lucide-react';
 
 export function ArchiveClient() {
-  const { data, isLoading } = useArchivedClips();
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useArchivedClips();
 
   const clips = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -59,7 +59,12 @@ export function ArchiveClient() {
         </div>
       ) : (
         <div className="relative animate-blur-in animation-delay-100">
-          <ClipList clips={clips} />
+          <ClipList
+            clips={clips}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+          />
         </div>
       )}
     </div>

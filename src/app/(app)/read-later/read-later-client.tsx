@@ -6,7 +6,7 @@ import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
 import { Bookmark } from 'lucide-react';
 
 export function ReadLaterClient() {
-  const { data, isLoading } = useReadLaterClips();
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useReadLaterClips();
 
   const clips = data?.pages.flatMap((p) => p.data) ?? [];
 
@@ -63,7 +63,12 @@ export function ReadLaterClient() {
         </div>
       ) : (
         <div className="relative animate-blur-in animation-delay-100">
-          <ClipList clips={clips} />
+          <ClipList
+            clips={clips}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+          />
         </div>
       )}
     </div>
