@@ -48,3 +48,7 @@ next-env.d.ts
 /coverage
 /test-results
 /playwright-report
+.playwright-mcp/
+
+# screenshots
+*.png
