@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { Heart, Archive, ExternalLink } from 'lucide-react';
+import { Heart, Archive, ExternalLink, Share2 } from 'lucide-react';
+import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { Card } from '@/components/ui/card';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -90,6 +91,11 @@ export function ClipCard({
     window.open(clip.url, '_blank', 'noopener,noreferrer');
   }
 
+  function handleShare(e: React.MouseEvent) {
+    e.stopPropagation();
+    shareClip({ title: clip.title ?? clip.url, url: clip.url });
+  }
+
   return (
     <Card
       onClick={handleCardClick}
@@ -167,6 +173,13 @@ export function ClipCard({
               aria-label="링크 열기"
             >
               <ExternalLink className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleShare}
+              className="animate-fade-in-up animation-delay-300 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+              aria-label="공유"
+            >
+              <Share2 className="h-4 w-4" />
             </button>
           </div>
         </div>

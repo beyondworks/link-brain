@@ -10,6 +10,7 @@ import {
   Star,
   Archive,
   ExternalLink,
+  Share2,
   ArrowLeft,
   Clock,
   Calendar,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { shareClip } from '@/lib/utils/share';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import type { ClipData } from '@/types/database';
@@ -609,6 +611,15 @@ export function ClipDetailClient({ clipId }: Props) {
               >
                 <ExternalLink size={18} className="text-muted-foreground" />
               </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl transition-spring hover:bg-muted hover:glow-brand-sm"
+              onClick={() => shareClip({ title: clip.title ?? clip.url, url: clip.url })}
+              aria-label="공유"
+            >
+              <Share2 size={18} className="text-muted-foreground" />
             </Button>
           </div>
         </div>

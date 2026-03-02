@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
+import { useCredits } from '@/lib/hooks/use-credits';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { useTheme } from 'next-themes';
@@ -38,6 +39,7 @@ import {
   Copy,
   Plus,
   X,
+  Gauge,
 } from 'lucide-react';
 import type { ClipData } from '@/types/database';
 
@@ -78,6 +80,7 @@ interface ApiKeyView {
 
 export function SettingsClient() {
   const { user, authUser, isLoading } = useCurrentUser();
+  const { data: credits, isLoading: creditsLoading } = useCredits();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
@@ -528,6 +531,82 @@ export function SettingsClient() {
               {exportingMd ? '내보내는 중...' : '마크다운으로 내보내기'}
             </Button>
           </div>
+        </section>
+
+        {/* Usage section */}
+        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-550 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
+              <Gauge size={15} className="text-primary" />
+            </div>
+            <h2 className="text-base font-semibold text-foreground">사용량</h2>
+          </div>
+
+          {creditsLoading ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32 shimmer" />
+                <Skeleton className="h-2 w-full rounded-full shimmer" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40 shimmer" />
+                <Skeleton className="h-2 w-full rounded-full shimmer" />
+              </div>
+            </div>
+          ) : credits ? (
+            <div className="space-y-5">
+              {/* 크레딧 사용량 header */}
+              <p className="text-xs text-muted-foreground">
+                크레딧 사용량 — 이번 달 AI 기능 사용 횟수입니다.
+              </p>
+
+              {/* 크레딧 (analyze + AI generate 통합) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">크레딧 사용량</span>
+                  <span className="text-xs text-muted-foreground">
+                    {credits.creditsLimit === -1
+                      ? `${credits.creditsUsed} / 무제한`
+                      : `${credits.creditsUsed} / ${credits.creditsLimit}`}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted">
+                  <div
+                    className="h-2 rounded-full bg-primary transition-all"
+                    style={{
+                      width:
+                        credits.creditsLimit === -1
+                          ? '0%'
+                          : `${Math.min(100, (credits.creditsUsed / credits.creditsLimit) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 다음 초기화 */}
+              <p className="text-xs text-muted-foreground">
+                다음 초기화:{' '}
+                {new Date(credits.resetAt).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+
+              {/* 업그레이드 CTA — free 플랜에서만 표시 */}
+              {credits.creditsLimit !== -1 && (
+                <div className="pt-1">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="gap-2 rounded-xl border-primary/40 text-primary transition-spring hover:bg-primary/10 hover:border-primary/60"
+                  >
+                    <a href="/pricing">Pro로 업그레이드하여 무제한 사용</a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null}
         </section>
 
         {/* API Key section */}

@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { Heart, ExternalLink } from 'lucide-react';
+import { Heart, ExternalLink, Share2 } from 'lucide-react';
+import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -81,6 +82,11 @@ export function ClipRow({
   function handleOpenLink(e: React.MouseEvent) {
     e.stopPropagation();
     window.open(clip.url, '_blank', 'noopener,noreferrer');
+  }
+
+  function handleShare(e: React.MouseEvent) {
+    e.stopPropagation();
+    shareClip({ title: clip.title ?? clip.url, url: clip.url });
   }
 
   return (
@@ -171,6 +177,13 @@ export function ClipRow({
           aria-label="링크 열기"
         >
           <ExternalLink className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
+          aria-label="공유"
+        >
+          <Share2 className="h-4 w-4" />
         </button>
       </div>
     </div>
