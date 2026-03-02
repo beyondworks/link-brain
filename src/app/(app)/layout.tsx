@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -58,6 +59,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
+    <TooltipProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Skip navigation link */}
       <a
@@ -340,5 +342,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <MobileBottomNav />
       </div>
     </div>
+    </TooltipProvider>
   );
 }

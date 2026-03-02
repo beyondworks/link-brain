@@ -1,6 +1,6 @@
 # Session Handover
 
-## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6)
+## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7)
 
 ---
 
@@ -8,6 +8,8 @@
 
 | 해시 | 설명 |
 |------|------|
+| `88e3f28` | 클립 고정(is_pinned), 사이드바 축소, 테마 프리뷰, 랜딩 Testimonials/FAQ |
+| `612a457` | 온보딩 웰컴, 브레드크럼, 세션 핸드오버 |
 | `ae9e5e4` | 알림 센터, 웹훅 관리, 테스트 199개 |
 | `825598a` | 공유 링크, 클립 메모, 에러 바운더리 전체 적용 |
 | `31ba2dd` | 클립 태그/컬렉션 인라인 편집, 테스트 164개 |
@@ -71,6 +73,14 @@
 - **온보딩**: localStorage 플래그 기반 — 실제 데이터 없을 때 empty state + 안내
 - **Realtime**: `useRealtimeInvalidation` → TanStack Query 캐시 자동 무효화
 - **OmniSearch**: Supabase full-text 검색, 키보드 단축키 (`Cmd+K`)
+
+### 최신 기능 (세션 7)
+- **클립 고정(Pin)**: `is_pinned` 컬럼 기반, 핀 토글 optimistic update, 목록 상단 고정 정렬
+- **사이드바 축소 모드**: 아이콘만 표시 collapsed 상태, `ui-store` `isSidebarCollapsed` 상태
+- **테마 프리뷰**: 설정 페이지에서 light/dark/system 실시간 미리보기
+- **랜딩 Testimonials/FAQ**: 마케팅 페이지 사회적 증명 섹션 + 자주 묻는 질문 아코디언
+- **온보딩 웰컴 모달**: 첫 로그인 감지 → 기능 소개 Dialog (localStorage 플래그)
+- **브레드크럼 네비게이션**: `app-header.tsx` pathname 파싱 → `<nav aria-label="breadcrumb">`
 
 ### Testing
 - **199개 테스트, 15개 파일** — 모두 통과 (vitest 3.2.4, node 환경)

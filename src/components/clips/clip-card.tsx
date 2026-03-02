@@ -7,6 +7,7 @@ import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
 import { Card } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
@@ -165,47 +166,72 @@ export const ClipCard = memo(function ClipCard({
         {/* Hover action overlay */}
         <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <div className="flex items-center gap-2 pb-4">
-            <button
-              onClick={handleFavorite}
-              className={cn(
-                'animate-fade-in-up animation-delay-75 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
-                clip.is_favorite && 'text-red-300'
-              )}
-              aria-label="즐겨찾기 토글"
-            >
-              <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current heart-pulse')} />
-            </button>
-            <button
-              onClick={handleArchive}
-              className="animate-fade-in-up animation-delay-150 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
-              aria-label="보관함으로 이동"
-            >
-              <Archive className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleOpenLink}
-              className="animate-fade-in-up animation-delay-200 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
-              aria-label="링크 열기"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handlePin}
-              className={cn(
-                'animate-fade-in-up animation-delay-300 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
-                clip.is_pinned && 'text-amber-300'
-              )}
-              aria-label={clip.is_pinned ? '고정 해제' : '고정'}
-            >
-              <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
-            </button>
-            <button
-              onClick={handleShare}
-              className="animate-fade-in-up animation-delay-400 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
-              aria-label="공유"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleFavorite}
+                  className={cn(
+                    'animate-fade-in-up animation-delay-75 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
+                    clip.is_favorite && 'text-red-300'
+                  )}
+                  aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                >
+                  <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current heart-pulse')} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>{clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleArchive}
+                  className="animate-fade-in-up animation-delay-150 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  aria-label="아카이브"
+                >
+                  <Archive className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>아카이브</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleOpenLink}
+                  className="animate-fade-in-up animation-delay-200 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  aria-label="원본 열기"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>원본 열기</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handlePin}
+                  className={cn(
+                    'animate-fade-in-up animation-delay-300 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
+                    clip.is_pinned && 'text-amber-300'
+                  )}
+                  aria-label={clip.is_pinned ? '고정 해제' : '고정'}
+                >
+                  <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>{clip.is_pinned ? '고정 해제' : '고정'}</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleShare}
+                  className="animate-fade-in-up animation-delay-400 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  aria-label="공유"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>공유</p></TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

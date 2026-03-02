@@ -6,6 +6,7 @@ import { Heart, ExternalLink, Share2, Pin } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
@@ -171,45 +172,65 @@ export const ClipRow = memo(function ClipRow({
 
       {/* Actions — visible on hover */}
       <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-spring group-hover:opacity-100">
-        <button
-          onClick={handleFavorite}
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 hover:scale-110',
-            clip.is_favorite && 'text-red-400 opacity-100'
-          )}
-          aria-label="즐겨찾기 토글"
-        >
-          <Heart
-            className={cn(
-              'h-4 w-4 transition-spring',
-              clip.is_favorite && 'fill-current heart-pulse drop-shadow-[0_0_6px_rgb(248,113,113)]'
-            )}
-          />
-        </button>
-        <button
-          onClick={handleOpenLink}
-          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
-          aria-label="링크 열기"
-        >
-          <ExternalLink className="h-4 w-4" />
-        </button>
-        <button
-          onClick={handlePin}
-          className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-amber-500/10 hover:text-amber-400 hover:scale-110',
-            clip.is_pinned && 'text-amber-400 opacity-100'
-          )}
-          aria-label={clip.is_pinned ? '고정 해제' : '고정'}
-        >
-          <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
-        </button>
-        <button
-          onClick={handleShare}
-          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
-          aria-label="공유"
-        >
-          <Share2 className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleFavorite}
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 hover:scale-110',
+                clip.is_favorite && 'text-red-400 opacity-100'
+              )}
+              aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            >
+              <Heart
+                className={cn(
+                  'h-4 w-4 transition-spring',
+                  clip.is_favorite && 'fill-current heart-pulse drop-shadow-[0_0_6px_rgb(248,113,113)]'
+                )}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>{clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleOpenLink}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
+              aria-label="원본 열기"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>원본 열기</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handlePin}
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-amber-500/10 hover:text-amber-400 hover:scale-110',
+                clip.is_pinned && 'text-amber-400 opacity-100'
+              )}
+              aria-label={clip.is_pinned ? '고정 해제' : '고정'}
+            >
+              <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>{clip.is_pinned ? '고정 해제' : '고정'}</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleShare}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
+              aria-label="공유"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>공유</p></TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
