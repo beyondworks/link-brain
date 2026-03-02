@@ -32,7 +32,9 @@ export function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-spring"
+            aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-spring"
           >
             <div
               className={cn(
@@ -69,6 +71,7 @@ export function MobileBottomNav() {
           onClick={() => openModal('addClip')}
           className="bg-gradient-brand glow-brand relative flex h-12 w-12 items-center justify-center rounded-full text-primary-foreground shadow-none transition-spring active:scale-95 hover:glow-brand hover-scale"
           aria-label="클립 추가"
+          style={{ touchAction: 'manipulation' }}
         >
           {/* Pulse ring */}
           <span className="absolute inset-0 animate-pulse-brand rounded-full bg-primary/20" />
@@ -84,7 +87,9 @@ export function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-spring"
+            aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-spring"
           >
             <div
               className={cn(

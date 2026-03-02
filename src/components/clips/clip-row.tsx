@@ -10,7 +10,9 @@ import type { ClipData } from '@/types/database';
 interface ClipRowProps {
   clip: ClipData;
   isSelected?: boolean;
+  isSelectionMode?: boolean;
   onSelect?: (id: string) => void;
+  onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
 }
@@ -59,7 +61,9 @@ function getGradient(id: string): string {
 export function ClipRow({
   clip,
   isSelected = false,
+  isSelectionMode: _isSelectionMode,
   onSelect,
+  onToggleSelect: _onToggleSelect,
   onToggleFavorite,
 }: ClipRowProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);

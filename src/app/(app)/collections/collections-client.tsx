@@ -1,6 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useCollections } from '@/lib/hooks/use-collections';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
@@ -24,7 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FolderOpen, Globe, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FolderOpen, Globe, Lock, MoreHorizontal, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { Collection } from '@/types/database';
@@ -34,10 +50,145 @@ const COLOR_PRESETS = [
   '#F59E0B', '#EF4444', '#10B981', '#6366F1',
 ];
 
+// ─── Sortable card ─────────────────────────────────────────────────────────────
+
+interface SortableCollectionCardProps {
+  col: Collection;
+  index: number;
+  onEdit: (col: Collection, e: React.MouseEvent) => void;
+  onDelete: (col: Collection, e: React.MouseEvent) => void;
+}
+
+function SortableCollectionCard({ col, index, onEdit, onDelete }: SortableCollectionCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: col.id });
+
+  const staggerDelay = (i: number) => {
+    const delays = ['', 'animation-delay-75', 'animation-delay-150', 'animation-delay-200', 'animation-delay-300', 'animation-delay-400'];
+    return delays[Math.min(i, delays.length - 1)];
+  };
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group card-glow animate-fade-in-up ${staggerDelay(index)} relative overflow-hidden rounded-2xl border border-border bg-card transition-spring`}
+    >
+      {/* Drag handle */}
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute left-2 top-1/2 -translate-y-1/2 flex h-6 w-6 cursor-grab items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60 hover:!opacity-100 hover:bg-muted active:cursor-grabbing focus:outline-none"
+        aria-label="드래그하여 순서 변경"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      >
+        <GripVertical size={14} />
+      </button>
+
+      <Link href={`/collections/${col.id}`} className="block p-5 pl-7">
+        {/* Color accent line */}
+        <div
+          className="absolute inset-x-0 top-0 h-0.5 rounded-t-2xl opacity-70"
+          style={{
+            background: `linear-gradient(90deg, ${col.color ?? '#21DBA4'}, transparent)`,
+          }}
+        />
+        <div className="flex items-start justify-between mb-3">
+          <div className="relative mt-0.5 flex-shrink-0">
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: col.color ?? '#21DBA4' }}
+            />
+            <div
+              className="absolute inset-0 rounded-full blur-sm opacity-60"
+              style={{ backgroundColor: col.color ?? '#21DBA4' }}
+            />
+          </div>
+          {col.is_public ? (
+            <Globe size={13} className="text-muted-foreground" />
+          ) : (
+            <Lock size={13} className="text-muted-foreground" />
+          )}
+        </div>
+        <h3 className="font-semibold text-foreground transition-spring group-hover:text-primary">
+          {col.name}
+        </h3>
+        {col.description && (
+          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+            {col.description}
+          </p>
+        )}
+      </Link>
+
+      {/* Context menu */}
+      <div className="absolute right-3 top-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus:outline-none focus:opacity-100"
+              aria-label="컬렉션 옵션"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={(e) => { onEdit(col, e as unknown as React.MouseEvent); }}
+            >
+              <Pencil size={13} />
+              수정
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+              onSelect={(e) => { onDelete(col, e as unknown as React.MouseEvent); }}
+            >
+              <Trash2 size={13} />
+              삭제
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+
 export function CollectionsClient() {
   const { data: collections, isLoading } = useCollections();
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
+
+  // Local ordered list for optimistic drag reorder
+  const [orderedCollections, setOrderedCollections] = useState<Collection[]>([]);
+
+  useEffect(() => {
+    if (collections) setOrderedCollections(collections);
+  }, [collections]);
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -71,6 +222,16 @@ export function CollectionsClient() {
       toast.success('컬렉션이 생성되었습니다');
     },
     onError: () => toast.error('컬렉션 생성 실패'),
+  });
+
+  // Batch position update mutation (best-effort — silently ignores missing column)
+  const reorderMutation = useMutation({
+    mutationFn: async (reordered: Collection[]) => {
+      const updates = reordered.map((col, idx) =>
+        supabase.from('collections').update({ position: idx } as never).eq('id', col.id),
+      );
+      await Promise.allSettled(updates);
+    },
   });
 
   const updateCollection = useUpdateCollection();
@@ -119,6 +280,19 @@ export function CollectionsClient() {
     );
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setOrderedCollections((prev) => {
+      const oldIndex = prev.findIndex((c) => c.id === active.id);
+      const newIndex = prev.findIndex((c) => c.id === over.id);
+      const reordered = arrayMove(prev, oldIndex, newIndex);
+      reorderMutation.mutate(reordered);
+      return reordered;
+    });
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 lg:p-8">
@@ -134,11 +308,6 @@ export function CollectionsClient() {
       </div>
     );
   }
-
-  const staggerDelay = (i: number) => {
-    const delays = ['', 'animation-delay-75', 'animation-delay-150', 'animation-delay-200', 'animation-delay-300', 'animation-delay-400'];
-    return delays[Math.min(i, delays.length - 1)];
-  };
 
   return (
     <div className="relative p-6 lg:p-8">
@@ -190,7 +359,7 @@ export function CollectionsClient() {
         </Dialog>
       </div>
 
-      {!collections || collections.length === 0 ? (
+      {orderedCollections.length === 0 ? (
         <div className="relative flex flex-col items-center justify-center py-24 animate-blur-in animation-delay-100">
           <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-3xl" />
           <div className="relative mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 p-5 ring-1 ring-primary/15">
@@ -208,89 +377,21 @@ export function CollectionsClient() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {collections.map((col, i) => (
-            <div
-              key={col.id}
-              className={`group card-glow animate-fade-in-up ${staggerDelay(i)} relative overflow-hidden rounded-2xl border border-border bg-card transition-spring`}
-            >
-              <Link
-                href={`/collections/${col.id}`}
-                className="block p-5"
-              >
-                {/* Color accent line */}
-                <div
-                  className="absolute inset-x-0 top-0 h-0.5 rounded-t-2xl opacity-70"
-                  style={{
-                    background: `linear-gradient(90deg, ${col.color ?? '#21DBA4'}, transparent)`,
-                  }}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedCollections.map((c) => c.id)} strategy={rectSortingStrategy}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {orderedCollections.map((col, i) => (
+                <SortableCollectionCard
+                  key={col.id}
+                  col={col}
+                  index={i}
+                  onEdit={openEditDialog}
+                  onDelete={openDeleteDialog}
                 />
-                <div className="flex items-start justify-between mb-3">
-                  <div className="relative mt-0.5 flex-shrink-0">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: col.color ?? '#21DBA4' }}
-                    />
-                    <div
-                      className="absolute inset-0 rounded-full blur-sm opacity-60"
-                      style={{ backgroundColor: col.color ?? '#21DBA4' }}
-                    />
-                  </div>
-                  {col.is_public ? (
-                    <Globe size={13} className="text-muted-foreground" />
-                  ) : (
-                    <Lock size={13} className="text-muted-foreground" />
-                  )}
-                </div>
-                <h3 className="font-semibold text-foreground transition-spring group-hover:text-primary">
-                  {col.name}
-                </h3>
-                {col.description && (
-                  <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
-                    {col.description}
-                  </p>
-                )}
-              </Link>
-
-              {/* Context menu — positioned outside the Link */}
-              <div className="absolute right-3 top-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus:outline-none focus:opacity-100"
-                      aria-label="컬렉션 옵션"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    >
-                      <MoreHorizontal size={14} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuItem
-                      className="gap-2 cursor-pointer"
-                      onSelect={(e) => {
-                        openEditDialog(col, e as unknown as React.MouseEvent);
-                      }}
-                    >
-                      <Pencil size={13} />
-                      수정
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                      onSelect={(e) => {
-                        openDeleteDialog(col, e as unknown as React.MouseEvent);
-                      }}
-                    >
-                      <Trash2 size={13} />
-                      삭제
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* Edit Dialog */}

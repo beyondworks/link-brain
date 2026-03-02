@@ -58,6 +58,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Skip navigation link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground focus:underline focus:top-2 focus:left-2 focus:rounded-lg focus:border focus:border-border"
+      >
+        본문으로 건너뛰기
+      </a>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -176,6 +183,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <button
                     type="button"
                     className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition-spring hover:bg-accent/60 hover:glow-brand-sm"
+                    aria-label={`${displayName} 계정 메뉴`}
                   >
                     <Avatar className="h-9 w-9 ring-2 ring-primary/30 transition-spring group-hover:ring-primary/60">
                       <AvatarImage src={avatarUrl} alt={displayName} />
@@ -260,7 +268,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <ClipPeekPanel />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main id="main-content" className="flex-1 overflow-y-auto">{children}</main>
 
         {/* FAB — Quick clip add (hidden on mobile where bottom nav has add button) */}
         <button

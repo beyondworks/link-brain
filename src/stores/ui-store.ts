@@ -17,6 +17,7 @@ interface UIState {
   viewMode: ViewMode;
   searchQuery: string;
   selectedClipIds: Set<string>;
+  isSelectionMode: boolean;
   activeModal: string | null;
   sortBy: ClipSortBy;
   sortOrder: SortOrder;
@@ -35,8 +36,10 @@ interface UIActions {
   selectClip: (id: string) => void;
   deselectClip: (id: string) => void;
   toggleClipSelection: (id: string) => void;
+  selectAllClips: (clipIds: string[]) => void;
   clearSelection: () => void;
   setSelectedClipIds: (ids: Set<string>) => void;
+  setSelectionMode: (enabled: boolean) => void;
   openModal: (modal: string) => void;
   closeModal: () => void;
   setSortBy: (sortBy: ClipSortBy) => void;
@@ -64,6 +67,7 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   viewMode: 'grid',
   searchQuery: '',
   selectedClipIds: new Set<string>(),
+  isSelectionMode: false,
   activeModal: null,
   sortBy: 'created_at',
   sortOrder: 'desc',
@@ -101,10 +105,18 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
       } else {
         next.add(id);
       }
-      return { selectedClipIds: next };
+      return { selectedClipIds: next, isSelectionMode: next.size > 0 };
     }),
 
-  clearSelection: () => set({ selectedClipIds: new Set<string>() }),
+  selectAllClips: (clipIds) => set({ selectedClipIds: new Set(clipIds), isSelectionMode: true }),
+
+  clearSelection: () => set({ selectedClipIds: new Set<string>(), isSelectionMode: false }),
+
+  setSelectionMode: (enabled) =>
+    set((s) => ({
+      isSelectionMode: enabled,
+      selectedClipIds: enabled ? s.selectedClipIds : new Set<string>(),
+    })),
 
   setSelectedClipIds: (ids) => set({ selectedClipIds: ids }),
 

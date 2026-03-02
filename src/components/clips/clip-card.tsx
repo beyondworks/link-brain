@@ -11,7 +11,9 @@ import type { ClipData } from '@/types/database';
 interface ClipCardProps {
   clip: ClipData;
   isSelected?: boolean;
+  isSelectionMode?: boolean;
   onSelect?: (id: string) => void;
+  onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
 }
@@ -60,7 +62,9 @@ function getGradient(id: string): string {
 export function ClipCard({
   clip,
   isSelected = false,
+  isSelectionMode: _isSelectionMode,
   onSelect,
+  onToggleSelect: _onToggleSelect,
   onToggleFavorite,
   onArchive,
 }: ClipCardProps) {
