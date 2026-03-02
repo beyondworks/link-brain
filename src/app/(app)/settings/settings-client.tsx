@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useCredits } from '@/lib/hooks/use-credits';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -42,9 +42,12 @@ import {
   X,
   Gauge,
   Upload,
+  Tags,
 } from 'lucide-react';
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
+import { ProfileEditor } from '@/components/settings/profile-editor';
+import { TagManager } from '@/components/settings/tag-manager';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -87,10 +90,6 @@ export function SettingsClient() {
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [initialized, setInitialized] = useState(false);
-
   // 알림 상태
   const [emailNotif, setEmailNotif] = useState(true);
   const [aiNotif, setAiNotif] = useState(true);
@@ -117,15 +116,12 @@ export function SettingsClient() {
   const [revealDialogOpen, setRevealDialogOpen] = useState(false);
   const [deletingKeyId, setDeletingKeyId] = useState<string | null>(null);
 
-  // 프로필 및 언어 초기화
+  // 언어 초기화
   useEffect(() => {
-    if (user && !initialized) {
-      setDisplayName(user.display_name ?? '');
-      setBio(user.bio ?? '');
+    if (user) {
       setLanguage(user.language ?? 'ko');
-      setInitialized(true);
     }
-  }, [user, initialized]);
+  }, [user]);
 
   // 알림 설정 localStorage 초기화
   useEffect(() => {
@@ -295,22 +291,6 @@ export function SettingsClient() {
     });
   }
 
-  const updateProfile = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase
-        .from('users')
-        .update({ display_name: displayName, bio, language })
-        .eq('id', user.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', authUser?.id] });
-      toast.success('프로필이 업데이트되었습니다');
-    },
-    onError: () => toast.error('프로필 업데이트 실패'),
-  });
-
   if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 md:px-6">
@@ -356,55 +336,7 @@ export function SettingsClient() {
             <h2 className="text-base font-semibold text-foreground">프로필</h2>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                이메일
-              </Label>
-              <Input
-                id="email"
-                value={user?.email ?? ''}
-                disabled
-                className="rounded-xl bg-muted/50 text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="displayName" className="text-sm font-medium text-foreground">
-                표시 이름
-              </Label>
-              <Input
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="이름을 입력하세요"
-                className="rounded-xl focus-visible:ring-primary/30 transition-spring"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="bio" className="text-sm font-medium text-foreground">
-                소개
-              </Label>
-              <Input
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="간단한 자기소개"
-                className="rounded-xl focus-visible:ring-primary/30 transition-spring"
-              />
-            </div>
-
-            <div className="pt-1">
-              <Button
-                onClick={() => updateProfile.mutate()}
-                disabled={updateProfile.isPending}
-                className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring"
-              >
-                {updateProfile.isPending ? '저장 중...' : '프로필 저장'}
-              </Button>
-            </div>
-          </div>
+          <ProfileEditor />
         </section>
 
         {/* Appearance section */}
@@ -626,6 +558,18 @@ export function SettingsClient() {
               )}
             </div>
           ) : null}
+        </section>
+
+        {/* Tag management section */}
+        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-575 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/20 to-rose-500/5 ring-1 ring-rose-500/20">
+              <Tags size={15} className="text-rose-500" />
+            </div>
+            <h2 className="text-base font-semibold text-foreground">태그 관리</h2>
+          </div>
+
+          <TagManager />
         </section>
 
         {/* API Key section */}

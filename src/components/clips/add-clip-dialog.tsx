@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,8 @@ import { useUIStore } from '@/stores/ui-store';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useTags } from '@/lib/hooks/use-tags';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase/client';
+import { useSupabase } from '@/components/providers/supabase-provider';
 
 interface AnalyzeResult {
   title: string;
@@ -47,10 +50,32 @@ function isValidUrl(value: string): boolean {
   }
 }
 
+function normalizeUrl(value: string): string {
+  try {
+    const parsed = new URL(value.trim());
+    parsed.hostname = parsed.hostname.toLowerCase();
+    // Remove trailing slash from pathname
+    if (parsed.pathname !== '/') {
+      parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+    }
+    return parsed.toString();
+  } catch {
+    return value.trim();
+  }
+}
+
+interface DuplicateClip {
+  id: string;
+  title: string | null;
+  url: string;
+}
+
 export function AddClipDialog() {
   const activeModal = useUIStore((s) => s.activeModal);
   const closeModal = useUIStore((s) => s.closeModal);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { user: authUser } = useSupabase();
 
   const { data: categories = [] } = useCategories();
   const { data: existingTags = [] } = useTags();
@@ -67,8 +92,47 @@ export function AddClipDialog() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
+  // Duplicate detection state
+  const [isDuplicateChecking, setIsDuplicateChecking] = useState(false);
+  const [duplicateClip, setDuplicateClip] = useState<DuplicateClip | null>(null);
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
+
   const urlInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Debounced duplicate URL check
+  useEffect(() => {
+    // Reset duplicate state when URL changes
+    setDuplicateClip(null);
+    setAllowDuplicate(false);
+
+    if (!url || url.trim().length < 8 || !isValidUrl(url.trim()) || !authUser) {
+      setIsDuplicateChecking(false);
+      return;
+    }
+
+    setIsDuplicateChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const normalized = normalizeUrl(url);
+        const { data } = await supabase
+          .from('clips')
+          .select('id, title, url')
+          .eq('url', normalized)
+          .eq('user_id', authUser.id)
+          .maybeSingle();
+
+        setDuplicateClip(data ?? null);
+      } catch {
+        // Silently ignore check errors — don't block the user
+        setDuplicateClip(null);
+      } finally {
+        setIsDuplicateChecking(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [url, authUser]);
 
   const isOpen = activeModal === 'addClip';
 
@@ -90,6 +154,9 @@ export function AddClipDialog() {
       setSelectedCategoryId(null);
       setSelectedTags([]);
       setTagInput('');
+      setDuplicateClip(null);
+      setAllowDuplicate(false);
+      setIsDuplicateChecking(false);
     }, 200);
   }
 
@@ -281,6 +348,48 @@ export function AddClipDialog() {
               />
               {urlError && (
                 <p className="text-sm text-destructive animate-pop-in">{urlError}</p>
+              )}
+              {isDuplicateChecking && !urlError && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pop-in">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  확인 중...
+                </p>
+              )}
+              {!isDuplicateChecking && duplicateClip && !allowDuplicate && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 animate-pop-in">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                        이미 저장된 URL입니다
+                      </p>
+                      {duplicateClip.title && (
+                        <p className="mt-0.5 truncate text-xs text-amber-600/80 dark:text-amber-400/80">
+                          {duplicateClip.title}
+                        </p>
+                      )}
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            router.push(`/clip/${duplicateClip.id}`);
+                            handleClose();
+                          }}
+                          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 dark:text-amber-400"
+                        >
+                          기존 클립 보기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAllowDuplicate(true)}
+                          className="rounded-lg border border-border/60 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-spring hover:border-primary/30 hover:text-foreground"
+                        >
+                          그래도 저장
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             <div className="flex justify-end">
