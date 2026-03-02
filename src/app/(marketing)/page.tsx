@@ -31,7 +31,9 @@ import {
   BookOpen,
   Link2,
   Users,
+  Quote,
 } from 'lucide-react';
+import { FaqAccordion } from './_components/faq-accordion';
 
 const FEATURES = [
   {
@@ -64,6 +66,63 @@ const STATS = [
   { value: '2M+', label: '저장된 클립', icon: BookOpen },
   { value: '10K+', label: '활성 사용자', icon: Users },
   { value: '500K+', label: '생성된 컬렉션', icon: Link2 },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      '매일 읽는 기사와 논문을 Linkbrain에 저장하니 지식이 체계적으로 쌓입니다.',
+    name: '김지수',
+    role: '프로덕트 매니저',
+    initials: '김',
+  },
+  {
+    quote:
+      'AI 자동 분석이 정말 편해요. 태그 정리를 안 해도 알아서 분류해줍니다.',
+    name: '박현우',
+    role: '개발자',
+    initials: '박',
+  },
+  {
+    quote:
+      '팀에서 리서치 자료를 공유하는 데 최고의 도구입니다.',
+    name: '이서연',
+    role: 'UX 리서처',
+    initials: '이',
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    question: 'Linkbrain은 무료인가요?',
+    answer:
+      '기본 플랜은 영구 무료입니다. 최대 100개의 클립을 저장할 수 있으며, 카드 등록 없이 즉시 시작할 수 있습니다. 더 많은 클립과 고급 AI 기능이 필요하다면 프리미엄 플랜으로 업그레이드하세요.',
+  },
+  {
+    question: '어떤 콘텐츠를 저장할 수 있나요?',
+    answer:
+      'URL이 있는 모든 콘텐츠를 저장할 수 있습니다. 웹페이지, 블로그 아티클, YouTube 영상, Twitter/X 스레드, PDF, 뉴스 기사 등 플랫폼 전용 페처가 최적의 메타데이터를 자동으로 추출합니다.',
+  },
+  {
+    question: 'AI 분석은 어떻게 작동하나요?',
+    answer:
+      'URL을 저장하는 순간 AI가 자동으로 콘텐츠를 분석합니다. 제목, 핵심 요약, 관련 태그를 생성하고 적절한 카테고리로 분류합니다. OpenAI와 Gemini 듀얼 AI 엔진을 사용해 정확도를 높였습니다.',
+  },
+  {
+    question: '기존 북마크를 가져올 수 있나요?',
+    answer:
+      '네, JSON 및 CSV 형식의 가져오기를 지원합니다. Chrome, Firefox, Safari의 북마크 내보내기 파일이나 Raindrop.io, Pocket 등 다른 서비스에서 내보낸 파일을 그대로 가져올 수 있습니다.',
+  },
+  {
+    question: '데이터는 안전한가요?',
+    answer:
+      'Supabase 기반의 PostgreSQL에 암호화하여 저장하며, 사용자별 Row Level Security(RLS)로 데이터를 완벽히 격리합니다. 내 데이터는 오직 나만 접근할 수 있습니다.',
+  },
+  {
+    question: '브라우저 확장 프로그램이 있나요?',
+    answer:
+      'Chrome과 Firefox용 확장 프로그램을 현재 개발 중입니다. 출시 알림을 받으려면 회원가입 후 이메일 알림을 활성화해 두세요. 현재는 URL을 복사하여 앱에 붙여넣는 방식으로 저장할 수 있습니다.',
+  },
 ];
 
 const JSON_LD = [
@@ -103,6 +162,18 @@ const JSON_LD = [
       ratingValue: '4.8',
       ratingCount: '1200',
     },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
   },
 ];
 
@@ -417,6 +488,70 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="divider-gradient" />
+      </section>
+
+      {/* ─── Testimonials ─────────────────────────────────────── */}
+      <section className="bg-dots relative border-t border-border/50 py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-16 max-w-xl text-center">
+            <p className="reveal-on-scroll mb-3 text-xs font-bold uppercase tracking-[0.15em] text-primary">
+              사용자 후기
+            </p>
+            <h2 className="reveal-on-scroll animation-delay-100 fill-both text-4xl font-black tracking-tight md:text-5xl">
+              사용자들의 <span className="text-gradient-brand">이야기</span>
+            </h2>
+            <p className="reveal-on-scroll animation-delay-200 fill-both mt-5 text-lg text-muted-foreground">
+              전 세계 지식 관리자들이 Linkbrain과 함께 성장하고 있습니다.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-3">
+            {TESTIMONIALS.map((testimonial, i) => (
+              <div
+                key={testimonial.name}
+                className={`card-glow reveal-on-scroll animation-delay-${(i + 1) * 150} fill-both relative flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-7 shadow-card`}
+              >
+                {/* Quotation mark */}
+                <Quote className="h-7 w-7 text-primary/30" aria-hidden="true" />
+
+                {/* Quote text */}
+                <p className="flex-1 text-sm leading-relaxed text-foreground/80">
+                  {testimonial.quote}
+                </p>
+
+                {/* Author */}
+                <div className="flex items-center gap-3 border-t border-border/40 pt-5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-muted text-sm font-bold text-primary">
+                    {testimonial.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{testimonial.name}</p>
+                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ──────────────────────────────────────────────── */}
+      <section className="bg-gradient-mesh bg-noise relative border-t border-border/50 py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-16 max-w-xl text-center">
+            <p className="reveal-on-scroll mb-3 text-xs font-bold uppercase tracking-[0.15em] text-primary">
+              FAQ
+            </p>
+            <h2 className="reveal-on-scroll animation-delay-100 fill-both text-4xl font-black tracking-tight md:text-5xl">
+              자주 묻는 <span className="text-gradient-brand">질문</span>
+            </h2>
+            <p className="reveal-on-scroll animation-delay-200 fill-both mt-5 text-lg text-muted-foreground">
+              궁금한 점이 있으신가요? 아래에서 빠르게 답변을 찾아보세요.
+            </p>
+          </div>
+
+          <FaqAccordion items={FAQ_ITEMS} />
+        </div>
       </section>
 
       {/* ─── CTA ──────────────────────────────────────────────── */}

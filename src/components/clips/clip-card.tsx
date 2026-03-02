@@ -2,9 +2,10 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Heart, Archive, ExternalLink, Share2, MessageSquare } from 'lucide-react';
+import { Heart, Archive, ExternalLink, Share2, MessageSquare, Pin } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
+import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
 import { Card } from '@/components/ui/card';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -70,6 +71,7 @@ export const ClipCard = memo(function ClipCard({
   onArchive,
 }: ClipCardProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
+  const togglePin = useTogglePin();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
@@ -89,6 +91,11 @@ export const ClipCard = memo(function ClipCard({
   function handleArchive(e: React.MouseEvent) {
     e.stopPropagation();
     onArchive?.(clip.id);
+  }
+
+  function handlePin(e: React.MouseEvent) {
+    e.stopPropagation();
+    togglePin.mutate({ clipId: clip.id, isPinned: clip.is_pinned ?? false });
   }
 
   function handleOpenLink(e: React.MouseEvent) {
@@ -145,12 +152,15 @@ export const ClipCard = memo(function ClipCard({
           </div>
         )}
 
-        {/* Favorite indicator — top right (always visible when favorited) */}
-        {clip.is_favorite && (
-          <div className="absolute right-2.5 top-2.5">
+        {/* Pin / Favorite indicators — top right */}
+        <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
+          {clip.is_pinned && (
+            <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgb(251,191,36)]" />
+          )}
+          {clip.is_favorite && (
             <Heart className="h-4 w-4 fill-red-400 text-red-400 drop-shadow-[0_0_6px_rgb(248,113,113)]" />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Hover action overlay */}
         <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -180,8 +190,18 @@ export const ClipCard = memo(function ClipCard({
               <ExternalLink className="h-4 w-4" />
             </button>
             <button
+              onClick={handlePin}
+              className={cn(
+                'animate-fade-in-up animation-delay-300 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
+                clip.is_pinned && 'text-amber-300'
+              )}
+              aria-label={clip.is_pinned ? '고정 해제' : '고정'}
+            >
+              <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
+            </button>
+            <button
               onClick={handleShare}
-              className="animate-fade-in-up animation-delay-300 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+              className="animate-fade-in-up animation-delay-400 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
               aria-label="공유"
             >
               <Share2 className="h-4 w-4" />

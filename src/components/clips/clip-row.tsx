@@ -2,9 +2,10 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Heart, ExternalLink, Share2 } from 'lucide-react';
+import { Heart, ExternalLink, Share2, Pin } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
+import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
@@ -68,6 +69,7 @@ export const ClipRow = memo(function ClipRow({
   onToggleFavorite,
 }: ClipRowProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
+  const togglePin = useTogglePin();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
@@ -92,6 +94,11 @@ export const ClipRow = memo(function ClipRow({
   function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
     shareClip({ title: clip.title ?? clip.url, url: clip.url });
+  }
+
+  function handlePin(e: React.MouseEvent) {
+    e.stopPropagation();
+    togglePin.mutate({ clipId: clip.id, isPinned: clip.is_pinned ?? false });
   }
 
   return (
@@ -151,6 +158,9 @@ export const ClipRow = memo(function ClipRow({
           <span className="text-[11px] text-muted-foreground/50">
             {formatRelativeTime(clip.created_at)}
           </span>
+          {clip.is_pinned && (
+            <Pin className="h-3 w-3 fill-amber-400 text-amber-400" aria-label="고정됨" />
+          )}
           {clip.is_read_later && (
             <span className="rounded-full bg-gradient-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-brand">
               나중에
@@ -182,6 +192,16 @@ export const ClipRow = memo(function ClipRow({
           aria-label="링크 열기"
         >
           <ExternalLink className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handlePin}
+          className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-amber-500/10 hover:text-amber-400 hover:scale-110',
+            clip.is_pinned && 'text-amber-400 opacity-100'
+          )}
+          aria-label={clip.is_pinned ? '고정 해제' : '고정'}
+        >
+          <Pin className={cn('h-4 w-4', clip.is_pinned && 'fill-current')} />
         </button>
         <button
           onClick={handleShare}

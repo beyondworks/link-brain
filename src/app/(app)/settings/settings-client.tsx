@@ -356,18 +356,114 @@ export function SettingsClient() {
             <h2 className="text-base font-semibold text-foreground">외관</h2>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             <Label className="text-sm font-medium text-foreground">테마</Label>
-            <Select value={theme ?? 'system'} onValueChange={setTheme}>
-              <SelectTrigger className="w-52 rounded-xl focus:ring-primary/30">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="system">시스템</SelectItem>
-                <SelectItem value="light">라이트</SelectItem>
-                <SelectItem value="dark">다크</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-3">
+              {(
+                [
+                  { value: 'light', label: '라이트' },
+                  { value: 'dark', label: '다크' },
+                  { value: 'system', label: '시스템' },
+                ] as const
+              ).map(({ value, label }) => {
+                const active = (theme ?? 'system') === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTheme(value)}
+                    className={[
+                      'group flex flex-col items-center gap-2 rounded-xl border p-3 transition-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                      active
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
+                        : 'border-border hover:border-border-hover hover:bg-accent/40',
+                    ].join(' ')}
+                    aria-pressed={active}
+                    aria-label={`${label} 테마`}
+                  >
+                    {/* Mini preview */}
+                    <span
+                      className={[
+                        'flex h-12 w-20 overflow-hidden rounded-lg border',
+                        value === 'light'
+                          ? 'border-gray-200 bg-white'
+                          : value === 'dark'
+                            ? 'border-zinc-700 bg-zinc-900'
+                            : 'border-border bg-gradient-to-br from-white to-zinc-900',
+                      ].join(' ')}
+                      aria-hidden="true"
+                    >
+                      {/* Sidebar strip */}
+                      <span
+                        className={[
+                          'flex h-full w-4 flex-col gap-1 p-1',
+                          value === 'light'
+                            ? 'bg-gray-100'
+                            : value === 'dark'
+                              ? 'bg-zinc-800'
+                              : 'bg-gradient-to-b from-gray-100 to-zinc-800',
+                        ].join(' ')}
+                      >
+                        {[0, 1, 2].map((i) => (
+                          <span
+                            key={i}
+                            className={[
+                              'h-1 rounded-full',
+                              i === 0 ? 'w-full' : 'w-3/4',
+                              value === 'light'
+                                ? 'bg-gray-300'
+                                : value === 'dark'
+                                  ? 'bg-zinc-600'
+                                  : 'bg-gray-400',
+                            ].join(' ')}
+                          />
+                        ))}
+                      </span>
+                      {/* Content area */}
+                      <span className="flex flex-1 flex-col gap-1 p-1 pt-1.5">
+                        <span
+                          className={[
+                            'h-1.5 w-full rounded',
+                            value === 'light'
+                              ? 'bg-gray-200'
+                              : value === 'dark'
+                                ? 'bg-zinc-700'
+                                : 'bg-gray-300',
+                          ].join(' ')}
+                        />
+                        <span
+                          className={[
+                            'h-1 w-3/4 rounded',
+                            value === 'light'
+                              ? 'bg-gray-100'
+                              : value === 'dark'
+                                ? 'bg-zinc-800'
+                                : 'bg-gray-200',
+                          ].join(' ')}
+                        />
+                        <span
+                          className="mt-0.5 h-3 w-full rounded"
+                          style={{ background: '#21DBA4', opacity: 0.7 }}
+                        />
+                      </span>
+                    </span>
+                    <span
+                      className={[
+                        'flex items-center gap-1.5 text-xs font-medium',
+                        active ? 'text-primary' : 'text-muted-foreground',
+                      ].join(' ')}
+                    >
+                      {active && (
+                        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] text-white font-bold">
+                          ✓
+                        </span>
+                      )}
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 

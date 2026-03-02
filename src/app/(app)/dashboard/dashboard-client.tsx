@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
-import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw } from 'lucide-react';
+import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin } from 'lucide-react';
 import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
+import { ClipCard } from '@/components/clips/clip-card';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
@@ -126,6 +127,7 @@ export function DashboardClient() {
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter });
 
   const clips = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
+  const pinnedClips = useMemo(() => clips.filter((c) => c.is_pinned), [clips]);
   const hasActiveFilters = useMemo(() =>
     filters.categoryId || filters.collectionId || filters.platform ||
     filters.isFavorite || filters.isReadLater,
@@ -217,6 +219,23 @@ export function DashboardClient() {
 
       {/* Divider */}
       <div className="divider-gradient animate-fade-in-up animation-delay-150 mb-7" />
+
+      {/* Pinned clips */}
+      {!isLoading && pinnedClips.length > 0 && (
+        <div className="animate-fade-in-up animation-delay-150 mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+              고정된 클립
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {pinnedClips.slice(0, 5).map((clip) => (
+              <ClipCard key={clip.id} clip={clip} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className={['animate-fade-in-up animation-delay-200', isFetching && !isLoading ? 'opacity-60 transition-opacity duration-200' : ''].join(' ')}>

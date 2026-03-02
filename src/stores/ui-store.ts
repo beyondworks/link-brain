@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ViewMode, ClipSortBy, SortOrder, ReadStatus } from '@/types/clip';
 
 export type ClipPeekMode = 'side' | 'center' | 'full';
@@ -17,6 +18,7 @@ interface UIFilters {
 
 interface UIState {
   sidebarOpen: boolean;
+  isSidebarCollapsed: boolean;
   viewMode: ViewMode;
   searchQuery: string;
   selectedClipIds: Set<string>;
@@ -33,6 +35,7 @@ interface UIState {
 interface UIActions {
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  toggleSidebarCollapse: () => void;
   setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
   setOmniSearchOpen: (open: boolean) => void;
@@ -67,86 +70,96 @@ const DEFAULT_FILTERS: UIFilters = {
   hasAiAnalysis: null,
 };
 
-export const useUIStore = create<UIState & UIActions>((set) => ({
-  // State
-  sidebarOpen: true,
-  viewMode: 'grid',
-  searchQuery: '',
-  selectedClipIds: new Set<string>(),
-  isSelectionMode: false,
-  activeModal: null,
-  sortBy: 'created_at',
-  sortOrder: 'desc',
-  filters: DEFAULT_FILTERS,
-  omniSearchOpen: false,
-  peekClipId: null,
-  clipPeekMode: 'side',
+export const useUIStore = create<UIState & UIActions>()(
+  persist(
+    (set) => ({
+      // State
+      sidebarOpen: true,
+      isSidebarCollapsed: false,
+      viewMode: 'grid',
+      searchQuery: '',
+      selectedClipIds: new Set<string>(),
+      isSelectionMode: false,
+      activeModal: null,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+      filters: DEFAULT_FILTERS,
+      omniSearchOpen: false,
+      peekClipId: null,
+      clipPeekMode: 'side',
 
-  // Actions
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setOmniSearchOpen: (open) => set({ omniSearchOpen: open }),
+      // Actions
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+      toggleSidebarCollapse: () => set((s) => ({ isSidebarCollapsed: !s.isSidebarCollapsed })),
+      setViewMode: (mode) => set({ viewMode: mode }),
+      setSearchQuery: (query) => set({ searchQuery: query }),
+      setOmniSearchOpen: (open) => set({ omniSearchOpen: open }),
 
-  selectClip: (id) =>
-    set((s) => {
-      const next = new Set(s.selectedClipIds);
-      next.add(id);
-      return { selectedClipIds: next };
+      selectClip: (id) =>
+        set((s) => {
+          const next = new Set(s.selectedClipIds);
+          next.add(id);
+          return { selectedClipIds: next };
+        }),
+
+      deselectClip: (id) =>
+        set((s) => {
+          const next = new Set(s.selectedClipIds);
+          next.delete(id);
+          return { selectedClipIds: next };
+        }),
+
+      toggleClipSelection: (id) =>
+        set((s) => {
+          const next = new Set(s.selectedClipIds);
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+          return { selectedClipIds: next, isSelectionMode: next.size > 0 };
+        }),
+
+      selectAllClips: (clipIds) => set({ selectedClipIds: new Set(clipIds), isSelectionMode: true }),
+
+      clearSelection: () => set({ selectedClipIds: new Set<string>(), isSelectionMode: false }),
+
+      setSelectionMode: (enabled) =>
+        set((s) => ({
+          isSelectionMode: enabled,
+          selectedClipIds: enabled ? s.selectedClipIds : new Set<string>(),
+        })),
+
+      setSelectedClipIds: (ids) => set({ selectedClipIds: ids }),
+
+      openModal: (modal) => set({ activeModal: modal }),
+      closeModal: () => set({ activeModal: null }),
+
+      setSortBy: (sortBy) => set({ sortBy }),
+      setSortOrder: (order) => set({ sortOrder: order }),
+
+      setFilter: (key, value) =>
+        set((s) => ({ filters: { ...s.filters, [key]: value } })),
+
+      setQuickFilter: (key) =>
+        set((s) => ({
+          filters: {
+            ...s.filters,
+            isFavorite: key === 'favorite' ? true : null,
+            isReadLater: key === 'readLater' ? true : null,
+          },
+        })),
+
+      clearFilters: () => set({ filters: DEFAULT_FILTERS }),
+
+      openClipPeek: (clipId) => set({ peekClipId: clipId }),
+      closeClipPeek: () => set({ peekClipId: null }),
+      setClipPeekMode: (mode) => set({ clipPeekMode: mode }),
     }),
-
-  deselectClip: (id) =>
-    set((s) => {
-      const next = new Set(s.selectedClipIds);
-      next.delete(id);
-      return { selectedClipIds: next };
-    }),
-
-  toggleClipSelection: (id) =>
-    set((s) => {
-      const next = new Set(s.selectedClipIds);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return { selectedClipIds: next, isSelectionMode: next.size > 0 };
-    }),
-
-  selectAllClips: (clipIds) => set({ selectedClipIds: new Set(clipIds), isSelectionMode: true }),
-
-  clearSelection: () => set({ selectedClipIds: new Set<string>(), isSelectionMode: false }),
-
-  setSelectionMode: (enabled) =>
-    set((s) => ({
-      isSelectionMode: enabled,
-      selectedClipIds: enabled ? s.selectedClipIds : new Set<string>(),
-    })),
-
-  setSelectedClipIds: (ids) => set({ selectedClipIds: ids }),
-
-  openModal: (modal) => set({ activeModal: modal }),
-  closeModal: () => set({ activeModal: null }),
-
-  setSortBy: (sortBy) => set({ sortBy }),
-  setSortOrder: (order) => set({ sortOrder: order }),
-
-  setFilter: (key, value) =>
-    set((s) => ({ filters: { ...s.filters, [key]: value } })),
-
-  setQuickFilter: (key) =>
-    set((s) => ({
-      filters: {
-        ...s.filters,
-        isFavorite: key === 'favorite' ? true : null,
-        isReadLater: key === 'readLater' ? true : null,
-      },
-    })),
-
-  clearFilters: () => set({ filters: DEFAULT_FILTERS }),
-
-  openClipPeek: (clipId) => set({ peekClipId: clipId }),
-  closeClipPeek: () => set({ peekClipId: null }),
-  setClipPeekMode: (mode) => set({ clipPeekMode: mode }),
-}));
+    {
+      name: 'linkbrain-ui',
+      partialize: (state) => ({ isSidebarCollapsed: state.isSidebarCollapsed }),
+    },
+  ),
+);

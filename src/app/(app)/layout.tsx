@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useUIStore } from '@/stores/ui-store';
@@ -35,7 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { user, isLoading } = useSupabase();
   const { theme, setTheme } = useTheme();
-  const { sidebarOpen, setSidebarOpen, openModal } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
 
   // Single Realtime channel for cache invalidation
   useRealtimeInvalidation(user?.id ?? null);
@@ -78,44 +78,55 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar */}
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-sticky w-64 flex-shrink-0',
+          'fixed inset-y-0 left-0 z-sticky flex-shrink-0',
           'bg-glass-heavy border-r border-border/50',
-          'flex flex-col transition-transform duration-300 ease-in-out',
+          'flex flex-col transition-all duration-200 ease-in-out',
           'lg:static lg:translate-x-0 lg:animate-slide-in-left',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          isSidebarCollapsed ? 'w-16' : 'w-64',
         ].join(' ')}
       >
         {/* Sidebar header */}
-        <div className="flex h-16 items-center justify-between border-b border-border/50 px-5">
+        <div className={[
+          'flex h-16 items-center border-b border-border/50',
+          isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
+        ].join(' ')}>
           <Link
             href="/dashboard"
             className="group flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground"
           >
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-brand text-[13px] font-black text-white shadow-brand glow-brand-sm animate-breathe">
+            <span className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-[13px] font-black text-white shadow-brand glow-brand-sm animate-breathe">
               L
             </span>
-            <span>
-              Link<span className="text-gradient-brand">Brain</span>
-            </span>
+            {!isSidebarCollapsed && (
+              <span>
+                Link<span className="text-gradient-brand">Brain</span>
+              </span>
+            )}
           </Link>
-          <button
-            type="button"
-            className="rounded-lg p-1.5 text-muted-foreground transition-smooth hover:bg-accent hover:text-foreground lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="사이드바 닫기"
-          >
-            <X size={16} />
-          </button>
+          {!isSidebarCollapsed && (
+            <button
+              type="button"
+              className="rounded-lg p-1.5 text-muted-foreground transition-smooth hover:bg-accent hover:text-foreground lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="사이드바 닫기"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className={['flex-1 overflow-y-auto py-4', isSidebarCollapsed ? 'px-2' : 'px-3'].join(' ')}>
           {MAIN_NAV.map((section, idx) => (
             <div key={idx} className={idx > 0 ? 'mt-6' : ''}>
-              {section.title && (
+              {section.title && !isSidebarCollapsed && (
                 <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">
                   {section.titleKo ?? section.title}
                 </p>
+              )}
+              {section.title && isSidebarCollapsed && (
+                <div className="mb-2 border-t border-border/30" />
               )}
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
@@ -127,8 +138,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        title={isSidebarCollapsed ? item.labelKo : undefined}
                         className={[
-                          'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-spring',
+                          'group relative flex items-center rounded-xl text-sm transition-spring',
+                          isSidebarCollapsed
+                            ? 'justify-center px-2 py-2.5'
+                            : 'gap-3 px-3 py-2.5',
                           isActive
                             ? 'bg-gradient-brand-subtle font-semibold text-primary'
                             : 'font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground',
@@ -148,11 +163,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                             ].join(' ')}
                           />
                         </span>
-                        <span>{item.labelKo}</span>
-                        {item.badge && (
-                          <span className="ml-auto rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
-                            {item.badge}
-                          </span>
+                        {!isSidebarCollapsed && (
+                          <>
+                            <span>{item.labelKo}</span>
+                            {item.badge && (
+                              <span className="ml-auto rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
                         )}
                       </Link>
                     </li>
@@ -162,49 +181,75 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
           ))}
 
-          {/* Categories */}
-          <SidebarCategories />
+          {/* Categories — hidden when collapsed */}
+          {!isSidebarCollapsed && <SidebarCategories />}
         </nav>
 
-        {/* Bottom section — user profile */}
+        {/* Bottom section — collapse toggle + user profile */}
         <div className="border-t border-border/50 p-3">
+          {/* Collapse toggle button — desktop only */}
+          <button
+            type="button"
+            onClick={toggleSidebarCollapse}
+            className={[
+              'mb-2 hidden w-full items-center rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent/60 hover:text-foreground lg:flex',
+              isSidebarCollapsed ? 'justify-center' : 'justify-between',
+            ].join(' ')}
+            aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          >
+            {!isSidebarCollapsed && <span>사이드바 접기</span>}
+            {isSidebarCollapsed ? (
+              <ChevronsRight size={16} />
+            ) : (
+              <ChevronsLeft size={16} />
+            )}
+          </button>
+
           {/* User profile */}
           <div className="mt-1">
             {isLoading ? (
               <div className="flex items-center gap-3 px-3 py-2">
-                <Skeleton className="h-9 w-9 rounded-full" />
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-2.5 w-14" />
-                </div>
+                <Skeleton className="h-9 w-9 flex-shrink-0 rounded-full" />
+                {!isSidebarCollapsed && (
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-2.5 w-14" />
+                  </div>
+                )}
               </div>
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition-spring hover:bg-accent/60 hover:glow-brand-sm"
+                    className={[
+                      'group flex w-full items-center rounded-xl px-3 py-2 text-sm transition-spring hover:bg-accent/60 hover:glow-brand-sm',
+                      isSidebarCollapsed ? 'justify-center gap-0' : 'gap-3',
+                    ].join(' ')}
                     aria-label={`${displayName} 계정 메뉴`}
+                    title={isSidebarCollapsed ? displayName : undefined}
                   >
-                    <Avatar className="h-9 w-9 ring-2 ring-primary/30 transition-spring group-hover:ring-primary/60">
+                    <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-primary/30 transition-spring group-hover:ring-primary/60">
                       <AvatarImage src={avatarUrl} alt={displayName} />
                       <AvatarFallback className="bg-gradient-brand text-[11px] font-bold text-white">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex min-w-0 flex-1 flex-col items-start">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-xs font-semibold text-foreground">
-                          {displayName}
-                        </span>
-                        <span className="flex-shrink-0 rounded-full bg-gradient-brand px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white shadow-brand">
-                          Pro
+                    {!isSidebarCollapsed && (
+                      <div className="flex min-w-0 flex-1 flex-col items-start">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-xs font-semibold text-foreground">
+                            {displayName}
+                          </span>
+                          <span className="flex-shrink-0 rounded-full bg-gradient-brand px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white shadow-brand">
+                            Pro
+                          </span>
+                        </div>
+                        <span className="truncate text-[11px] text-muted-foreground/70">
+                          {user.email}
                         </span>
                       </div>
-                      <span className="truncate text-[11px] text-muted-foreground/70">
-                        {user.email}
-                      </span>
-                    </div>
+                    )}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" className="w-56">

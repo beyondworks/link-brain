@@ -69,6 +69,7 @@ export interface ClipData {
   read_time: number | null;
   ai_score: number | null;
   is_favorite: boolean;
+  is_pinned?: boolean;
   is_read_later: boolean;
   is_archived: boolean;
   is_public: boolean;

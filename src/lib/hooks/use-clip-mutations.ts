@@ -139,6 +139,55 @@ export function useToggleArchive() {
   });
 }
 
+// ─── Toggle Pin ───────────────────────────────────────────────────────────────
+
+export function useTogglePin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ clipId, isPinned }: { clipId: string; isPinned: boolean }) => {
+      const { error } = await supabase
+        .from('clips')
+        .update({ is_pinned: !isPinned } as never)
+        .eq('id', clipId);
+      if (error) throw error;
+      return { clipId, newValue: !isPinned };
+    },
+
+    onMutate: async ({ clipId, isPinned }) => {
+      await queryClient.cancelQueries({ queryKey: ['clips'] });
+
+      const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
+        queryKey: ['clips'],
+      });
+
+      queryClient.setQueriesData<ClipsInfiniteData>({ queryKey: ['clips'] }, (old) =>
+        updateClipInInfiniteData(old, clipId, (clip) => ({
+          ...clip,
+          is_pinned: !isPinned,
+        }))
+      );
+
+      return { previousEntries };
+    },
+
+    onError: (_err, _vars, context) => {
+      context?.previousEntries?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast.error('고정 변경에 실패했습니다.');
+    },
+
+    onSuccess: (_data, { isPinned }) => {
+      toast.success(isPinned ? '고정 해제됨' : '클립이 고정됨');
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+    },
+  });
+}
+
 // ─── Delete Clip ──────────────────────────────────────────────────────────────
 
 export function useDeleteClip() {
