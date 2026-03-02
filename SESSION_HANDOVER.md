@@ -1,6 +1,6 @@
 # Session Handover
 
-## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7)
+## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7+8)
 
 ---
 
@@ -8,6 +8,8 @@
 
 | 해시 | 설명 |
 |------|------|
+| `c99fade` | 중복 클립 감지/관리, 테마 전환 애니메이션, 전역 키보드 네비게이션 |
+| `8cbc806` | 읽기 시간 추정, PWA manifest/SW, SEO 메타 강화 |
 | `88e3f28` | 클립 고정(is_pinned), 사이드바 축소, 테마 프리뷰, 랜딩 Testimonials/FAQ |
 | `612a457` | 온보딩 웰컴, 브레드크럼, 세션 핸드오버 |
 | `ae9e5e4` | 알림 센터, 웹훅 관리, 테스트 199개 |
@@ -82,9 +84,20 @@
 - **온보딩 웰컴 모달**: 첫 로그인 감지 → 기능 소개 Dialog (localStorage 플래그)
 - **브레드크럼 네비게이션**: `app-header.tsx` pathname 파싱 → `<nav aria-label="breadcrumb">`
 
+### 최신 기능 (세션 8 — R20~R22)
+- **읽기 시간 추정 (R20)**: `reading_time_minutes` 컬럼 기반, `reading-time.ts` 유틸 (WPM 200), 클립 카드/detail 표시
+- **PWA manifest/SW (R20)**: `manifest.webmanifest`, `service-worker.js` 캐싱 전략, `next.config.ts` headers
+- **SEO 메타 강화 (R20)**: OpenGraph/Twitter card, canonical URL, JSON-LD 보강
+- **중복 클립 감지/관리 (R21)**: `use-duplicates.ts` 훅, 대시보드 중복 배너, 일괄 병합 UI
+- **테마 전환 애니메이션 (R21)**: `applyTransition()` → `documentElement.classList.add('transitioning')`, 320ms
+- **전역 키보드 네비게이션 (R21)**: `use-global-shortcuts.ts` (vim-style: g+h/f/a/c/s/i/e), `use-list-keyboard-nav.ts` (j/k/x/Enter)
+- **하이라이트/주석 (R22)**: `clip_highlights` 테이블 연동 (`use-highlights.ts`), 텍스트 선택 → 저장
+- **대시보드 차트 (R22)**: 주간 클립 저장량 Bar chart, 플랫폼 분포 Donut chart (Recharts)
+
 ### Testing
-- **199개 테스트, 15개 파일** — 모두 통과 (vitest 3.2.4, node 환경)
-- 신규 파일: `ui-store-extended.test.ts`(13), `add-clip-dialog.test.ts`(6), `export.test.ts`(6), `import.test.ts`(6), `clip-list.test.ts`(12), `export/route.test.ts`(17)
+- **296개 테스트, 21개 파일** — 모두 통과 (vitest 3.2.4, node 환경)
+- 신규 파일 (세션 7): `ui-store-extended.test.ts`(13), `add-clip-dialog.test.ts`(6), `export.test.ts`(6), `import.test.ts`(6), `clip-list.test.ts`(12), `export/route.test.ts`(17)
+- 신규 파일 (세션 8): `use-global-shortcuts.test.ts`(28), `use-list-keyboard-nav.test.ts`(24), `theme-toggle.test.tsx`(10)
 
 ---
 
@@ -137,3 +150,5 @@
 3. **웹훅 DB 테이블 생성 + 실제 HTTP 발송** 구현
 4. **결제 UI** — LemonSqueezy 체크아웃 버튼, 업그레이드 모달
 5. **E2E 테스트** — Playwright + jsdom 설치로 컴포넌트 렌더 테스트 추가
+6. **하이라이트 UI 완성** — 텍스트 드래그 선택 → popover 저장 플로우
+7. **대시보드 차트 데이터 연동** — Recharts 컴포넌트에 실제 API 데이터 바인딩

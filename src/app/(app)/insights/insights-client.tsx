@@ -2,6 +2,7 @@
 
 import { useInsights } from '@/lib/hooks/use-insights';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DonutChart } from '@/components/charts/donut-chart';
 import {
   BarChart3,
   TrendingUp,
@@ -13,6 +14,14 @@ import {
   Sparkles,
   Tag,
 } from 'lucide-react';
+
+const PLATFORM_COLORS = [
+  '#3b82f6', // blue-500
+  '#21DBA4', // brand
+  '#f59e0b', // amber-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+];
 
 export function InsightsClient() {
   const { data, isLoading, isError } = useInsights();
@@ -183,27 +192,41 @@ export function InsightsClient() {
               <span className="text-xs font-medium text-muted-foreground">TOP 플랫폼</span>
             </div>
             {data.platformBreakdown.length > 0 ? (
-              <ol className="space-y-2">
-                {data.platformBreakdown.slice(0, 5).map(({ platform, count }, idx) => (
-                  <li key={platform} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-sm font-medium capitalize">
-                        <span className="text-xs text-muted-foreground">{idx + 1}.</span>
-                        {platform}
-                      </span>
-                      <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-500">
-                        {count}개
-                      </span>
-                    </div>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-blue-500/60"
-                        style={{ width: `${(count / maxPlatformCount) * 100}%` }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              <div className="flex items-start gap-4">
+                <DonutChart
+                  segments={data.platformBreakdown.slice(0, 5).map(({ platform, count }, idx) => ({
+                    value: count,
+                    label: platform,
+                    color: PLATFORM_COLORS[idx % PLATFORM_COLORS.length],
+                  }))}
+                  size={72}
+                  className="shrink-0"
+                />
+                <ol className="flex-1 space-y-2">
+                  {data.platformBreakdown.slice(0, 5).map(({ platform, count }, idx) => (
+                    <li key={platform} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-sm font-medium capitalize">
+                          <span
+                            className="inline-block h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: PLATFORM_COLORS[idx % PLATFORM_COLORS.length] }}
+                          />
+                          {platform}
+                        </span>
+                        <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-500">
+                          {count}개
+                        </span>
+                      </div>
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-blue-500/60"
+                          style={{ width: `${(count / maxPlatformCount) * 100}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">플랫폼 데이터 없음</p>
             )}

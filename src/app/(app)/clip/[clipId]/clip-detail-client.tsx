@@ -32,6 +32,7 @@ import {
   Link2Off,
   Copy,
   Check,
+  Highlighter,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -40,6 +41,8 @@ import { shareClip } from '@/lib/utils/share';
 import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import { ClipNotes } from '@/components/clips/clip-notes';
+import { TextHighlighter } from '@/components/clips/text-highlighter';
+import { useHighlights, useCreateHighlight, useDeleteHighlight } from '@/lib/hooks/use-highlights';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import { estimateReadingTime } from '@/lib/utils/reading-time';
@@ -515,6 +518,9 @@ export function ClipDetailClient({ clipId }: Props) {
   const seedContent = isSeed ? SEED_CONTENT[clipId] : undefined;
 
   const { data: apiClip, isLoading } = useClip(isSeed ? '' : clipId);
+  const { data: highlights = [] } = useHighlights(isSeed ? '' : clipId);
+  const createHighlight = useCreateHighlight(isSeed ? '' : clipId);
+  const deleteHighlight = useDeleteHighlight(isSeed ? '' : clipId);
   const toggleFavorite = useToggleFavorite();
   const archiveClip = useArchiveClip();
   const { progress, update } = useReadingProgress(isSeed ? '' : clipId);
@@ -793,6 +799,12 @@ export function ClipDetailClient({ clipId }: Props) {
             <Calendar size={11} />
             {formatRelativeTime(clip.created_at)}
           </span>
+          {!isSeed && highlights.length > 0 && (
+            <span className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+              <Highlighter size={11} />
+              하이라이트 {highlights.length}개
+            </span>
+          )}
         </div>
       </div>
 
@@ -879,9 +891,16 @@ export function ClipDetailClient({ clipId }: Props) {
         </div>
       )}
 
-      {/* Full content (real clips) */}
+      {/* Full content (real clips) — wrapped with TextHighlighter */}
       {clipContents && (
-        <RealContent clipContents={clipContents} url={clip.url} />
+        <TextHighlighter
+          highlights={highlights}
+          onCreateHighlight={(input) => createHighlight.mutate(input)}
+          onDeleteHighlight={(id) => deleteHighlight.mutate(id)}
+          disabled={isSeed}
+        >
+          <RealContent clipContents={clipContents} url={clip.url} />
+        </TextHighlighter>
       )}
 
       {/* Personal notes (non-seed clips only) */}
