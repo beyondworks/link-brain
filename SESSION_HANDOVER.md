@@ -1,57 +1,73 @@
 # Session Handover
 
-## 날짜: 2026-03-02
+## 날짜: 2026-03-02 (세션 2)
 
 ## 완료
 
-### E2E UX 테스트 (Playwright MCP)
-- 랜딩(/), 로그인, 회원가입, 대시보드, 클립추가 모달, Peek 패널(side/center), 탐색, 즐겨찾기, 컬렉션, 설정, 아카이브, 나중에 읽기, 스튜디오, 모바일(390x844) 전체 테스트 완료
+### 높은 우선순위 — 핵심 기능 연결
+1. **클립 추가 실제 API 연결** — `add-clip-dialog.tsx`가 `/api/analyze` 호출 + `/api/v1/clips` POST 저장
+2. **태그 시스템** — `use-tags.ts` 훅 (조회/생성), 자동완성 UI, Enter/콤마 입력
+3. **Content Studio AI** — `/api/v1/ai` 라우트 (OpenAI gpt-4o-mini 스트리밍), studio-client 연결
+4. **favicon** — `icon.tsx`(32x32) + `apple-icon.tsx`(180x180) 브랜드 아이콘
 
-### UX 문제 수정 (4건)
-1. **Supabase `users` 테이블 404 에러** — `use-current-user.ts`에서 PGRST204/404 graceful 처리 + `retry: false`
-2. **Dialog 접근성 경고** — `clip-peek-panel.tsx` center 모드에 `DialogTitle` 추가, `add-clip-dialog.tsx`에 `aria-describedby={undefined}`
-3. **Explore 로그인 버튼** — `explore/layout.tsx`를 client component로 전환, `useSupabase()` 인증 체크 → 로그인 시 "대시보드" 버튼 표시
-4. **모바일 FAB + 하단 네비 겹침** — FAB를 `hidden lg:flex`로 모바일 숨김 (하단 네비에 이미 추가 버튼 존재)
+### 중간 우선순위
+5. **API 키 관리** — `/api/v1/keys` GET/POST, `/api/v1/keys/[keyId]` DELETE, 설정 UI (목록/생성/삭제/raw key Dialog)
+6. **설정 저장 연결** — language → Supabase 즉시 저장, 알림 → localStorage 저장
+7. **YouTube transcript** — captionTracks 파싱 → json3 자막 (ko > en 우선순위)
 
-### 이전 세션에서 이어받은 완료 작업
-- Dialog 중앙 정렬 (flex wrapper 패턴으로 Tailwind v4 animate-in 충돌 해결)
-- Clip Peek 패널 (side/center/full 3모드)
-- 사이드바 카테고리 섹션 + 컬렉션 네비게이션
-- 고급 필터 패널
+### 보안/품질
+8. **SSRF 차단 강화** — 172.16-31, 169.254, 0.0.0.0, metadata.google.internal
+9. **AI 스트리밍 에러 신호** — 에러 발생 시 클라이언트에 `[오류: ...]` 메시지 전달
+10. **as any 제거** — ai/route.ts에서 supabaseAdmin 직접 사용
+11. **useTags queryKey에 userId 추가**, tagSuggestions useMemo
 
-### 민트색 글로우/블러 감소
-- `--shadow-brand` 반경 50%, 투명도 40% 감소
-- `--shadow-brand-glow`, `glow-brand-sm`, `bg-glass-heavy` blur, `pulse-brand` 모두 축소
+### 빠른 승리
+12. **PWA manifest** — standalone, 브랜드 색상/아이콘
+13. **sitemap.ts** — 공개 6페이지
+14. **robots.ts** — 앱 내부 크롤링 차단
+15. **gitignore** — *.png, .playwright-mcp/ 추가 + 테스트 스크린샷 삭제
 
 ## 미완료
 
-### Supabase `users` 테이블 생성 (DB 작업 필요)
-- 현재 `users` 테이블이 Supabase에 존재하지 않아 REST API 404 발생
-- 훅에서 에러를 graceful 처리하지만 네트워크 레벨 404는 브라우저 콘솔에 여전히 표시
-- **다음 단계**: Supabase 대시보드에서 `001_initial_schema.sql` 기반으로 `users` 테이블 생성
+### Supabase `users` 테이블 DB 적용 (블로커)
+- `001_initial_schema.sql` ~ `007_user_creation_trigger.sql` 실제 DB에 미적용
+- 프로필/설정/카테고리 등 users 참조 기능이 모두 이에 의존
+- **다음 단계**: Supabase 대시보드 SQL Editor에서 마이그레이션 순서대로 실행
 
-### 카테고리/컬렉션 사이드바 플랜 실행
-- 플랜 파일: `.claude/plans/kind-sniffing-hellman.md`
-- Step 2-7 미구현 (카테고리 CRUD 뮤테이션, 대시보드 필터 연동, 클립 카테고리 할당, 고급 필터 패널)
-- **다음 단계**: 플랜 Step 2부터 순서대로 실행
+### 커뮤니티/소셜 (Phase 5)
+- 탐색 피드 실제 데이터, 크리에이터 프로필, 팔로우/좋아요, 알림
+- DB 테이블(follows, likes, notifications)은 스키마에 존재하나 UI/API 미구현
 
-### favicon.ico 404
-- `/public/favicon.ico` 파일 없음
-- **다음 단계**: 브랜드 로고 기반 favicon 추가
+### Puppeteer 스크래핑
+- `puppeteer-extractor.ts`가 여전히 스텁 (빈 결과 반환)
+- Vercel 서버리스에서 Puppeteer 대안 필요 (Jina Reader가 현재 대체 중)
 
-## 에러/학습
+### 구독/크레딧 + LemonSqueezy 결제
+- `config/credits.ts` 상수만 존재, 스토어/결제 UI 없음
+- 웹훅 수신 라우트는 있으나 결제 페이지/버튼 없음
 
-### Tailwind v4 + Radix Dialog 중앙 정렬
-- `animate-in`의 `transform: translate3d(0,0,0)`이 `translate-x-[-50%] translate-y-[-50%]` 방식 덮어씀
-- **해결 패턴**: flex wrapper (`fixed inset-0 flex items-center justify-center`) + content `relative`
-- `dialog.tsx`에 이미 적용됨 — 향후 새 Dialog에서도 이 패턴 유지
+### 마케팅 보완
+- How It Works 페이지, API 문서 페이지 없음
+- JSON-LD 구조화 데이터 없음
 
-### Explore layout `'use client'` 전환
-- `useSupabase()` 훅 사용을 위해 Server Component → Client Component 전환
-- 정상 동작 확인 (SSR은 유지, hydration 이후 인증 체크)
+### 관리자 세부 페이지
+- admin-client.tsx 기본 통계 UI만, users/analytics/announcements 서브페이지 없음
+
+### 테스트
+- Vitest 단위 + Playwright E2E 전무
+
+### Slack 통합
+- `/api/integrations/slack` 라우트 없음
+
+## 커밋 히스토리 (이번 세션)
+- `f0507a9` feat: UI/UX 전면 개선 (52파일, +7187/-1485)
+- `7b6fdc8` chore: gitignore 정리
+- `796d639` feat: 클립 API 연결, Studio AI, 태그, favicon, 보안
+- `4468e9f` feat: API 키 관리, 설정 저장, YouTube transcript
+- `568a55e` feat: PWA manifest, sitemap.xml, robots.txt
 
 ## 다음 세션 시작 시
-1. `npm run dev`로 개발 서버 시작 확인
-2. Supabase `users` 테이블 생성 여부 확인 → 생성 안 됐으면 SQL 실행
-3. 카테고리 플랜 Step 2 (뮤테이션 훅) 부터 구현 시작
-4. favicon.ico 추가
+1. Supabase SQL Editor에서 마이그레이션 실행 (001~007)
+2. `npm run dev`로 개발 서버 시작
+3. 클립 추가 + Studio AI 생성 동작 확인
+4. 구독/크레딧 시스템 또는 커뮤니티 기능 진행
