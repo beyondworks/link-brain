@@ -17,6 +17,7 @@ import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
+import { WeeklyReport } from '@/components/dashboard/weekly-report';
 import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 
 import type { ClipData } from '@/types/database';
@@ -324,6 +325,9 @@ export function DashboardClient() {
           loading={creditsLoading}
         />
       </div>
+
+      {/* Weekly Report */}
+      <WeeklyReport />
 
       {/* Continue Reading + Recent Activity */}
       {authUser && (

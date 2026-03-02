@@ -34,6 +34,9 @@ import {
   Check,
   Highlighter,
   Bell,
+  ChevronDown,
+  ChevronUp,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -44,6 +47,7 @@ import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assig
 import { ClipNotes } from '@/components/clips/clip-notes';
 import { TextHighlighter } from '@/components/clips/text-highlighter';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
+import { ClipActivityTimeline } from '@/components/clips/clip-activity-timeline';
 import {
   Tooltip,
   TooltipContent,
@@ -538,6 +542,9 @@ export function ClipDetailClient({ clipId }: Props) {
   // Reminder dialog state
   const [reminderOpen, setReminderOpen] = useState(false);
 
+  // Activity section state
+  const [activityOpen, setActivityOpen] = useState(false);
+
   // Share state — initialise from clip data once loaded
   const [isPublic, setIsPublic] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -946,6 +953,33 @@ export function ClipDetailClient({ clipId }: Props) {
           clipId={clipId}
           initialNotes={(clip as ClipData & { notes?: string | null }).notes}
         />
+      )}
+
+      {/* Activity log (non-seed only) */}
+      {!isSeed && (
+        <div className="mb-5 animate-fade-in-up animation-delay-400">
+          <button
+            type="button"
+            onClick={() => setActivityOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-2xl border border-border/60 bg-glass card-inner-glow px-5 py-4 shadow-card transition-colors hover:border-border"
+          >
+            <div className="flex items-center gap-2.5">
+              <History size={15} className="text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">활동 기록</span>
+            </div>
+            {activityOpen ? (
+              <ChevronUp size={16} className="text-muted-foreground" />
+            ) : (
+              <ChevronDown size={16} className="text-muted-foreground" />
+            )}
+          </button>
+
+          {activityOpen && (
+            <div className="mt-1 rounded-2xl border border-border/60 bg-glass p-5 shadow-card">
+              <ClipActivityTimeline clipId={clipId} />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Source link */}

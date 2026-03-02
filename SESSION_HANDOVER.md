@@ -1,6 +1,6 @@
 # Session Handover
 
-## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7+8)
+## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7+8+9)
 
 ---
 
@@ -8,8 +8,11 @@
 
 | 해시 | 설명 |
 |------|------|
+| `68b8ad2` | 리마인더 스케줄링, 컬렉션 공유/공개 페이지, 스켈레톤/에러 UX |
+| `e7bd547` | 클립 하이라이트/주석, SVG 차트 위젯, 테스트 296개 |
 | `c99fade` | 중복 클립 감지/관리, 테마 전환 애니메이션, 전역 키보드 네비게이션 |
 | `8cbc806` | 읽기 시간 추정, PWA manifest/SW, SEO 메타 강화 |
+| `b3fb678` | OmniSearch 최근 검색/퀵 액션, 아이콘 툴팁 시스템 |
 | `88e3f28` | 클립 고정(is_pinned), 사이드바 축소, 테마 프리뷰, 랜딩 Testimonials/FAQ |
 | `612a457` | 온보딩 웰컴, 브레드크럼, 세션 핸드오버 |
 | `ae9e5e4` | 알림 센터, 웹훅 관리, 테스트 199개 |
@@ -55,6 +58,8 @@
 - **단축키 도움말**: `?` 키 토글 Dialog, Mac/Win 감지
 - **성능 최적화**: React.memo(id+updated_at), dynamic import(@xyflow), useMemo/useCallback
 - **접근성**: skip nav, aria-label, 44px 터치 타겟, aria-current
+- **스켈레톤 시스템**: ClipCardSkeleton, ClipListSkeleton, StatCardSkeleton (`src/components/skeletons/`)
+- **4상태 UX**: ErrorRetry + EmptyState 컴포넌트 (`src/components/ui/`)
 
 ### Data Management
 - **Export**: `GET /api/v1/clips/export?format=json|csv` → Blob 다운로드
@@ -64,49 +69,47 @@
 - **URL 중복 감지**: 500ms debounce → ilike 조회 → amber 경고 배너
 
 ### Social / Sharing
-- **공개 공유 링크**: `share_token` 컬럼 + `/s/[token]` 퍼블릭 페이지 (인증 불필요)
+- **공개 공유 링크(클립)**: `share_token` + `/s/[token]` 퍼블릭 페이지
+- **컬렉션 공유**: `share_token` + `/c/[token]` 퍼블릭 페이지 (DB 컬럼 미적용)
 - **클립 메모**: clip_detail에 메모 영역 — debounce 자동 저장
 - **클립 태그/컬렉션 인라인 편집**: detail 페이지에서 직접 수정
 
 ### Infrastructure
 - **에러 바운더리**: 모든 앱 페이지에 `ErrorBoundary` 래퍼 적용
-- **알림 센터**: Zustand persist 스토어 (`use-notifications.ts`), Bell 아이콘 팝오버
-- **웹훅 관리**: localStorage MVP (`STORAGE_KEY = 'linkbrain-webhooks'`) — 4개 이벤트 타입
-- **온보딩**: localStorage 플래그 기반 — 실제 데이터 없을 때 empty state + 안내
+- **알림 센터**: Zustand persist 스토어, Bell 아이콘 팝오버
+- **웹훅 관리**: localStorage MVP — 4개 이벤트 타입 (실제 발송 미구현)
 - **Realtime**: `useRealtimeInvalidation` → TanStack Query 캐시 자동 무효화
-- **OmniSearch**: Supabase full-text 검색, 키보드 단축키 (`Cmd+K`)
+- **OmniSearch**: Supabase full-text 검색, 최근 검색 기록, 퀵 액션
 
-### 최신 기능 (세션 7)
-- **클립 고정(Pin)**: `is_pinned` 컬럼 기반, 핀 토글 optimistic update, 목록 상단 고정 정렬
-- **사이드바 축소 모드**: 아이콘만 표시 collapsed 상태, `ui-store` `isSidebarCollapsed` 상태
-- **테마 프리뷰**: 설정 페이지에서 light/dark/system 실시간 미리보기
-- **랜딩 Testimonials/FAQ**: 마케팅 페이지 사회적 증명 섹션 + 자주 묻는 질문 아코디언
-- **온보딩 웰컴 모달**: 첫 로그인 감지 → 기능 소개 Dialog (localStorage 플래그)
-- **브레드크럼 네비게이션**: `app-header.tsx` pathname 파싱 → `<nav aria-label="breadcrumb">`
+### 세션 8 기능 (R20~R22)
+- **읽기 시간 추정 (R20)**: `reading-time.ts` 유틸, 한/영 자동 판별, 클립 카드/detail 표시
+- **PWA (R20)**: `manifest.webmanifest`, `service-worker.js` 캐싱, `next.config.ts` headers
+- **중복 클립 감지/관리 (R21)**: `use-duplicates.ts`, 대시보드 배너, 일괄 병합 UI
+- **테마 전환 애니메이션 (R21)**: `applyTransition()` 320ms, transitioning class 패턴
+- **전역 키보드 네비게이션 (R21)**: `use-global-shortcuts.ts` (g+시퀀스), `use-list-keyboard-nav.ts` (j/k/x)
+- **하이라이트/주석 (R22)**: `clip_highlights` 테이블 연동, 텍스트 선택 → popover 저장
+- **SVG 차트 (R22)**: 스파크라인 + 도넛 차트 — 순수 SVG, 외부 라이브러리 없음
 
-### 최신 기능 (세션 8 — R20~R22)
-- **읽기 시간 추정 (R20)**: `reading_time_minutes` 컬럼 기반, `reading-time.ts` 유틸 (WPM 200), 클립 카드/detail 표시
-- **PWA manifest/SW (R20)**: `manifest.webmanifest`, `service-worker.js` 캐싱 전략, `next.config.ts` headers
-- **SEO 메타 강화 (R20)**: OpenGraph/Twitter card, canonical URL, JSON-LD 보강
-- **중복 클립 감지/관리 (R21)**: `use-duplicates.ts` 훅, 대시보드 중복 배너, 일괄 병합 UI
-- **테마 전환 애니메이션 (R21)**: `applyTransition()` → `documentElement.classList.add('transitioning')`, 320ms
-- **전역 키보드 네비게이션 (R21)**: `use-global-shortcuts.ts` (vim-style: g+h/f/a/c/s/i/e), `use-list-keyboard-nav.ts` (j/k/x/Enter)
-- **하이라이트/주석 (R22)**: `clip_highlights` 테이블 연동 (`use-highlights.ts`), 텍스트 선택 → 저장
-- **대시보드 차트 (R22)**: 주간 클립 저장량 Bar chart, 플랫폼 분포 Donut chart (Recharts)
+### 세션 9 기능 (R23~R24)
+- **리마인더 스케줄링 (R23)**: `remind_at` 컬럼 + `reminder-dialog.tsx` DateTimePicker, `/api/v1/clips/[clipId]/reminder`
+- **컬렉션 공유/공개 페이지 (R23)**: `/c/[token]` SSR, 컬렉션 share_token 발급 API
+- **스켈레톤/에러 UX 개선 (R23)**: 전 페이지 4상태 UX 통일, ErrorRetry + EmptyState 컴포넌트
+- **활동 로그 (R24)**: `clip_activity` 테이블 연동 — 클립 조회/저장/분석 이벤트 기록
+- **주간 리포트 (R24)**: 인사이트 페이지 주간 요약 카드 — 저장/분석/읽기 통계
 
 ### Testing
 - **296개 테스트, 21개 파일** — 모두 통과 (vitest 3.2.4, node 환경)
-- 신규 파일 (세션 7): `ui-store-extended.test.ts`(13), `add-clip-dialog.test.ts`(6), `export.test.ts`(6), `import.test.ts`(6), `clip-list.test.ts`(12), `export/route.test.ts`(17)
-- 신규 파일 (세션 8): `use-global-shortcuts.test.ts`(28), `use-list-keyboard-nav.test.ts`(24), `theme-toggle.test.tsx`(10)
+- 신규 (세션 8): `use-global-shortcuts.test.ts`(28), `use-list-keyboard-nav.test.ts`(24), `theme-toggle.test.tsx`(10)
+- 신규 (세션 9): `reminder-dialog.test.ts`, `use-highlights.test.ts`, `skeleton.test.ts`
 
 ---
 
 ## 아키텍처 결정 사항
 
-- **알림 시스템**: DB 테이블 대신 Zustand persist (localStorage) 선택 — 서버 부하 없이 즉각 반응, 세션 간 유지
-- **웹훅 설정**: localStorage MVP로 구현 — DB 테이블 없이 동작, 실제 발송은 미구현
-- **공유 토큰**: `clips` 테이블 `share_token` 컬럼 + `is_public` 불리언 — `/s/[token]` SSR 페이지
-- **에러 바운더리**: 페이지 단위 분리 — 한 페이지 에러가 전체 앱을 죽이지 않도록
+- **알림 시스템**: DB 테이블 대신 Zustand persist (localStorage) — 서버 부하 없이 즉각 반응
+- **웹훅 설정**: localStorage MVP — DB 테이블 없이 동작, 실제 발송 미구현
+- **공유 토큰**: `clips/collections` 테이블 `share_token` + `is_public` — SSR 퍼블릭 페이지
+- **SVG 차트**: 순수 SVG로 구현 — Recharts/Victory 등 외부 라이브러리 미사용 (번들 크기 절약)
 - **vitest 환경**: `node` (jsdom 미사용) — React 컴포넌트 렌더 테스트 없음, 로직/훅/유틸 단위만
 
 ---
@@ -115,22 +118,19 @@
 
 ### 블로커 — DB 마이그레이션 미적용
 - `001_initial_schema.sql` ~ `007_user_creation_trigger.sql` 실제 Supabase에 미실행
-- `share_token`, `is_public`, `clip_notes` 컬럼 DB에 없음 → 공유/메모 기능 런타임 오류
-- `clip_contents` 테이블 미생성 → 읽기 진행률 저장 불가
+- `share_token`, `is_public` (clips/collections) 컬럼 DB에 없음
+- `remind_at` 컬럼 DB에 없음 → 리마인더 기능 런타임 오류
+- `clip_highlights` 테이블 미생성 → 하이라이트 저장 불가
+- `clip_activity` 테이블 미생성 → 활동 로그 저장 불가
 - **해결**: Supabase 대시보드 SQL Editor에서 마이그레이션 순서대로 실행 필수
 
 ### 웹훅
 - localStorage 저장만 구현 — 실제 HTTP 발송 로직 없음
 - DB 테이블(`webhooks`) 스키마 미작성
-- 테스트 발송 버튼 UI만 존재, 실제 ping 없음
 
 ### Graph 페이지
 - `knowledge-graph.tsx` 렌더링은 동작
 - 실제 유사도 계산 RPC(`match_clips`) → pgvector 확장 및 임베딩 컬럼 필요 (미설치)
-
-### 커뮤니티/소셜
-- DB 스키마(follows, likes, notifications) 존재 → UI/API 전무
-- Explore 피드는 퍼블릭 클립 단순 목록만
 
 ### 결제 UI
 - 크레딧 백엔드/LemonSqueezy 웹훅 수신 완료
@@ -145,10 +145,8 @@
 
 ## 다음 세션 권장 우선순위
 
-1. **Supabase 마이그레이션 실행** (001~007) — 모든 기능의 전제 조건
-2. **DB 마이그레이션 후 `as any` 타입 우회 제거** — 타입 안전성 확보
+1. **DB 마이그레이션 실행** — `remind_at`, `share_token`(collections), `clip_highlights`, `clip_activity` 테이블 추가
+2. **마이그레이션 후 `as any` 타입 우회 제거** — 타입 안전성 확보
 3. **웹훅 DB 테이블 생성 + 실제 HTTP 발송** 구현
 4. **결제 UI** — LemonSqueezy 체크아웃 버튼, 업그레이드 모달
 5. **E2E 테스트** — Playwright + jsdom 설치로 컴포넌트 렌더 테스트 추가
-6. **하이라이트 UI 완성** — 텍스트 드래그 선택 → popover 저장 플로우
-7. **대시보드 차트 데이터 연동** — Recharts 컴포넌트에 실제 API 데이터 바인딩
