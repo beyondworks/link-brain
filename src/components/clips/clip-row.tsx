@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Image from 'next/image';
 import { Heart, ExternalLink, Share2 } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
@@ -58,7 +59,7 @@ function getGradient(id: string): string {
   return GRADIENT_COLORS[index];
 }
 
-export function ClipRow({
+export const ClipRow = memo(function ClipRow({
   clip,
   isSelected = false,
   isSelectionMode: _isSelectionMode,
@@ -192,4 +193,9 @@ export function ClipRow({
       </div>
     </div>
   );
-}
+}, (prev, next) =>
+  prev.clip.id === next.clip.id &&
+  prev.clip.updated_at === next.clip.updated_at &&
+  prev.isSelected === next.isSelected &&
+  prev.isSelectionMode === next.isSelectionMode
+);

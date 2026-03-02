@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useCredits } from '@/lib/hooks/use-credits';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,8 +41,10 @@ import {
   Plus,
   X,
   Gauge,
+  Upload,
 } from 'lucide-react';
 import { exportClips } from '@/lib/utils/export';
+import { importClips } from '@/lib/utils/import';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -101,6 +103,10 @@ export function SettingsClient() {
   // 내보내기 로딩 상태
   const [exportingJson, setExportingJson] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
+
+  // 가져오기 상태
+  const [importing, setImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   // API 키 상태
   const [apiKeys, setApiKeys] = useState<ApiKeyView[]>([]);
@@ -199,6 +205,28 @@ export function SettingsClient() {
       toast.error('내보내기에 실패했습니다');
     } finally {
       setExportingCsv(false);
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+
+    setImporting(true);
+    try {
+      const result = await importClips(file);
+      const parts: string[] = [];
+      if (result.imported > 0) parts.push(`${result.imported}개 가져옴`);
+      if (result.skipped > 0) parts.push(`${result.skipped}개 건너뜀`);
+      if (result.errors > 0) parts.push(`${result.errors}개 오류`);
+      toast.success(parts.length > 0 ? parts.join(', ') : '가져올 클립이 없습니다');
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+    } catch {
+      toast.error('가져오기에 실패했습니다');
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -497,6 +525,30 @@ export function SettingsClient() {
               <FileSpreadsheet size={15} />
               {exportingCsv ? '내보내는 중...' : '클립 내보내기 (CSV)'}
             </Button>
+
+            {/* 구분선 */}
+            <div className="border-t border-border/50 pt-1" />
+
+            {/* 가져오기 */}
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".json,.csv"
+              className="hidden"
+              onChange={(e) => void handleImportFile(e)}
+            />
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 rounded-xl transition-spring hover:border-primary/30 hover:glow-brand-sm"
+              onClick={() => importFileRef.current?.click()}
+              disabled={importing}
+            >
+              <Upload size={15} />
+              {importing ? '가져오는 중...' : '클립 가져오기 (JSON / CSV)'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              JSON 배열 또는 CSV 파일을 업로드하면 중복 URL은 자동으로 건너뜁니다.
+            </p>
           </div>
         </section>
 

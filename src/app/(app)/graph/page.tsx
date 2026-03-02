@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { GitGraph, Loader2 } from 'lucide-react';
-import { KnowledgeGraph } from '@/components/graph/knowledge-graph';
+
+const KnowledgeGraph = dynamic(
+  () => import('@/components/graph/knowledge-graph').then((m) => ({ default: m.KnowledgeGraph })),
+  {
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 import { Badge } from '@/components/ui/badge';
 import {
   Select,

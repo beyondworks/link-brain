@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { ClipData } from '@/types/database';
@@ -26,7 +27,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   other: 'bg-gray-400',
 };
 
-export function ClipHeadline({
+export const ClipHeadline = memo(function ClipHeadline({
   clip,
   isSelected = false,
   onSelect,
@@ -63,4 +64,8 @@ export function ClipHeadline({
       </span>
     </div>
   );
-}
+}, (prev, next) =>
+  prev.clip.id === next.clip.id &&
+  prev.clip.updated_at === next.clip.updated_at &&
+  prev.isSelected === next.isSelected
+);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useCallback } from 'react';
 import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
@@ -112,25 +113,26 @@ export function DashboardClient() {
   const activeFilter: QuickFilter =
     filters.isFavorite ? 'favorite' : filters.isReadLater ? 'readLater' : 'all';
 
-  const clipsFilter = {
+  const clipsFilter = useMemo(() => ({
     isArchived: false as const,
     ...(filters.isFavorite ? { isFavorite: true as const } : {}),
     ...(filters.isReadLater ? { isReadLater: true as const } : {}),
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters.collectionId ? { collectionId: filters.collectionId } : {}),
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
-  };
+  }), [filters.isFavorite, filters.isReadLater, filters.categoryId, filters.collectionId, filters.platform]);
 
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter });
 
-  const clips = data?.pages.flatMap((page) => page.data) ?? [];
-  const hasActiveFilters =
+  const clips = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
+  const hasActiveFilters = useMemo(() =>
     filters.categoryId || filters.collectionId || filters.platform ||
-    filters.isFavorite || filters.isReadLater;
+    filters.isFavorite || filters.isReadLater,
+  [filters.categoryId, filters.collectionId, filters.platform, filters.isFavorite, filters.isReadLater]);
 
-  function handleFilterClick(key: QuickFilter) {
+  const handleFilterClick = useCallback((key: QuickFilter) => {
     setQuickFilter(key);
-  }
+  }, [setQuickFilter]);
 
   return (
     <div className="animate-blur-in p-6 lg:p-8">

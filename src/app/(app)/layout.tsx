@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LogOut, User, Moon, Sun, Plus } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useUIStore } from '@/stores/ui-store';
@@ -15,6 +15,7 @@ import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
+import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,7 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { user, isLoading } = useSupabase();
   const { theme, setTheme } = useTheme();
-  const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, openModal } = useUIStore();
 
   // Single Realtime channel for cache invalidation
   useRealtimeInvalidation(user?.id ?? null);
@@ -220,6 +221,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                     {theme === 'dark' ? '라이트 모드' : '다크 모드'}
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => openModal('shortcuts')}
+                    className="flex items-center gap-2"
+                  >
+                    <Keyboard size={16} />
+                    키보드 단축키
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
@@ -266,6 +274,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Clip peek panel (side/center/full modes) */}
         <ClipPeekPanel />
+
+        {/* Keyboard shortcuts help dialog */}
+        <KeyboardShortcutsDialog />
 
         {/* Page content */}
         <main id="main-content" className="flex-1 overflow-y-auto">{children}</main>

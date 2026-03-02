@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Image from 'next/image';
 import { Heart, Archive, ExternalLink, Share2 } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
@@ -59,7 +60,7 @@ function getGradient(id: string): string {
   return GRADIENT_COLORS[index];
 }
 
-export function ClipCard({
+export const ClipCard = memo(function ClipCard({
   clip,
   isSelected = false,
   isSelectionMode: _isSelectionMode,
@@ -214,4 +215,9 @@ export function ClipCard({
       </div>
     </Card>
   );
-}
+}, (prev, next) =>
+  prev.clip.id === next.clip.id &&
+  prev.clip.updated_at === next.clip.updated_at &&
+  prev.isSelected === next.isSelected &&
+  prev.isSelectionMode === next.isSelectionMode
+);
