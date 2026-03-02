@@ -10,6 +10,9 @@ import { useClips } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
+import { useSupabase } from '@/components/providers/supabase-provider';
+import { ContinueReading } from '@/components/clips/continue-reading';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
 
 type QuickFilter = 'all' | 'favorite' | 'readLater';
 
@@ -91,6 +94,7 @@ function StatCard({
 }
 
 export function DashboardClient() {
+  const { user: authUser } = useSupabase();
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
 
@@ -175,6 +179,14 @@ export function DashboardClient() {
           loading={creditsLoading}
         />
       </div>
+
+      {/* Continue Reading + Recent Activity */}
+      {authUser && (
+        <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <ContinueReading userId={authUser.id} />
+          <RecentActivity userId={authUser.id} />
+        </div>
+      )}
 
       {/* Active category filter indicator */}
       {filters.categoryId && (

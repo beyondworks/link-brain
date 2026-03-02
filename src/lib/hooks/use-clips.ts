@@ -73,6 +73,46 @@ export function useClips(options: UseClipsOptions = {}) {
         query = query.eq('is_archived', false);
       }
 
+      // Date range filter
+      if (filters?.dateRange?.from) {
+        query = query.gte('created_at', filters.dateRange.from);
+      }
+      if (filters?.dateRange?.to) {
+        query = query.lte('created_at', filters.dateRange.to);
+      }
+
+      // AI analysis filter
+      if (filters?.hasAiAnalysis === true) {
+        query = query.not('summary', 'is', null);
+      } else if (filters?.hasAiAnalysis === false) {
+        query = query.is('summary', null);
+      }
+
+      // Read status filter (based on reading_progress table, completed_at or scroll_percentage >= 80)
+      if (filters?.readStatus === 'read') {
+        const { data: readRows } = await supabase
+          .from('reading_progress')
+          .select('clip_id')
+          .eq('user_id', user.id)
+          .or('completed_at.not.is.null,scroll_percentage.gte.80');
+        const readIds = (readRows ?? []).map((r) => r.clip_id);
+        if (readIds.length > 0) {
+          query = query.in('id', readIds);
+        } else {
+          return { data: [], nextPage: null };
+        }
+      } else if (filters?.readStatus === 'unread') {
+        const { data: readRows } = await supabase
+          .from('reading_progress')
+          .select('clip_id')
+          .eq('user_id', user.id)
+          .or('completed_at.not.is.null,scroll_percentage.gte.80');
+        const readIds = (readRows ?? []).map((r) => r.clip_id);
+        if (readIds.length > 0) {
+          query = query.not('id', 'in', `(${readIds.join(',')})` );
+        }
+      }
+
       // Full-text search
       if (search && search.trim()) {
         query = query.textSearch('fts', search.trim(), { type: 'websearch' });

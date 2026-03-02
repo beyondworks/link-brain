@@ -36,12 +36,13 @@ import {
   Key,
   Trash2,
   Download,
+  FileSpreadsheet,
   Copy,
   Plus,
   X,
   Gauge,
 } from 'lucide-react';
-import type { ClipData } from '@/types/database';
+import { exportClips } from '@/lib/utils/export';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -99,7 +100,7 @@ export function SettingsClient() {
 
   // 내보내기 로딩 상태
   const [exportingJson, setExportingJson] = useState(false);
-  const [exportingMd, setExportingMd] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   // API 키 상태
   const [apiKeys, setApiKeys] = useState<ApiKeyView[]>([]);
@@ -177,35 +178,11 @@ export function SettingsClient() {
     }
   }
 
-  async function fetchAllClips(): Promise<ClipData[]> {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('clips')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_archived', false)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data ?? []) as ClipData[];
-  }
-
-  function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function handleExportJson() {
     setExportingJson(true);
     try {
-      const clips = await fetchAllClips();
-      const json = JSON.stringify(clips, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      downloadBlob(blob, 'linkbrain-clips.json');
-      toast.success(`클립 ${clips.length}개를 JSON으로 내보냈습니다`);
+      await exportClips('json');
+      toast.success('클립 데이터가 다운로드되었습니다');
     } catch {
       toast.error('내보내기에 실패했습니다');
     } finally {
@@ -213,25 +190,15 @@ export function SettingsClient() {
     }
   }
 
-  async function handleExportMarkdown() {
-    setExportingMd(true);
+  async function handleExportCsv() {
+    setExportingCsv(true);
     try {
-      const clips = await fetchAllClips();
-      const md = clips
-        .map((clip) => {
-          const title = clip.title ?? '제목 없음';
-          const summary = clip.summary ?? '';
-          const url = clip.url ?? '';
-          return `# ${title}\n\n${summary}\n\n${url}`;
-        })
-        .join('\n\n---\n\n');
-      const blob = new Blob([md], { type: 'text/markdown' });
-      downloadBlob(blob, 'linkbrain-clips.md');
-      toast.success(`클립 ${clips.length}개를 마크다운으로 내보냈습니다`);
+      await exportClips('csv');
+      toast.success('클립 데이터가 다운로드되었습니다');
     } catch {
       toast.error('내보내기에 실패했습니다');
     } finally {
-      setExportingMd(false);
+      setExportingCsv(false);
     }
   }
 
@@ -508,27 +475,27 @@ export function SettingsClient() {
             <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 ring-1 ring-emerald-500/20">
               <Database size={15} className="text-emerald-500" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">데이터</h2>
+            <h2 className="text-base font-semibold text-foreground">데이터 관리</h2>
           </div>
 
           <div className="space-y-3">
             <Button
               variant="outline"
               className="w-full justify-start gap-2 rounded-xl transition-spring hover:border-primary/30 hover:glow-brand-sm"
-              onClick={handleExportJson}
+              onClick={() => void handleExportJson()}
               disabled={exportingJson}
             >
               <Download size={15} />
-              {exportingJson ? '내보내는 중...' : '클립 데이터 내보내기 (JSON)'}
+              {exportingJson ? '내보내는 중...' : '클립 내보내기 (JSON)'}
             </Button>
             <Button
               variant="outline"
               className="w-full justify-start gap-2 rounded-xl transition-spring hover:border-primary/30 hover:glow-brand-sm"
-              onClick={handleExportMarkdown}
-              disabled={exportingMd}
+              onClick={() => void handleExportCsv()}
+              disabled={exportingCsv}
             >
-              <Download size={15} />
-              {exportingMd ? '내보내는 중...' : '마크다운으로 내보내기'}
+              <FileSpreadsheet size={15} />
+              {exportingCsv ? '내보내는 중...' : '클립 내보내기 (CSV)'}
             </Button>
           </div>
         </section>

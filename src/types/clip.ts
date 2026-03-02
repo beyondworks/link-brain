@@ -11,6 +11,8 @@ export type ClipSortBy =
 
 export type SortOrder = 'asc' | 'desc';
 
+export type ReadStatus = 'all' | 'read' | 'unread';
+
 export interface ClipFilters {
   categoryId?: string | null;
   collectionId?: string | null;
@@ -20,6 +22,9 @@ export interface ClipFilters {
   isArchived?: boolean | null;
   tags?: string[];
   searchQuery?: string;
+  dateRange?: { from?: string; to?: string } | null;
+  readStatus?: ReadStatus | null;
+  hasAiAnalysis?: boolean | null;
 }
 
 export interface ClipPaginationParams {

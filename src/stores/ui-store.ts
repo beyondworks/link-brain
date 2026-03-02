@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ViewMode, ClipSortBy, SortOrder } from '@/types/clip';
+import type { ViewMode, ClipSortBy, SortOrder, ReadStatus } from '@/types/clip';
 
 export type ClipPeekMode = 'side' | 'center' | 'full';
 
@@ -10,6 +10,9 @@ interface UIFilters {
   isFavorite: boolean | null;
   isReadLater: boolean | null;
   isArchived: boolean | null;
+  dateRange: { from?: string; to?: string } | null;
+  readStatus: ReadStatus | null;
+  hasAiAnalysis: boolean | null;
 }
 
 interface UIState {
@@ -59,6 +62,9 @@ const DEFAULT_FILTERS: UIFilters = {
   isFavorite: null,
   isReadLater: null,
   isArchived: false,
+  dateRange: null,
+  readStatus: null,
+  hasAiAnalysis: null,
 };
 
 export const useUIStore = create<UIState & UIActions>((set) => ({
