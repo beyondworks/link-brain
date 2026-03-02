@@ -25,6 +25,7 @@ import { useUpdateCollection, useDeleteCollection } from '@/lib/hooks/use-collec
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Dialog,
   DialogContent,
@@ -360,22 +361,13 @@ export function CollectionsClient() {
       </div>
 
       {orderedCollections.length === 0 ? (
-        <div className="relative flex flex-col items-center justify-center py-24 animate-blur-in animation-delay-100">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-3xl" />
-          <div className="relative mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 p-5 ring-1 ring-primary/15">
-            <FolderOpen size={32} className="animate-float text-primary" />
-          </div>
-          <p className="relative text-base font-semibold text-foreground">컬렉션이 없습니다</p>
-          <p className="relative mt-1.5 text-sm text-muted-foreground">클립을 주제별로 정리해보세요</p>
-          <Button
-            size="sm"
-            className="relative mt-5 bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus size={15} className="mr-1.5" />
-            첫 컬렉션 만들기
-          </Button>
-        </div>
+        <EmptyState
+          icon={FolderOpen}
+          title="컬렉션이 없습니다"
+          description="클립을 주제별로 정리해보세요"
+          action={{ label: '첫 컬렉션 만들기', onClick: () => setCreateOpen(true) }}
+          className="animate-blur-in animation-delay-100"
+        />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedCollections.map((c) => c.id)} strategy={rectSortingStrategy}>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
-import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin } from 'lucide-react';
+import React, { useMemo, useCallback } from 'react';
+import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin, Bell, Clock } from 'lucide-react';
 import { Sparkline } from '@/components/charts/sparkline';
 import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
 import { ClipCard } from '@/components/clips/clip-card';
+import { ReminderDialog } from '@/components/clips/reminder-dialog';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
@@ -18,7 +19,104 @@ import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 
+import type { ClipData } from '@/types/database';
+
 type QuickFilter = 'all' | 'favorite' | 'readLater';
+
+/* ─── 리마인더 섹션 ──────────────────────────────────────────────────── */
+function ReminderSection({ clips }: { clips: ClipData[] }) {
+  const [dialogClipId, setDialogClipId] = React.useState<string | null>(null);
+  const now = new Date();
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+  const upcomingClips = clips.filter((clip) => {
+    if (!clip.remind_at) return false;
+    const remindDate = new Date(clip.remind_at);
+    return remindDate >= now && remindDate <= threeDaysLater;
+  });
+
+  const openDialogClip = upcomingClips.find((c) => c.id === dialogClipId) ?? null;
+
+  return (
+    <>
+      <div className="animate-fade-in-up animation-delay-150 mb-8">
+        <div className="mb-3 flex items-center gap-2">
+          <Bell className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+            곧 읽을 클립
+          </span>
+        </div>
+
+        {upcomingClips.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 px-4 py-4 text-sm text-muted-foreground">
+            <Clock size={14} className="shrink-0 text-muted-foreground/50" />
+            리마인더가 설정된 클립이 없습니다
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {upcomingClips.map((clip) => {
+              const remindDate = new Date(clip.remind_at!);
+              const isToday = remindDate.toDateString() === now.toDateString();
+              const formattedTime = new Intl.DateTimeFormat('ko-KR', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }).format(remindDate);
+
+              return (
+                <div
+                  key={clip.id}
+                  className="flex items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 transition-colors hover:border-primary/30"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className={[
+                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px]',
+                      isToday ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground',
+                    ].join(' ')}>
+                      <Clock size={13} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/clip/${clip.id}`}
+                        className="block truncate text-sm font-medium text-foreground hover:text-primary transition-colors"
+                      >
+                        {clip.title ?? clip.url}
+                      </Link>
+                      <p className={[
+                        'text-[11px] font-medium',
+                        isToday ? 'text-primary' : 'text-muted-foreground',
+                      ].join(' ')}>
+                        {isToday ? `오늘 · ${formattedTime}` : formattedTime}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDialogClipId(clip.id)}
+                    className="shrink-0 rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="리마인더 수정"
+                  >
+                    <Bell size={13} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {openDialogClip && (
+        <ReminderDialog
+          open={!!dialogClipId}
+          onOpenChange={(open) => { if (!open) setDialogClipId(null); }}
+          clipId={openDialogClip.id}
+          currentRemindAt={openDialogClip.remind_at}
+        />
+      )}
+    </>
+  );
+}
 
 const QUICK_FILTERS: { key: QuickFilter; label: string; emoji: string }[] = [
   { key: 'all', label: '전체', emoji: '✦' },
@@ -261,6 +359,9 @@ export function DashboardClient() {
 
       {/* Divider */}
       <div className="divider-gradient animate-fade-in-up animation-delay-150 mb-7" />
+
+      {/* Reminder section */}
+      {!isLoading && <ReminderSection clips={clips} />}
 
       {/* Pinned clips */}
       {!isLoading && pinnedClips.length > 0 && (

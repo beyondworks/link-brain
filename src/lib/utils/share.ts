@@ -1,5 +1,17 @@
 import { toast } from 'sonner';
 
+/**
+ * 컬렉션 공개 공유 URL을 조립합니다.
+ * @param token  collections.share_token 값
+ * @param appUrl 기본값: NEXT_PUBLIC_APP_URL 또는 https://linkbrain.cloud
+ */
+export function buildCollectionShareUrl(token: string, appUrl?: string): string {
+  const base = appUrl ?? (typeof process !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_APP_URL ?? 'https://linkbrain.cloud')
+    : 'https://linkbrain.cloud');
+  return `${base}/c/${token}`;
+}
+
 interface ShareData {
   title: string;
   url: string;

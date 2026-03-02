@@ -33,6 +33,7 @@ import {
   Copy,
   Check,
   Highlighter,
+  Bell,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -42,6 +43,12 @@ import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import { ClipNotes } from '@/components/clips/clip-notes';
 import { TextHighlighter } from '@/components/clips/text-highlighter';
+import { ReminderDialog } from '@/components/clips/reminder-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useHighlights, useCreateHighlight, useDeleteHighlight } from '@/lib/hooks/use-highlights';
 import { PLATFORM_LABELS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
@@ -528,6 +535,9 @@ export function ClipDetailClient({ clipId }: Props) {
   const [scrollPct, setScrollPct] = useState(progress?.scroll_percentage ?? 0);
   const articleRef = useRef<HTMLDivElement>(null);
 
+  // Reminder dialog state
+  const [reminderOpen, setReminderOpen] = useState(false);
+
   // Share state — initialise from clip data once loaded
   const [isPublic, setIsPublic] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -779,6 +789,33 @@ export function ClipDetailClient({ clipId }: Props) {
             >
               <Share2 size={18} className="text-muted-foreground" />
             </Button>
+            {!isSeed && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl transition-spring hover:bg-primary/10 hover:glow-brand-sm"
+                    onClick={() => setReminderOpen(true)}
+                    aria-label={clip.remind_at ? '리마인더 수정' : '리마인더 설정'}
+                  >
+                    <Bell
+                      size={18}
+                      className={
+                        clip.remind_at
+                          ? 'fill-primary text-primary drop-shadow-[0_0_6px_rgb(33,219,164,0.6)]'
+                          : 'text-muted-foreground'
+                      }
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {clip.remind_at
+                    ? `리마인더: ${new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(clip.remind_at))}`
+                    : '리마인더 설정'}
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
 
@@ -923,6 +960,16 @@ export function ClipDetailClient({ clipId }: Props) {
           원본 페이지 열기
         </a>
       </div>
+
+      {/* Reminder dialog */}
+      {!isSeed && (
+        <ReminderDialog
+          open={reminderOpen}
+          onOpenChange={setReminderOpen}
+          clipId={clipId}
+          currentRemindAt={(clip as ClipData).remind_at}
+        />
+      )}
     </div>
   );
 }

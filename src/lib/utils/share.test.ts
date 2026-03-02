@@ -107,3 +107,24 @@ describe('shareClip', () => {
     });
   });
 });
+
+import { buildCollectionShareUrl } from './share';
+
+describe('buildCollectionShareUrl', () => {
+  it('appUrl이 주어지면 /c/{token} URL을 반환한다', () => {
+    const token = 'abc-123';
+    const url = buildCollectionShareUrl(token, 'https://linkbrain.cloud');
+    expect(url).toBe('https://linkbrain.cloud/c/abc-123');
+  });
+
+  it('appUrl에 trailing slash가 없어도 올바른 URL을 반환한다', () => {
+    const url = buildCollectionShareUrl('xyz-token', 'https://example.com');
+    expect(url).toBe('https://example.com/c/xyz-token');
+  });
+
+  it('token이 UUID 형태일 때도 올바른 URL을 반환한다', () => {
+    const token = '550e8400-e29b-41d4-a716-446655440000';
+    const url = buildCollectionShareUrl(token, 'https://linkbrain.cloud');
+    expect(url).toBe(`https://linkbrain.cloud/c/${token}`);
+  });
+});

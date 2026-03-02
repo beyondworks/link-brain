@@ -23,6 +23,7 @@ import {
 import { FolderOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { ClipData } from '@/types/database';
 import { AddClipsToCollectionDialog } from '@/components/collections/add-clips-to-collection-dialog';
+import { CollectionShareButton } from '@/components/collections/collection-share-button';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 
 interface Props {
@@ -183,6 +184,10 @@ export function CollectionDetailClient({ collectionId }: Props) {
               <Trash2 size={14} />
               삭제
             </Button>
+            <CollectionShareButton
+              collectionId={collectionId}
+              initialShareToken={(collection as unknown as { share_token?: string | null }).share_token}
+            />
           </div>
         </div>
       </div>

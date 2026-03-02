@@ -77,6 +77,7 @@ export interface ClipData {
   category_id: string | null;
   views: number;
   likes_count: number;
+  remind_at: string | null;
   created_at: string;
   updated_at: string;
 }

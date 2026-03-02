@@ -29,6 +29,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 3600000).toISOString(),
     updated_at: new Date(Date.now() - 3600000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-2',
@@ -54,6 +55,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 7200000).toISOString(),
     updated_at: new Date(Date.now() - 7200000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-3',
@@ -79,6 +81,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 14400000).toISOString(),
     updated_at: new Date(Date.now() - 14400000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-4',
@@ -104,6 +107,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 86400000).toISOString(),
     updated_at: new Date(Date.now() - 86400000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-5',
@@ -129,6 +133,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 172800000).toISOString(),
     updated_at: new Date(Date.now() - 172800000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-6',
@@ -154,6 +159,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 259200000).toISOString(),
     updated_at: new Date(Date.now() - 259200000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-7',
@@ -179,6 +185,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 345600000).toISOString(),
     updated_at: new Date(Date.now() - 345600000).toISOString(),
+    remind_at: null,
   },
   {
     id: 'seed-8',
@@ -204,6 +211,7 @@ export const SEED_CLIPS: ClipData[] = [
     share_token: null,
     created_at: new Date(Date.now() - 432000000).toISOString(),
     updated_at: new Date(Date.now() - 432000000).toISOString(),
+    remind_at: null,
   },
 ];
 

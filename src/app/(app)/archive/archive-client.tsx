@@ -2,23 +2,25 @@
 
 import { useArchivedClips } from '@/lib/hooks/use-clips';
 import { ClipList } from '@/components/clips/clip-list';
-import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
-import { Archive, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ClipListSkeleton } from '@/components/skeletons/clip-list-skeleton';
+import { ErrorRetry } from '@/components/ui/error-retry';
+import { EmptyState } from '@/components/ui/empty-state';
+import { useUIStore } from '@/stores/ui-store';
+import { Archive } from 'lucide-react';
 
 export function ArchiveClient() {
+  const viewMode = useUIStore((s) => s.viewMode);
   const { data, isLoading, isError, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } = useArchivedClips();
 
   const clips = data?.pages.flatMap((p) => p.data) ?? [];
 
   if (isError) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
-        <AlertTriangle className="h-12 w-12 text-destructive" />
-        <h2 className="text-lg font-semibold">클립을 불러오지 못했습니다</h2>
-        <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'}</p>
-        <Button onClick={() => refetch()} variant="outline">다시 시도</Button>
-      </div>
+      <ErrorRetry
+        error={error instanceof Error ? error : null}
+        onRetry={() => refetch()}
+        message="아카이브 클립을 불러오는 중 오류가 발생했습니다"
+      />
     );
   }
 
@@ -26,12 +28,10 @@ export function ArchiveClient() {
     return (
       <div className="p-6 lg:p-8">
         <div className="mb-8">
-          <div className="mb-2 h-8 w-28 rounded-xl bg-muted shimmer" />
-          <div className="h-4 w-52 rounded-lg bg-muted shimmer" />
+          <div className="mb-2 h-8 w-28 rounded-xl bg-muted animate-pulse" />
+          <div className="h-4 w-52 rounded-lg bg-muted animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <ClipCardSkeleton key={i} />)}
-        </div>
+        <ClipListSkeleton viewMode={viewMode} count={6} />
       </div>
     );
   }
@@ -56,19 +56,12 @@ export function ArchiveClient() {
       </div>
 
       {clips.length === 0 ? (
-        <div className="relative flex flex-col items-center justify-center py-24 animate-blur-in animation-delay-100">
-          {/* Glow orb */}
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-500/8 blur-3xl" />
-          <div className="relative mb-4 rounded-2xl bg-gradient-to-br from-slate-500/15 to-slate-500/5 p-5 ring-1 ring-slate-500/15">
-            <Archive size={32} className="animate-float text-slate-500" />
-          </div>
-          <p className="relative text-base font-semibold text-foreground">
-            아카이브된 클립이 없습니다
-          </p>
-          <p className="relative mt-1.5 text-sm text-muted-foreground">
-            클립을 아카이브하면 여기에 표시됩니다
-          </p>
-        </div>
+        <EmptyState
+          icon={Archive}
+          title="아카이브된 클립이 없습니다"
+          description="클립을 아카이브하면 여기에 표시됩니다"
+          className="animate-blur-in animation-delay-100"
+        />
       ) : (
         <div className="relative animate-blur-in animation-delay-100">
           <ClipList
