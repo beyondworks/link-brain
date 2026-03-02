@@ -25,7 +25,8 @@ export function useCurrentUser() {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // no rows
+        // PGRST116 = no rows, 404 / PGRST204 = table doesn't exist yet
+        if (error.code === 'PGRST116' || error.code === 'PGRST204' || error.message?.includes('404')) return null;
         throw error;
       }
 
@@ -33,6 +34,7 @@ export function useCurrentUser() {
     },
     enabled: !!authUser && !authLoading,
     staleTime: 60_000,
+    retry: false,
   });
 
   return {

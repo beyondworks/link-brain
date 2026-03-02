@@ -12,6 +12,7 @@ import { corsHeaders, handleCorsPreflightResponse } from '@/lib/api/cors';
 import { validateApiKey } from '@/lib/api/api-key-auth';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { detectPlatform } from '@/lib/fetchers/platform-detector';
 
 interface AnalyzeBody {
   url: string;
@@ -152,21 +153,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // Continue with URL-only clip
     }
 
-    // Detect platform from URL
-    const urlLower = url.toLowerCase();
-    if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-      platform = 'youtube';
-    } else if (urlLower.includes('instagram.com')) {
-      platform = 'instagram';
-    } else if (urlLower.includes('linkedin.com')) {
-      platform = 'linkedin';
-    } else if (urlLower.includes('github.com')) {
-      platform = 'github';
-    } else if (urlLower.includes('reddit.com')) {
-      platform = 'reddit';
-    } else if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
-      platform = 'twitter';
-    }
+    // Detect platform from URL (canonical single implementation)
+    platform = detectPlatform(url);
 
     const clip = {
       url,

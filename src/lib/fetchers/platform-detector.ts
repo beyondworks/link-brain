@@ -27,6 +27,24 @@ export const detectPlatform = (url: string, sourceHint?: string): string => {
     // Pinterest
     if (urlLower.includes('pinterest.com')) return 'pinterest';
 
+    // GitHub
+    if (urlLower.includes('github.com') || urlLower.includes('gist.github.com')) return 'github';
+
+    // Reddit
+    if (urlLower.includes('reddit.com') || urlLower.includes('redd.it')) return 'reddit';
+
+    // LinkedIn
+    if (urlLower.includes('linkedin.com') || urlLower.includes('lnkd.in')) return 'linkedin';
+
+    // Medium (including custom domains is hard, but catch the main domain)
+    if (urlLower.includes('medium.com') || urlLower.includes('towardsdatascience.com')) return 'medium';
+
+    // Substack
+    if (urlLower.includes('substack.com')) return 'substack';
+
+    // TikTok
+    if (urlLower.includes('tiktok.com') || urlLower.includes('vm.tiktok.com')) return 'tiktok';
+
     // Naver Blog
     if (urlLower.includes('blog.naver.com') || urlLower.includes('m.blog.naver.com')) return 'naver';
 

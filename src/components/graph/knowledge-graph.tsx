@@ -168,7 +168,7 @@ export function KnowledgeGraph({ graphNodes, graphEdges, className }: KnowledgeG
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       const data = node.data as ClipNodeData;
-      router.push(`/clips/${data.clipId}`);
+      router.push(`/clip/${data.clipId}`);
     },
     [router]
   );

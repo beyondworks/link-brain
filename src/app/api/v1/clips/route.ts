@@ -177,7 +177,7 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
       console.warn('[API v1 Clips] URL analysis failed, continuing:', analyzeErr);
     }
 
-    // Resolve category_id
+    // Resolve category_id (get or create)
     const categoryName = (body.category as string | undefined) ??
       (analyzedData.category as string | undefined) ??
       'Other';
@@ -187,9 +187,25 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
         .from('categories')
         .select('id')
         .eq('user_id', auth.userId)
-        .eq('name', categoryName)
+        .ilike('name', categoryName)
         .single();
-      categoryId = catRow ? (catRow as Pick<Category, 'id'>).id : null;
+
+      if (catRow) {
+        categoryId = (catRow as Pick<Category, 'id'>).id;
+      } else {
+        // Auto-create category if it doesn't exist
+        const CATEGORY_COLORS = [
+          '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
+          '#F59E0B', '#F97316', '#14B8A6', '#6366F1',
+        ];
+        const color = CATEGORY_COLORS[Math.floor(Math.random() * CATEGORY_COLORS.length)];
+        const { data: newCat } = await db
+          .from('categories')
+          .insert({ user_id: auth.userId, name: categoryName, color, sort_order: 0 })
+          .select('id')
+          .single();
+        categoryId = newCat ? (newCat as Pick<Category, 'id'>).id : null;
+      }
     }
 
     const clipInsert = {

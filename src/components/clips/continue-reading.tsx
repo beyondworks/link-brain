@@ -139,7 +139,7 @@ export function ContinueReading({ userId }: ContinueReadingProps) {
           return (
             <Card
               key={clip.id}
-              onClick={() => router.push(`/clips/${clip.id}`)}
+              onClick={() => router.push(`/clip/${clip.id}`)}
               className="flex cursor-pointer items-center gap-3 p-3 transition-shadow hover:shadow-md"
             >
               {/* 썸네일 */}

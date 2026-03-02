@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * 지식 그래프 페이지
- *
- * 사용자 클립 간 임베딩 유사도 기반 그래프를 시각화합니다.
- * 플랫폼별 필터와 유사도 임계값 슬라이더를 제공합니다.
- */
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { GitGraph, Loader2 } from 'lucide-react';
 import { KnowledgeGraph } from '@/components/graph/knowledge-graph';
@@ -45,7 +38,6 @@ export default function GraphPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<GraphData>({ nodes: [], edges: [] });
 
-  // 필터 상태
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [minSimilarity, setMinSimilarity] = useState<number>(0.7);
 
@@ -67,13 +59,11 @@ export default function GraphPage() {
     void fetchGraph();
   }, []);
 
-  // 플랫폼 목록 (실제 데이터 기준)
   const availablePlatforms = useMemo(() => {
     const platforms = new Set(data.nodes.map((n) => n.platform ?? 'web'));
     return ['all', ...Array.from(platforms)];
   }, [data.nodes]);
 
-  // 필터 적용
   const filteredNodes = useMemo(() => {
     if (platformFilter === 'all') return data.nodes;
     return data.nodes.filter((n) => (n.platform ?? 'web') === platformFilter);
@@ -100,47 +90,76 @@ export default function GraphPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* 헤더 */}
-      <div className="flex shrink-0 items-center justify-between border-b bg-background px-4 py-3">
-        <div className="flex items-center gap-2">
-          <GitGraph className="h-5 w-5 text-primary" />
-          <h1 className="text-base font-semibold">지식 그래프</h1>
+    <div className="flex h-[calc(100vh-4rem)] flex-col animate-blur-in">
+      {/* Control bar — glassmorphism */}
+      <div className="bg-glass shrink-0 border-b border-border/60 px-3 py-2 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: title + filters */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="icon-glow relative flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
+                <GitGraph className="h-4 w-4 animate-breathe text-primary" />
+              </div>
+              <h1 className="text-sm font-semibold text-foreground">지식 그래프</h1>
+            </div>
+
+            <div className="h-4 w-px bg-border" />
+
+            {/* Platform filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">플랫폼</span>
+              <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                <SelectTrigger className="h-7 w-32 rounded-lg text-xs focus:ring-primary/30">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {availablePlatforms.map((p) => (
+                    <SelectItem key={p} value={p} className="text-xs">
+                      {PLATFORM_LABELS[p] ?? p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Similarity slider */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">유사도</span>
+              <input
+                type="range"
+                min={0.7}
+                max={0.99}
+                step={0.01}
+                value={minSimilarity}
+                onChange={(e) => setMinSimilarity(parseFloat(e.target.value))}
+                className="h-1.5 w-24 cursor-pointer accent-primary"
+              />
+              <span className="w-9 text-xs font-medium tabular-nums text-foreground">
+                {Math.round(minSimilarity * 100)}%+
+              </span>
+            </div>
+          </div>
+
+          {/* Right: stats */}
+          <div className="flex items-center gap-1.5">
+            <Badge
+              variant="secondary"
+              className="rounded-lg border border-primary/20 bg-primary/10 text-xs px-2 py-0.5 text-primary font-medium"
+            >
+              클립 {stats.visibleClips}
+              {stats.visibleClips !== stats.totalClips && `/${stats.totalClips}`}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="rounded-lg text-xs px-2 py-0.5"
+            >
+              연결 {stats.connections}
+            </Badge>
+          </div>
         </div>
 
-        {/* 통계 뱃지 */}
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            클립 {stats.visibleClips}
-            {stats.visibleClips !== stats.totalClips && ` / ${stats.totalClips}`}개
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            연결 {stats.connections}개
-          </Badge>
-        </div>
-      </div>
-
-      {/* 필터 바 */}
-      <div className="flex shrink-0 items-center gap-4 border-b bg-muted/30 px-4 py-2">
-        {/* 플랫폼 필터 */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">플랫폼</span>
-          <Select value={platformFilter} onValueChange={setPlatformFilter}>
-            <SelectTrigger className="h-7 w-36 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availablePlatforms.map((p) => (
-                <SelectItem key={p} value={p} className="text-xs">
-                  {PLATFORM_LABELS[p] ?? p}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 유사도 임계값 슬라이더 */}
-        <div className="flex items-center gap-2">
+        {/* Mobile similarity slider */}
+        <div className="mt-2 flex sm:hidden items-center gap-1.5">
           <span className="text-xs text-muted-foreground">유사도</span>
           <input
             type="range"
@@ -149,32 +168,37 @@ export default function GraphPage() {
             step={0.01}
             value={minSimilarity}
             onChange={(e) => setMinSimilarity(parseFloat(e.target.value))}
-            className="h-1.5 w-28 cursor-pointer accent-primary"
+            className="h-1.5 flex-1 cursor-pointer accent-primary"
           />
-          <span className="w-10 text-xs font-medium tabular-nums text-foreground">
+          <span className="w-9 text-xs font-medium tabular-nums text-foreground">
             {Math.round(minSimilarity * 100)}%+
           </span>
         </div>
       </div>
 
-      {/* 그래프 영역 */}
+      {/* Graph area */}
       <div className="relative flex-1 overflow-hidden">
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <p className="text-sm">그래프 데이터를 불러오는 중...</p>
+          <div className="bg-glass absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3">
+              <div className="card-glow card-inner-glow flex h-14 w-14 items-center justify-center rounded-2xl bg-card">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground">그래프 데이터를 불러오는 중...</p>
             </div>
           </div>
         )}
 
         {error && !loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10">
+                <GitGraph className="h-5 w-5 text-destructive" />
+              </div>
               <p className="text-sm font-medium text-destructive">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-2 text-xs underline hover:no-underline"
+                className="rounded-xl border border-border px-3 py-1.5 text-xs text-muted-foreground transition-spring hover:bg-muted hover:text-foreground hover-lift"
               >
                 다시 시도
               </button>

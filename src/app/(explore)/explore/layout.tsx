@@ -1,11 +1,16 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useSupabase } from '@/components/providers/supabase-provider';
 
 export default function ExploreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useSupabase();
+
   return (
     <div className="min-h-screen">
       {/* Explore Header */}
@@ -21,9 +26,15 @@ export default function ExploreLayout({
             >
               탐색
             </Link>
-            <Button size="sm" variant="ghost" asChild>
-              <Link href="/login">로그인</Link>
-            </Button>
+            {user ? (
+              <Button size="sm" variant="ghost" asChild>
+                <Link href="/dashboard">대시보드</Link>
+              </Button>
+            ) : (
+              <Button size="sm" variant="ghost" asChild>
+                <Link href="/login">로그인</Link>
+              </Button>
+            )}
           </nav>
         </div>
       </header>

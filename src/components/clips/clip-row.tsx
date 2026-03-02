@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Heart, ExternalLink } from 'lucide-react';
+import { useUIStore } from '@/stores/ui-store';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
@@ -60,11 +61,16 @@ export function ClipRow({
   onSelect,
   onToggleFavorite,
 }: ClipRowProps) {
+  const openClipPeek = useUIStore((s) => s.openClipPeek);
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
   function handleRowClick() {
-    onSelect?.(clip.id);
+    if (onSelect) {
+      onSelect(clip.id);
+    } else {
+      openClipPeek(clip.id);
+    }
   }
 
   function handleFavorite(e: React.MouseEvent) {
@@ -81,24 +87,24 @@ export function ClipRow({
     <div
       onClick={handleRowClick}
       className={cn(
-        'group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent',
-        isSelected && 'bg-primary/5'
+        'card-interactive group flex cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3 transition-spring hover:border-border/50 hover:bg-card hover:shadow-card',
+        isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
-      {/* Thumbnail */}
-      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+      {/* Thumbnail — larger */}
+      <div className="relative h-[72px] w-[72px] flex-shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm">
         {clip.image ? (
           <Image
             src={clip.image}
             alt={clip.title ?? ''}
             fill
-            className="object-cover"
-            sizes="40px"
+            className="img-zoom object-cover"
+            sizes="72px"
           />
         ) : (
           <div
             className={cn(
-              'flex h-full w-full items-center justify-center bg-gradient-to-br text-xs font-bold text-white',
+              'flex h-full w-full items-center justify-center bg-gradient-to-br text-lg font-black text-white',
               gradient
             )}
           >
@@ -107,46 +113,61 @@ export function ClipRow({
         )}
       </div>
 
-      {/* Title */}
-      <p className="min-w-0 flex-1 truncate text-sm font-medium">
-        {clip.title ?? clip.url}
-      </p>
-
-      {/* Platform badge */}
-      {clip.platform && (
-        <div className="hidden flex-shrink-0 items-center gap-1.5 sm:flex">
-          <span
-            className={cn(
-              'inline-block h-2 w-2 rounded-full',
-              PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
-            )}
-          />
-          <span className="text-xs text-muted-foreground">
-            {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+      {/* Text */}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold leading-snug text-foreground transition-spring group-hover:text-primary">
+          {clip.title ?? clip.url}
+        </p>
+        {clip.summary && (
+          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground/70">
+            {clip.summary}
+          </p>
+        )}
+        <div className="mt-2 flex items-center gap-2.5">
+          {clip.platform && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  'inline-block h-1.5 w-1.5 rounded-full',
+                  PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
+                )}
+              />
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+              </span>
+            </div>
+          )}
+          <span className="text-[11px] text-muted-foreground/50">
+            {formatRelativeTime(clip.created_at)}
           </span>
+          {clip.is_read_later && (
+            <span className="rounded-full bg-gradient-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-brand">
+              나중에
+            </span>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Time */}
-      <span className="hidden flex-shrink-0 text-xs text-muted-foreground md:block">
-        {formatRelativeTime(clip.created_at)}
-      </span>
-
-      {/* Actions */}
-      <div className="flex flex-shrink-0 items-center gap-1">
+      {/* Actions — visible on hover */}
+      <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-spring group-hover:opacity-100">
         <button
           onClick={handleFavorite}
           className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:text-red-400 group-hover:opacity-100',
-            clip.is_favorite && 'opacity-100 text-red-400'
+            'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 hover:scale-110',
+            clip.is_favorite && 'text-red-400 opacity-100'
           )}
           aria-label="즐겨찾기 토글"
         >
-          <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current')} />
+          <Heart
+            className={cn(
+              'h-4 w-4 transition-spring',
+              clip.is_favorite && 'fill-current heart-pulse drop-shadow-[0_0_6px_rgb(248,113,113)]'
+            )}
+          />
         </button>
         <button
           onClick={handleOpenLink}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:text-foreground group-hover:opacity-100"
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
           aria-label="링크 열기"
         >
           <ExternalLink className="h-4 w-4" />

@@ -5,8 +5,8 @@ import {
   Bookmark,
   Sparkles,
   BarChart3,
-  Settings,
   Globe,
+  FolderOpen,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,8 +29,15 @@ export const MAIN_NAV: NavSection[] = [
     items: [
       { label: 'Home', labelKo: '홈', href: '/dashboard', icon: Home },
       { label: 'Favorites', labelKo: '즐겨찾기', href: '/favorites', icon: Heart },
-      { label: 'Read Later', labelKo: '나중에 읽기', href: '/dashboard?filter=readLater', icon: Bookmark },
+      { label: 'Read Later', labelKo: '나중에 읽기', href: '/read-later', icon: Bookmark },
       { label: 'Archive', labelKo: '아카이브', href: '/archive', icon: Archive },
+    ],
+  },
+  {
+    title: 'Library',
+    titleKo: '라이브러리',
+    items: [
+      { label: 'Collections', labelKo: '컬렉션', href: '/collections', icon: FolderOpen },
     ],
   },
   {
@@ -44,6 +51,4 @@ export const MAIN_NAV: NavSection[] = [
   },
 ];
 
-export const BOTTOM_NAV: NavItem[] = [
-  { label: 'Settings', labelKo: '설정', href: '/settings', icon: Settings },
-];
+export const BOTTOM_NAV: NavItem[] = [];

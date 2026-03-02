@@ -1,6 +1,8 @@
+import path from 'path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
   output: process.env.CAPACITOR_BUILD ? 'export' : undefined,
   images: {
     unoptimized: !!process.env.CAPACITOR_BUILD,

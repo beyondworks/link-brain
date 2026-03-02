@@ -16,6 +16,8 @@ import {
   BookmarkPlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
+import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 
 type ExploreTab = 'trending' | 'picks' | 'recent';
 
@@ -25,42 +27,19 @@ const TABS: { key: ExploreTab; label: string; icon: React.ElementType }[] = [
   { key: 'recent', label: '최신', icon: Clock },
 ];
 
-// Placeholder data
-const PLACEHOLDER_CLIPS = [
-  {
-    id: 'p1',
-    title: 'Next.js 15에서 달라진 점 총정리',
-    summary: 'App Router 개선, Turbopack 안정화, 캐싱 전략 변경 등 주요 변경사항을 정리합니다.',
-    url: 'https://example.com/nextjs-15',
-    image: null,
-    platform: 'web',
-    author: '김개발',
-    likes_count: 42,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'p2',
-    title: 'AI 시대의 프로덕트 매니저 역할',
-    summary: 'LLM이 보편화된 시대에 PM은 어떤 역할을 해야 하는가?',
-    url: 'https://example.com/ai-pm',
-    image: null,
-    platform: 'medium',
-    author: '이매니저',
-    likes_count: 38,
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    id: 'p3',
-    title: 'PostgreSQL 성능 튜닝 가이드',
-    summary: '인덱스 전략, 쿼리 최적화, 커넥션 풀링까지 실전 가이드.',
-    url: 'https://example.com/pg-tuning',
-    image: null,
-    platform: 'github',
-    author: '박디비',
-    likes_count: 56,
-    created_at: new Date(Date.now() - 259200000).toISOString(),
-  },
-];
+// Use seed clips as explore placeholder data (peek panel recognizes seed-* IDs)
+import { SEED_CLIPS } from '@/config/seed-clips';
+const PLACEHOLDER_CLIPS = SEED_CLIPS.map((clip) => ({
+  id: clip.id,
+  title: clip.title ?? '',
+  summary: clip.summary ?? '',
+  url: clip.url,
+  image: clip.image,
+  platform: clip.platform ?? 'web',
+  author: clip.author ?? '',
+  likes_count: clip.likes_count,
+  created_at: clip.created_at,
+}));
 
 const GRADIENT_COLORS = [
   'from-violet-500 to-purple-600',
@@ -78,6 +57,7 @@ function getGradient(id: string): string {
 export function ExploreClient() {
   const [activeTab, setActiveTab] = useState<ExploreTab>('trending');
   const [searchQuery, setSearchQuery] = useState('');
+  const openClipPeek = useUIStore((s) => s.openClipPeek);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -116,7 +96,7 @@ export function ExploreClient() {
       </div>
 
       {/* Clip Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {PLACEHOLDER_CLIPS.map((clip) => {
           const firstLetter = clip.title.charAt(0).toUpperCase();
           const gradient = getGradient(clip.id);
@@ -124,7 +104,8 @@ export function ExploreClient() {
           return (
             <Card
               key={clip.id}
-              className="group overflow-hidden p-0 gap-0 transition-shadow hover:shadow-md"
+              onClick={() => openClipPeek(clip.id)}
+              className="card-glow group h-full flex flex-col cursor-pointer overflow-hidden p-0 gap-0 rounded-2xl border-border/60 hover:shadow-card-hover transition-spring"
             >
               {/* Thumbnail */}
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
@@ -134,7 +115,7 @@ export function ExploreClient() {
                     alt={clip.title}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                   />
                 ) : (
                   <div
@@ -168,7 +149,7 @@ export function ExploreClient() {
               </div>
 
               {/* Content */}
-              <div className="p-4">
+              <div className="flex-1 p-4">
                 <h3 className="line-clamp-2 text-sm font-medium leading-snug">
                   {clip.title}
                 </h3>
@@ -194,6 +175,9 @@ export function ExploreClient() {
       <div className="mt-8 text-center">
         <Button variant="outline">더 보기</Button>
       </div>
+
+      {/* Clip peek panel (side/center/full modes) */}
+      <ClipPeekPanel />
     </div>
   );
 }

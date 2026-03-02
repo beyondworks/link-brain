@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Heart, Archive, ExternalLink } from 'lucide-react';
+import { useUIStore } from '@/stores/ui-store';
 import { Card } from '@/components/ui/card';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -62,11 +63,16 @@ export function ClipCard({
   onToggleFavorite,
   onArchive,
 }: ClipCardProps) {
+  const openClipPeek = useUIStore((s) => s.openClipPeek);
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
   function handleCardClick() {
-    onSelect?.(clip.id);
+    if (onSelect) {
+      onSelect(clip.id);
+    } else {
+      openClipPeek(clip.id);
+    }
   }
 
   function handleFavorite(e: React.MouseEvent) {
@@ -88,18 +94,18 @@ export function ClipCard({
     <Card
       onClick={handleCardClick}
       className={cn(
-        'group relative cursor-pointer overflow-hidden p-0 gap-0 transition-shadow duration-200 hover:shadow-md',
-        isSelected && 'ring-2 ring-primary'
+        'card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card',
+        isSelected && 'ring-2 ring-primary ring-offset-2'
       )}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-muted">
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
         {clip.image ? (
           <Image
             src={clip.image}
             alt={clip.title ?? ''}
             fill
-            className="object-cover"
+            className="img-zoom object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
         ) : (
@@ -109,75 +115,84 @@ export function ClipCard({
               gradient
             )}
           >
-            <span className="text-3xl font-bold text-white">{firstLetter}</span>
+            <span className="text-4xl font-black text-white/90 drop-shadow-sm">{firstLetter}</span>
+          </div>
+        )}
+
+        {/* Platform badge — top left */}
+        {clip.platform && (
+          <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-glass px-2.5 py-1 backdrop-blur-md">
+            <span
+              className={cn(
+                'inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
+                PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
+              )}
+            />
+            <span className="text-[10px] font-semibold text-foreground/90">
+              {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+            </span>
+          </div>
+        )}
+
+        {/* Favorite indicator — top right (always visible when favorited) */}
+        {clip.is_favorite && (
+          <div className="absolute right-2.5 top-2.5">
+            <Heart className="h-4 w-4 fill-red-400 text-red-400 drop-shadow-[0_0_6px_rgb(248,113,113)]" />
           </div>
         )}
 
         {/* Hover action overlay */}
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <button
-            onClick={handleFavorite}
-            className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/40',
-              clip.is_favorite && 'text-red-400'
-            )}
-            aria-label="즐겨찾기 토글"
-          >
-            <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current')} />
-          </button>
-          <button
-            onClick={handleArchive}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="보관함으로 이동"
-          >
-            <Archive className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleOpenLink}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-            aria-label="링크 열기"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </button>
+        <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="flex items-center gap-2 pb-4">
+            <button
+              onClick={handleFavorite}
+              className={cn(
+                'animate-fade-in-up animation-delay-75 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
+                clip.is_favorite && 'text-red-300'
+              )}
+              aria-label="즐겨찾기 토글"
+            >
+              <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current heart-pulse')} />
+            </button>
+            <button
+              onClick={handleArchive}
+              className="animate-fade-in-up animation-delay-150 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+              aria-label="보관함으로 이동"
+            >
+              <Archive className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleOpenLink}
+              className="animate-fade-in-up animation-delay-200 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+              aria-label="링크 열기"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-1.5 p-3">
-        <p className="line-clamp-2 text-sm font-medium leading-snug">
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
           {clip.title ?? clip.url}
         </p>
         {clip.summary && (
-          <p className="line-clamp-2 text-xs text-muted-foreground leading-snug">
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
             {clip.summary}
           </p>
         )}
 
         {/* Bottom row */}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {clip.platform && (
-              <>
-                <span
-                  className={cn(
-                    'inline-block h-2 w-2 flex-shrink-0 rounded-full',
-                    PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
-                  )}
-                />
-                <span className="truncate text-xs text-muted-foreground">
-                  {PLATFORM_LABELS[clip.platform] ?? clip.platform}
-                </span>
-              </>
-            )}
-          </div>
-          <div className="flex flex-shrink-0 items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">
-              {formatRelativeTime(clip.created_at)}
+        <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
+          <span className="text-[11px] font-medium text-muted-foreground/60">
+            {formatRelativeTime(clip.created_at)}
+          </span>
+          {clip.is_read_later && (
+            <span className="rounded-full bg-gradient-brand px-2.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
+              나중에
             </span>
-            {clip.is_favorite && (
-              <Heart className="h-3 w-3 fill-red-400 text-red-400" />
-            )}
-          </div>
+          )}
         </div>
       </div>
     </Card>

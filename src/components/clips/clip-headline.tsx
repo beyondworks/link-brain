@@ -1,6 +1,7 @@
 'use client';
 
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
 import type { ClipData } from '@/types/database';
 
 interface ClipHeadlineProps {
@@ -30,28 +31,34 @@ export function ClipHeadline({
   isSelected = false,
   onSelect,
 }: ClipHeadlineProps) {
+  const openClipPeek = useUIStore((s) => s.openClipPeek);
+
   function handleClick() {
-    onSelect?.(clip.id);
+    if (onSelect) {
+      onSelect(clip.id);
+    } else {
+      openClipPeek(clip.id);
+    }
   }
 
   return (
     <div
       onClick={handleClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-accent',
-        isSelected && 'bg-primary/5'
+        'flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-smooth hover:bg-muted/50',
+        isSelected && 'bg-primary/5 hover:bg-primary/8'
       )}
     >
       <span
         className={cn(
-          'inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
+          'inline-block h-2 w-2 flex-shrink-0 rounded-full',
           clip.platform ? (PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400') : 'bg-gray-400'
         )}
       />
-      <p className="min-w-0 flex-1 truncate text-sm">
+      <p className="min-w-0 flex-1 truncate text-sm text-foreground">
         {clip.title ?? clip.url}
       </p>
-      <span className="flex-shrink-0 text-xs text-muted-foreground">
+      <span className="flex-shrink-0 text-[11px] text-muted-foreground tabular-nums">
         {formatRelativeTime(clip.created_at)}
       </span>
     </div>

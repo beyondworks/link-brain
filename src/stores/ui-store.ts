@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import type { ViewMode, ClipSortBy, SortOrder } from '@/types/clip';
 
+export type ClipPeekMode = 'side' | 'center' | 'full';
+
 interface UIFilters {
   categoryId: string | null;
   collectionId: string | null;
   platform: string | null;
   isFavorite: boolean | null;
+  isReadLater: boolean | null;
   isArchived: boolean | null;
 }
 
@@ -19,6 +22,8 @@ interface UIState {
   sortOrder: SortOrder;
   filters: UIFilters;
   omniSearchOpen: boolean;
+  peekClipId: string | null;
+  clipPeekMode: ClipPeekMode;
 }
 
 interface UIActions {
@@ -37,7 +42,11 @@ interface UIActions {
   setSortBy: (sortBy: ClipSortBy) => void;
   setSortOrder: (order: SortOrder) => void;
   setFilter: <K extends keyof UIFilters>(key: K, value: UIFilters[K]) => void;
+  setQuickFilter: (key: 'all' | 'favorite' | 'readLater') => void;
   clearFilters: () => void;
+  openClipPeek: (clipId: string) => void;
+  closeClipPeek: () => void;
+  setClipPeekMode: (mode: ClipPeekMode) => void;
 }
 
 const DEFAULT_FILTERS: UIFilters = {
@@ -45,6 +54,7 @@ const DEFAULT_FILTERS: UIFilters = {
   collectionId: null,
   platform: null,
   isFavorite: null,
+  isReadLater: null,
   isArchived: false,
 };
 
@@ -59,6 +69,8 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   sortOrder: 'desc',
   filters: DEFAULT_FILTERS,
   omniSearchOpen: false,
+  peekClipId: null,
+  clipPeekMode: 'side',
 
   // Actions
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -105,5 +117,18 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   setFilter: (key, value) =>
     set((s) => ({ filters: { ...s.filters, [key]: value } })),
 
+  setQuickFilter: (key) =>
+    set((s) => ({
+      filters: {
+        ...s.filters,
+        isFavorite: key === 'favorite' ? true : null,
+        isReadLater: key === 'readLater' ? true : null,
+      },
+    })),
+
   clearFilters: () => set({ filters: DEFAULT_FILTERS }),
+
+  openClipPeek: (clipId) => set({ peekClipId: clipId }),
+  closeClipPeek: () => set({ peekClipId: null }),
+  setClipPeekMode: (mode) => set({ clipPeekMode: mode }),
 }));

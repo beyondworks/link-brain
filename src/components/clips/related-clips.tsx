@@ -101,7 +101,7 @@ export function RelatedClips({ clipId, userId: _userId }: RelatedClipsProps) {
           return (
             <Card
               key={clip.id}
-              onClick={() => router.push(`/clips/${clip.id}`)}
+              onClick={() => router.push(`/clip/${clip.id}`)}
               className="flex cursor-pointer items-start gap-3 p-3 transition-shadow hover:shadow-md"
             >
               {/* 썸네일 */}

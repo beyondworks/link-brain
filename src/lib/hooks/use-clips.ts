@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { supabase } from '@/lib/supabase/client';
@@ -47,6 +47,19 @@ export function useClips(options: UseClipsOptions = {}) {
       if (filters?.categoryId) {
         query = query.eq('category_id', filters.categoryId);
       }
+      if (filters?.collectionId) {
+        // Join through clip_collections junction table, scoped to current user
+        const { data: clipIds } = await supabase
+          .from('clip_collections')
+          .select('clip_id, clips!inner(user_id)')
+          .eq('collection_id', filters.collectionId)
+          .eq('clips.user_id', user.id);
+        if (clipIds && clipIds.length > 0) {
+          query = query.in('id', clipIds.map((r) => r.clip_id));
+        } else {
+          return { data: [], nextPage: null };
+        }
+      }
       if (filters?.isFavorite) {
         query = query.eq('is_favorite', true);
       }
@@ -77,6 +90,7 @@ export function useClips(options: UseClipsOptions = {}) {
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
     enabled: enabled && !!authUser && !!user,
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
 }
@@ -118,5 +132,28 @@ export function useArchivedClips() {
 export function useReadLaterClips() {
   return useClips({
     filters: { isReadLater: true, isArchived: false },
+  });
+}
+
+export function useClipsCount() {
+  const { user: authUser } = useSupabase();
+  const { user } = useCurrentUser();
+
+  return useQuery({
+    queryKey: ['clips-count', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+
+      const { count, error } = await supabase
+        .from('clips')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_archived', false);
+
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!authUser && !!user,
+    staleTime: 30_000,
   });
 }
