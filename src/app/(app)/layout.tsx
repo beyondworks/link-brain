@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useUIStore } from '@/stores/ui-store';
 import { useRealtimeInvalidation } from '@/lib/hooks/use-realtime-invalidation';
-import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
+import { useGlobalShortcuts } from '@/lib/hooks/use-global-shortcuts';
 import { supabase } from '@/lib/supabase/client';
 import { MAIN_NAV } from '@/config/navigation';
 import { AppHeader } from '@/components/layout/app-header';
@@ -42,7 +42,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useRealtimeInvalidation(user?.id ?? null);
 
   // Global keyboard shortcuts
-  useKeyboardShortcuts();
+  useGlobalShortcuts();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

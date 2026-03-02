@@ -9,6 +9,7 @@ import { ClipRow } from '@/components/clips/clip-row';
 import { ClipHeadline } from '@/components/clips/clip-headline';
 import { useUIStore } from '@/stores/ui-store';
 import { useToggleFavorite, useToggleArchive, useDeleteClip } from '@/lib/hooks/use-clip-mutations';
+import { useListKeyboardNav } from '@/lib/hooks/use-list-keyboard-nav';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -58,6 +59,8 @@ export function ClipList({
   const toggleFavorite = useToggleFavorite();
   const toggleArchive = useToggleArchive();
   const deleteClip = useDeleteClip();
+
+  const { focusedIndex } = useListKeyboardNav({ clips });
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -239,10 +242,16 @@ export function ClipList({
         <div className="flex flex-col">
           {clips.map((clip, i) => {
             const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
+            const isFocused = focusedIndex === i;
             return (
               <div
                 key={clip.id}
-                className={cn('animate-fade-in-up fill-both', delayClass)}
+                data-clip-index={i}
+                className={cn(
+                  'animate-fade-in-up fill-both rounded-xl transition-shadow',
+                  delayClass,
+                  isFocused && 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+                )}
               >
                 <ClipHeadline clip={clip} />
               </div>
@@ -259,10 +268,16 @@ export function ClipList({
             {clips.map((clip, i) => {
               const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
               const isSelected = selectedClipIds.has(clip.id);
+              const isFocused = focusedIndex === i;
               return (
                 <div
                   key={clip.id}
-                  className={cn('animate-fade-in-up fill-both', delayClass)}
+                  data-clip-index={i}
+                  className={cn(
+                    'animate-fade-in-up fill-both rounded-2xl transition-shadow',
+                    delayClass,
+                    isFocused && 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+                  )}
                 >
                   <ClipCard
                     clip={clip}
@@ -285,10 +300,16 @@ export function ClipList({
             {clips.map((clip, i) => {
               const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
               const isSelected = selectedClipIds.has(clip.id);
+              const isFocused = focusedIndex === i;
               return (
                 <div
                   key={clip.id}
-                  className={cn('animate-fade-in-up fill-both', delayClass)}
+                  data-clip-index={i}
+                  className={cn(
+                    'animate-fade-in-up fill-both rounded-xl transition-shadow',
+                    delayClass,
+                    isFocused && 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+                  )}
                 >
                   <ClipRow
                     clip={clip}

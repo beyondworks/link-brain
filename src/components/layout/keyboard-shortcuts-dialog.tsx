@@ -77,7 +77,8 @@ export function KeyboardShortcutsDialog() {
         <div className="flex flex-col gap-5 pt-1">
           <Section title="일반">
             <ShortcutRow label="검색" keys={[`${mod} K`]} />
-            <ShortcutRow label="새 클립" keys={[`${mod} N`]} />
+            <ShortcutRow label="검색 (단축키)" keys={['/']} />
+            <ShortcutRow label="새 클립" keys={['N']} />
             <ShortcutRow label="사이드바 토글" keys={['[']} />
             <ShortcutRow label="이 도움말 열기" keys={['?']} />
             <ShortcutRow label="닫기" keys={['Esc']} />
@@ -89,13 +90,20 @@ export function KeyboardShortcutsDialog() {
             <ShortcutRow label="헤드라인 뷰" keys={['3']} />
           </Section>
 
+          <Section title="클립 리스트">
+            <ShortcutRow label="아래로 이동" keys={['J']} />
+            <ShortcutRow label="위로 이동" keys={['K']} />
+            <ShortcutRow label="클립 열기" keys={['Enter']} />
+            <ShortcutRow label="선택 토글" keys={['X']} />
+          </Section>
+
           <Section title="탐색 (G 시퀀스)">
-            <ShortcutRow label="대시보드" keys={['G', 'D']} />
-            <ShortcutRow label="스튜디오" keys={['G', 'S']} />
-            <ShortcutRow label="인사이트" keys={['G', 'I']} />
+            <ShortcutRow label="대시보드" keys={['G', 'H']} />
             <ShortcutRow label="즐겨찾기" keys={['G', 'F']} />
             <ShortcutRow label="아카이브" keys={['G', 'A']} />
             <ShortcutRow label="컬렉션" keys={['G', 'C']} />
+            <ShortcutRow label="설정" keys={['G', 'S']} />
+            <ShortcutRow label="인사이트" keys={['G', 'I']} />
             <ShortcutRow label="탐색" keys={['G', 'E']} />
           </Section>
         </div>

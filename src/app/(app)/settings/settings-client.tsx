@@ -44,6 +44,10 @@ import {
   Upload,
   Tags,
   Link2,
+  ChevronDown,
+  ChevronUp,
+  GitMerge,
+  Check,
 } from 'lucide-react';
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
@@ -51,6 +55,9 @@ import { ProfileEditor } from '@/components/settings/profile-editor';
 import { TagManager } from '@/components/settings/tag-manager';
 import { WebhookManager } from '@/components/settings/webhook-manager';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
+import { useDuplicates } from '@/lib/hooks/use-duplicates';
+import type { DuplicateGroup } from '@/lib/hooks/use-duplicates';
+import type { ClipData } from '@/types/database';
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -118,6 +125,11 @@ export function SettingsClient() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [revealDialogOpen, setRevealDialogOpen] = useState(false);
   const [deletingKeyId, setDeletingKeyId] = useState<string | null>(null);
+
+  // 중복 클립 상태
+  const { groups: duplicateGroups, isLoading: duplicatesLoading, totalDuplicates, refetch: refetchDuplicates } = useDuplicates();
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [archivingGroup, setArchivingGroup] = useState<string | null>(null);
 
   // 언어 초기화
   useEffect(() => {
@@ -294,6 +306,40 @@ export function SettingsClient() {
     });
   }
 
+  function toggleGroupExpanded(normalizedUrl: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(normalizedUrl)) {
+        next.delete(normalizedUrl);
+      } else {
+        next.add(normalizedUrl);
+      }
+      return next;
+    });
+  }
+
+  async function handleKeepClip(keepClip: ClipData, group: DuplicateGroup) {
+    setArchivingGroup(group.normalizedUrl);
+    const toArchive = group.clips.filter((c) => c.id !== keepClip.id);
+    try {
+      await Promise.all(
+        toArchive.map((clip) =>
+          supabase
+            .from('clips')
+            .update({ is_archived: true })
+            .eq('id', clip.id)
+        )
+      );
+      toast.success(`${toArchive.length}개 클립이 아카이브되었습니다`);
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+      refetchDuplicates();
+    } catch {
+      toast.error('아카이브 처리에 실패했습니다');
+    } finally {
+      setArchivingGroup(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 md:px-6">
@@ -371,7 +417,11 @@ export function SettingsClient() {
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setTheme(value)}
+                    onClick={() => {
+                      document.documentElement.classList.add('transitioning');
+                      window.setTimeout(() => document.documentElement.classList.remove('transitioning'), 320);
+                      setTheme(value);
+                    }}
                     className={[
                       'group flex flex-col items-center gap-2 rounded-xl border p-3 transition-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                       active
@@ -761,6 +811,105 @@ export function SettingsClient() {
               {creatingKey ? '생성 중...' : '생성'}
             </Button>
           </div>
+        </section>
+
+        {/* Duplicate clips section */}
+        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-625 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 ring-1 ring-orange-500/20">
+                <GitMerge size={15} className="text-orange-500" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">중복 클립 관리</h2>
+                {!duplicatesLoading && totalDuplicates > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    중복 클립 {totalDuplicates}개 발견
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {duplicatesLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full rounded-xl shimmer" />
+              <Skeleton className="h-12 w-full rounded-xl shimmer" />
+            </div>
+          ) : duplicateGroups.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
+              <Check size={20} className="mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium text-foreground">중복 클립이 없습니다</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                저장된 모든 클립의 URL이 고유합니다.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {duplicateGroups.map((group) => {
+                const isExpanded = expandedGroups.has(group.normalizedUrl);
+                const isArchiving = archivingGroup === group.normalizedUrl;
+                return (
+                  <div
+                    key={group.normalizedUrl}
+                    className="overflow-hidden rounded-xl border border-border"
+                  >
+                    {/* 그룹 헤더 */}
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      onClick={() => toggleGroupExpanded(group.normalizedUrl)}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-mono text-muted-foreground">
+                          {group.normalizedUrl}
+                        </p>
+                        <p className="mt-0.5 text-xs text-orange-500">
+                          {group.clips.length}개 중복
+                        </p>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp size={14} className="shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
+                      )}
+                    </button>
+
+                    {/* 그룹 내 클립 목록 */}
+                    {isExpanded && (
+                      <div className="border-t border-border/50 bg-muted/10">
+                        {group.clips.map((clip) => (
+                          <div
+                            key={clip.id}
+                            className="flex items-center gap-3 border-b border-border/30 px-4 py-2.5 last:border-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {clip.title ?? clip.url}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(clip.created_at)}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isArchiving}
+                              className="shrink-0 gap-1.5 rounded-lg border-primary/40 text-xs text-primary transition-spring hover:bg-primary/10 hover:border-primary/60"
+                              onClick={() => void handleKeepClip(clip, group)}
+                            >
+                              <Check size={12} />
+                              이 클립 유지
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Webhook section */}
