@@ -44,9 +44,53 @@ const STATS = [
   { value: '500K+', label: '생성된 컬렉션', icon: Link2 },
 ];
 
+const JSON_LD = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Linkbrain',
+    url: 'https://linkbrain.cloud',
+    description: '웹의 모든 콘텐츠를 저장하고, AI로 정리하고, 지식으로 연결하세요.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://linkbrain.cloud/explore?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Linkbrain',
+    url: 'https://linkbrain.cloud',
+    logo: 'https://linkbrain.cloud/icon.png',
+    sameAs: [],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Linkbrain',
+    applicationCategory: 'ProductivityApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'KRW',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '1200',
+    },
+  },
+];
+
 export default function LandingPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* ─── Hero ─────────────────────────────────────────────── */}
       <section className="bg-gradient-mesh bg-noise relative overflow-hidden px-4 pb-32 pt-24 text-center md:pt-36 md:pb-40">
         {/* Background glow orbs */}
@@ -235,6 +279,81 @@ export default function LandingPage() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── How It Works ─────────────────────────────────────── */}
+      <section className="bg-gradient-mesh bg-noise relative border-t border-border/50 py-28 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto mb-16 max-w-xl text-center">
+            <p className="reveal-on-scroll mb-3 text-xs font-bold uppercase tracking-[0.15em] text-primary">
+              사용 방법
+            </p>
+            <h2 className="reveal-on-scroll animation-delay-100 fill-both text-4xl font-black tracking-tight md:text-5xl">
+              3단계로 <span className="text-gradient-brand">시작하세요</span>
+            </h2>
+            <p className="reveal-on-scroll animation-delay-200 fill-both mt-5 text-lg text-muted-foreground">
+              복잡한 설정 없이, URL 하나로 지식 관리를 시작할 수 있습니다.
+            </p>
+          </div>
+
+          <div className="relative">
+            {/* Connecting dotted line (desktop only) */}
+            <div
+              className="pointer-events-none absolute top-[3.75rem] left-[calc(16.666%+2rem)] right-[calc(16.666%+2rem)] hidden border-t-2 border-dashed border-border/40 lg:block"
+              aria-hidden="true"
+            />
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Step 1 */}
+              <div className="card-glow group reveal-on-scroll animation-delay-150 fill-both rounded-2xl border border-border/60 bg-card p-7 shadow-card">
+                <div className="mb-5 flex items-start justify-between">
+                  <div className="icon-glow inline-flex rounded-xl bg-brand-muted p-3.5 transition-all duration-300 group-hover:bg-[oklch(0.78_0.15_168/20%)]">
+                    <Link2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-5xl font-black leading-none text-gradient-brand opacity-30 select-none">
+                    01
+                  </span>
+                </div>
+                <h3 className="mb-3 text-base font-bold tracking-tight">URL 저장</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  저장하고 싶은 URL을 붙여넣기만 하세요. YouTube, Twitter, 블로그 등 모든 플랫폼을 지원합니다.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="card-glow group reveal-on-scroll animation-delay-300 fill-both rounded-2xl border border-border/60 bg-card p-7 shadow-card">
+                <div className="mb-5 flex items-start justify-between">
+                  <div className="icon-glow inline-flex rounded-xl bg-brand-muted p-3.5 transition-all duration-300 group-hover:bg-[oklch(0.78_0.15_168/20%)]">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-5xl font-black leading-none text-gradient-brand opacity-30 select-none">
+                    02
+                  </span>
+                </div>
+                <h3 className="mb-3 text-base font-bold tracking-tight">AI 자동 분석</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  AI가 자동으로 제목, 요약, 태그를 추출하고 카테고리로 분류합니다. 수동 정리는 이제 그만.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="card-glow group reveal-on-scroll animation-delay-450 fill-both rounded-2xl border border-border/60 bg-card p-7 shadow-card">
+                <div className="mb-5 flex items-start justify-between">
+                  <div className="icon-glow inline-flex rounded-xl bg-brand-muted p-3.5 transition-all duration-300 group-hover:bg-[oklch(0.78_0.15_168/20%)]">
+                    <Brain className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="text-5xl font-black leading-none text-gradient-brand opacity-30 select-none">
+                    03
+                  </span>
+                </div>
+                <h3 className="mb-3 text-base font-bold tracking-tight">지식 연결 &amp; 생성</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  관련 콘텐츠가 자동으로 연결되고, 저장한 지식을 기반으로 새로운 콘텐츠를 생성하세요.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -127,8 +127,54 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
 
+  const pricingJsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: 'Linkbrain Free',
+      description: '개인 사용에 딱 맞는 기본 플랜',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'KRW',
+        priceValidUntil: '2026-12-31',
+        availability: 'https://schema.org/InStock',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: 'Linkbrain Pro',
+      description: '파워 유저를 위한 프리미엄 기능',
+      offers: {
+        '@type': 'Offer',
+        price: '9900',
+        priceCurrency: 'KRW',
+        priceValidUntil: '2026-12-31',
+        availability: 'https://schema.org/InStock',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: 'Linkbrain Master',
+      description: '팀과 크리에이터를 위한 최상위 플랜',
+      offers: {
+        '@type': 'Offer',
+        price: '29900',
+        priceCurrency: 'KRW',
+        priceValidUntil: '2026-12-31',
+        availability: 'https://schema.org/InStock',
+      },
+    },
+  ];
+
   return (
     <div className="bg-gradient-mesh bg-noise min-h-screen relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }}
+      />
       {/* Ambient glow orbs for depth */}
       <div
         className="glow-orb w-[600px] h-[400px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-float-slow"

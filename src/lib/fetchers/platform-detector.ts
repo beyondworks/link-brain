@@ -22,7 +22,14 @@ export const detectPlatform = (url: string, sourceHint?: string): string => {
     if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) return 'youtube';
 
     // X/Twitter (including t.co redirects)
-    if (urlLower.includes('twitter.com') || urlLower.includes('x.com') || urlLower.includes('t.co')) return 'twitter';
+    // Note: use hostname check for t.co to avoid false positives (e.g. pinterest.com, reddit.com contain "t.co" as substring)
+    if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) return 'twitter';
+    try {
+        const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+        if (hostname === 't.co') return 'twitter';
+    } catch {
+        // invalid URL — skip t.co check
+    }
 
     // Pinterest
     if (urlLower.includes('pinterest.com')) return 'pinterest';

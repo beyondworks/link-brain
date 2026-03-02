@@ -88,6 +88,77 @@ const FEATURES = [
   },
 ];
 
+const FEATURES_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: '멀티 플랫폼 클리핑이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'YouTube, Twitter/X, Instagram, Threads, 네이버 블로그 등 주요 플랫폼의 콘텐츠를 URL 하나로 저장합니다. 각 플랫폼 전용 페처가 최적의 메타데이터를 추출합니다.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'AI 자동 정리란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'OpenAI + Gemini 듀얼 AI로 제목 추출, 요약 생성, 자동 태깅, 카테고리 분류를 자동으로 처리합니다.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: '시맨틱 연결이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'pgvector 임베딩으로 유사 콘텐츠를 자동 연결합니다. 지식 그래프로 클립 간 관계를 시각화하세요.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: '통합 검색 (Omni-Search)이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Cmd+K로 클립, 컬렉션, 태그를 한 번에 검색합니다. 한국어/영어 통합 검색과 시맨틱 검색을 지원합니다.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Content Studio란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: '저장한 클립을 기반으로 블로그 포스트, 뉴스레터, Twitter 스레드, 요약문 등 11가지 콘텐츠를 생성하세요.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: '커뮤니티 탐색이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: '다른 사용자의 공개 클립을 발견하세요. 트렌딩 콘텐츠, 에디터스 픽, 크리에이터 프로필을 둘러보세요.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'PWA + 모바일 기능이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'PWA로 설치하여 오프라인에서도 클립을 확인하세요. iOS/Android에서 공유 메뉴로 바로 저장합니다.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'API 연동이란?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'REST API v1으로 iPhone 단축어, Slack, Notion 등 외부 서비스와 연동합니다.',
+      },
+    },
+  ],
+};
+
 export default function FeaturesPage() {
   const heroFeatures = FEATURES.slice(0, 3);
   const gridFeatures = FEATURES.slice(3);
@@ -97,6 +168,10 @@ export default function FeaturesPage() {
 
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FEATURES_JSON_LD) }}
+      />
       {/* ─── Hero ──────────────────────────────────────────── */}
       <div className="bg-gradient-mesh bg-noise relative overflow-hidden pb-16 pt-20">
         {/* Background orbs */}
