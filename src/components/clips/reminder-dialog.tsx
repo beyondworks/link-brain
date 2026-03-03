@@ -154,12 +154,18 @@ export function ReminderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-sm rounded-2xl">
+      <DialogContent
+        className="w-full max-w-sm rounded-2xl"
+        aria-describedby="reminder-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            <Bell size={16} className="text-primary" />
+            <Bell size={16} className="text-primary" aria-hidden="true" />
             리마인더 설정
           </DialogTitle>
+          <p id="reminder-description" className="sr-only">
+            클립을 다시 읽을 시간을 설정합니다. 프리셋 중 하나를 선택하거나 직접 날짜와 시간을 입력하세요.
+          </p>
         </DialogHeader>
 
         {/* 현재 리마인더 표시 */}
@@ -219,6 +225,7 @@ export function ReminderDialog({
             min={nowLocal}
             onChange={(e) => setCustomValue(e.target.value)}
             disabled={isPending}
+            aria-label="리마인더 날짜 및 시간 직접 입력"
             className={cn(
               'flex-1 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-sm text-foreground',
               'focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30',

@@ -7,6 +7,7 @@ import type { ClipData } from '@/types/database';
 import { ClipCard } from '@/components/clips/clip-card';
 import { ClipRow } from '@/components/clips/clip-row';
 import { ClipHeadline } from '@/components/clips/clip-headline';
+import { AriaLive } from '@/components/ui/aria-live';
 import { useUIStore } from '@/stores/ui-store';
 import { useToggleFavorite, useToggleArchive, useDeleteClip } from '@/lib/hooks/use-clip-mutations';
 import { useListKeyboardNav } from '@/lib/hooks/use-list-keyboard-nav';
@@ -55,6 +56,21 @@ export function ClipList({
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ariaMessage, setAriaMessage] = useState('');
+
+  // clips 개수가 변할 때마다 스크린리더에 결과 수 안내
+  const prevClipsLengthRef = useRef<number | null>(null);
+  useEffect(() => {
+    // 최초 마운트는 건너뜀 (null 상태)
+    if (prevClipsLengthRef.current === null) {
+      prevClipsLengthRef.current = clips.length;
+      return;
+    }
+    if (prevClipsLengthRef.current !== clips.length) {
+      setAriaMessage(`클립 ${clips.length}개 표시 중`);
+      prevClipsLengthRef.current = clips.length;
+    }
+  }, [clips.length]);
 
   const toggleFavorite = useToggleFavorite();
   const toggleArchive = useToggleArchive();
@@ -156,6 +172,8 @@ export function ClipList({
 
   return (
     <div>
+      <AriaLive message={ariaMessage} priority="polite" />
+
       {/* Selection toolbar */}
       {showToolbar && (
         <div
@@ -239,13 +257,14 @@ export function ClipList({
 
       {/* Headlines view */}
       {viewMode === 'headlines' && (
-        <div className="flex flex-col">
+        <div className="flex flex-col" role="list" aria-label={`클립 목록 ${clips.length}개`}>
           {clips.map((clip, i) => {
             const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
             const isFocused = focusedIndex === i;
             return (
               <div
                 key={clip.id}
+                role="listitem"
                 data-clip-index={i}
                 className={cn(
                   'animate-fade-in-up fill-both rounded-xl transition-shadow',
@@ -264,7 +283,11 @@ export function ClipList({
       {/* Grid view */}
       {viewMode === 'grid' && (
         <div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            role="list"
+            aria-label={`클립 목록 ${clips.length}개`}
+          >
             {clips.map((clip, i) => {
               const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
               const isSelected = selectedClipIds.has(clip.id);
@@ -272,6 +295,7 @@ export function ClipList({
               return (
                 <div
                   key={clip.id}
+                  role="listitem"
                   data-clip-index={i}
                   className={cn(
                     'animate-fade-in-up fill-both rounded-2xl transition-shadow',
@@ -296,7 +320,11 @@ export function ClipList({
       {/* List view */}
       {viewMode === 'list' && (
         <div>
-          <div className="flex flex-col gap-1">
+          <div
+            className="flex flex-col gap-1"
+            role="list"
+            aria-label={`클립 목록 ${clips.length}개`}
+          >
             {clips.map((clip, i) => {
               const delayClass = STAGGER_DELAYS[Math.min(i, STAGGER_DELAYS.length - 1)];
               const isSelected = selectedClipIds.has(clip.id);
@@ -304,6 +332,7 @@ export function ClipList({
               return (
                 <div
                   key={clip.id}
+                  role="listitem"
                   data-clip-index={i}
                   className={cn(
                     'animate-fade-in-up fill-both rounded-xl transition-shadow',

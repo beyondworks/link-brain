@@ -79,6 +79,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Sidebar */}
       <aside
+        aria-label="주 네비게이션"
         className={[
           'fixed inset-y-0 left-0 z-sticky flex-shrink-0',
           'bg-glass-heavy border-r border-border/50',
@@ -113,13 +114,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
               onClick={() => setSidebarOpen(false)}
               aria-label="사이드바 닫기"
             >
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
             </button>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className={['flex-1 overflow-y-auto py-4', isSidebarCollapsed ? 'px-2' : 'px-3'].join(' ')}>
+        <nav
+          aria-label="사이드바 메뉴"
+          className={['flex-1 overflow-y-auto py-4', isSidebarCollapsed ? 'px-2' : 'px-3'].join(' ')}
+        >
           {MAIN_NAV.map((section, idx) => (
             <div key={idx} className={idx > 0 ? 'mt-6' : ''}>
               {section.title && !isSidebarCollapsed && (
@@ -201,9 +205,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           >
             {!isSidebarCollapsed && <span>사이드바 접기</span>}
             {isSidebarCollapsed ? (
-              <ChevronsRight size={16} />
+              <ChevronsRight size={16} aria-hidden="true" />
             ) : (
-              <ChevronsLeft size={16} />
+              <ChevronsLeft size={16} aria-hidden="true" />
             )}
           </button>
 
@@ -293,7 +297,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="flex h-16 items-center border-b border-border/50 bg-glass px-4 lg:hidden">
+        <header aria-label="앱 헤더" className="flex h-16 items-center border-b border-border/50 bg-glass px-4 lg:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -301,7 +305,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             aria-label="사이드바 열기"
             className="rounded-xl"
           >
-            <Menu size={20} />
+            <Menu size={20} aria-hidden="true" />
           </Button>
           <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
@@ -326,7 +330,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <KeyboardShortcutsDialog />
 
         {/* Page content */}
-        <main id="main-content" className="flex-1 overflow-y-auto">{children}</main>
+        <main id="main-content" aria-label="메인 콘텐츠" className="flex-1 overflow-y-auto">{children}</main>
 
         {/* FAB — Quick clip add (hidden on mobile where bottom nav has add button) */}
         <button
@@ -335,7 +339,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           className="fixed bottom-8 right-8 z-40 hidden h-12 w-12 items-center justify-center rounded-full bg-gradient-brand text-white shadow-brand-lg transition-spring hover:scale-110 hover:shadow-brand-glow lg:flex"
           aria-label="클립 추가"
         >
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
         </button>
 
         {/* Mobile bottom nav */}

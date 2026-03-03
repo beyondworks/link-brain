@@ -304,13 +304,13 @@ export function AddClipDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        aria-describedby={undefined}
+        aria-describedby="add-clip-description"
         className="border-gradient bg-glass-heavy overflow-y-auto max-h-[85vh] rounded-2xl shadow-elevated sm:max-w-lg"
       >
         <DialogHeader>
           <div className="mb-1 flex items-center gap-3">
             {/* Step indicator — gradient progress bar */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" aria-hidden="true">
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-spring',
@@ -324,11 +324,16 @@ export function AddClipDialog() {
                 )}
               />
             </div>
-            <span className="text-[11px] font-medium text-muted-foreground">{step} / 2</span>
+            <span className="text-[11px] font-medium text-muted-foreground" aria-hidden="true">{step} / 2</span>
           </div>
           <DialogTitle className="text-lg font-semibold">
             {step === 1 ? '클립 추가' : '클립 정보 확인'}
           </DialogTitle>
+          <p id="add-clip-description" className="sr-only">
+            {step === 1
+              ? '저장할 URL을 입력하고 분석 버튼을 누르세요. 2단계 중 1단계입니다.'
+              : '분석된 클립 정보를 확인하고 저장하세요. 2단계 중 2단계입니다.'}
+          </p>
         </DialogHeader>
 
         {step === 1 ? (

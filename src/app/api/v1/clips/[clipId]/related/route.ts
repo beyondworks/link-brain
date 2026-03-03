@@ -2,7 +2,7 @@
  * API v1 - Related Clips
  *
  * GET /api/v1/clips/[clipId]/related
- * pgvector 코사인 유사도 기반 관련 클립 검색
+ * 추천 우선순위: 공통 태그 수 > 같은 카테고리 > 같은 도메인
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +13,7 @@ import type { ClipData } from '@/types/database';
 
 type RouteContext = { params: Promise<{ clipId: string }> };
 
+// Escape strict Supabase generics for tables not fully typed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
 
@@ -24,6 +25,17 @@ export interface RelatedClip {
   platform: string | null;
   summary: string | null;
   similarity: number;
+  commonTags: string[];
+}
+
+type ClipRow = Pick<ClipData, 'id' | 'title' | 'url' | 'image' | 'platform' | 'summary' | 'category_id'>;
+
+function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
 }
 
 async function handleGet(
@@ -32,74 +44,177 @@ async function handleGet(
   clipId: string
 ): Promise<NextResponse> {
   // 원본 클립 존재 및 소유 확인
-  const { data: clip, error: clipErr } = await db
+  const { data: sourceRaw, error: sourceErr } = await db
     .from('clips')
-    .select('id, user_id, platform')
+    .select('id, user_id, url, category_id')
     .eq('id', clipId)
     .single();
 
-  if (clipErr || !clip) return errors.notFound('clip');
-  if ((clip as Pick<ClipData, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if (sourceErr || !sourceRaw) return errors.notFound('clip');
 
-  const sourceClip = clip as Pick<ClipData, 'id' | 'user_id' | 'platform'>;
+  const sourceClip = sourceRaw as Pick<ClipData, 'id' | 'user_id' | 'url' | 'category_id'>;
+  if (sourceClip.user_id !== auth.userId) return errors.accessDenied();
 
-  // pgvector RPC 시도
-  const { data: rpcData, error: rpcErr } = await db.rpc('find_related_clips', {
-    p_clip_id: clipId,
-    p_user_id: auth.userId,
-    p_limit: 5,
-    p_min_similarity: 0.7,
-  });
+  const sourceDomain = extractDomain(sourceClip.url);
 
-  if (!rpcErr && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
-    const related: RelatedClip[] = (rpcData as Array<{
-      id: string;
-      title: string | null;
-      url: string;
-      image: string | null;
-      platform: string | null;
-      summary: string | null;
-      similarity: number;
-    }>).map((row) => ({
-      id: row.id,
-      title: row.title,
-      url: row.url,
-      image: row.image,
-      platform: row.platform,
-      summary: row.summary,
-      similarity: row.similarity,
-    }));
+  // 1단계: 현재 클립의 태그 조회
+  const { data: sourceTagRows } = await db
+    .from('clip_tags')
+    .select('tag_id, tags(name)')
+    .eq('clip_id', clipId);
 
-    return sendSuccess(related);
+  const sourceTagIds: string[] = ((sourceTagRows ?? []) as Array<{ tag_id: string }>).map(
+    (r) => r.tag_id
+  );
+  const sourceTagNames: string[] = ((sourceTagRows ?? []) as Array<{ tags: { name: string } | null }>)
+    .map((r) => r.tags?.name ?? '')
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const results: RelatedClip[] = [];
+
+  // 2단계: 같은 태그를 가진 클립 검색 (공통 태그 수 기준 정렬)
+  if (sourceTagIds.length > 0) {
+    const { data: tagMatchRows } = await db
+      .from('clip_tags')
+      .select('clip_id, tag_id, tags(name)')
+      .in('tag_id', sourceTagIds)
+      .neq('clip_id', clipId);
+
+    type TagMatchRow = { clip_id: string; tag_id: string; tags: { name: string } | null };
+    const tagMatchData = (tagMatchRows ?? []) as TagMatchRow[];
+
+    // clip_id별 공통 태그 집계
+    const clipTagMap = new Map<string, { tagIds: Set<string>; tagNames: Set<string> }>();
+    for (const row of tagMatchData) {
+      if (!clipTagMap.has(row.clip_id)) {
+        clipTagMap.set(row.clip_id, { tagIds: new Set(), tagNames: new Set() });
+      }
+      const entry = clipTagMap.get(row.clip_id)!;
+      entry.tagIds.add(row.tag_id);
+      if (row.tags?.name) entry.tagNames.add(row.tags.name);
+    }
+
+    // 공통 태그 수 내림차순 정렬
+    const sortedClipIds = [...clipTagMap.entries()]
+      .sort((a, b) => b[1].tagIds.size - a[1].tagIds.size)
+      .map(([id]) => id);
+
+    if (sortedClipIds.length > 0) {
+      const { data: tagClipsRaw } = await db
+        .from('clips')
+        .select('id, title, url, image, platform, summary, category_id')
+        .eq('user_id', auth.userId)
+        .eq('is_archived', false)
+        .in('id', sortedClipIds);
+
+      // sortedClipIds 순서 유지
+      const tagClipMap = new Map<string, ClipRow>();
+      for (const row of ((tagClipsRaw ?? []) as ClipRow[])) {
+        tagClipMap.set(row.id, row);
+      }
+
+      for (const cid of sortedClipIds) {
+        if (results.length >= 5) break;
+        const clip = tagClipMap.get(cid);
+        if (!clip) continue;
+        seen.add(cid);
+        const common = clipTagMap.get(cid)!;
+        results.push({
+          id: clip.id,
+          title: clip.title,
+          url: clip.url,
+          image: clip.image,
+          platform: clip.platform,
+          summary: clip.summary,
+          similarity: common.tagIds.size / sourceTagIds.length,
+          commonTags: [...common.tagNames],
+        });
+      }
+    }
   }
 
-  // Fallback: 같은 platform 클립
-  const { data: fallbackData, error: fallbackErr } = await db
-    .from('clips')
-    .select('id, title, url, image, platform, summary')
-    .eq('user_id', auth.userId)
-    .eq('platform', sourceClip.platform ?? 'web')
-    .neq('id', clipId)
-    .eq('is_archived', false)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // 3단계: 같은 카테고리 폴백
+  if (results.length < 5 && sourceClip.category_id) {
+    const remaining = 5 - results.length;
+    const excludeIds = [clipId, ...seen];
 
-  if (fallbackErr) {
-    console.error('[API v1 Related] Fallback error:', fallbackErr);
-    return errors.internalError();
+    const { data: catClipsRaw } = await db
+      .from('clips')
+      .select('id, title, url, image, platform, summary, category_id')
+      .eq('user_id', auth.userId)
+      .eq('category_id', sourceClip.category_id)
+      .eq('is_archived', false)
+      .not('id', 'in', `(${excludeIds.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(remaining);
+
+    for (const clip of ((catClipsRaw ?? []) as ClipRow[])) {
+      if (seen.has(clip.id)) continue;
+      seen.add(clip.id);
+
+      // 공통 태그 계산 (이미 태그 조회 완료된 경우 활용)
+      const commonTags = sourceTagNames.length > 0 ? await getCommonTagNames(clip.id, sourceTagIds) : [];
+
+      results.push({
+        id: clip.id,
+        title: clip.title,
+        url: clip.url,
+        image: clip.image,
+        platform: clip.platform,
+        summary: clip.summary,
+        similarity: 0,
+        commonTags,
+      });
+    }
   }
 
-  const related: RelatedClip[] = ((fallbackData as Array<Pick<ClipData, 'id' | 'title' | 'url' | 'image' | 'platform' | 'summary'>>) ?? []).map((row) => ({
-    id: row.id,
-    title: row.title,
-    url: row.url,
-    image: row.image,
-    platform: row.platform,
-    summary: row.summary,
-    similarity: 0,
-  }));
+  // 4단계: 같은 도메인 폴백
+  if (results.length < 5 && sourceDomain) {
+    const remaining = 5 - results.length;
+    const excludeIds = [clipId, ...seen];
 
-  return sendSuccess(related);
+    const { data: domainClipsRaw } = await db
+      .from('clips')
+      .select('id, title, url, image, platform, summary, category_id')
+      .eq('user_id', auth.userId)
+      .eq('is_archived', false)
+      .ilike('url', `%${sourceDomain}%`)
+      .not('id', 'in', `(${excludeIds.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(remaining);
+
+    for (const clip of ((domainClipsRaw ?? []) as ClipRow[])) {
+      if (seen.has(clip.id)) continue;
+      // 도메인 정확히 일치하는지 재확인
+      if (extractDomain(clip.url) !== sourceDomain) continue;
+      seen.add(clip.id);
+      results.push({
+        id: clip.id,
+        title: clip.title,
+        url: clip.url,
+        image: clip.image,
+        platform: clip.platform,
+        summary: clip.summary,
+        similarity: 0,
+        commonTags: [],
+      });
+    }
+  }
+
+  return sendSuccess(results);
+}
+
+async function getCommonTagNames(clipId: string, sourceTagIds: string[]): Promise<string[]> {
+  if (sourceTagIds.length === 0) return [];
+  const { data } = await db
+    .from('clip_tags')
+    .select('tag_id, tags(name)')
+    .eq('clip_id', clipId)
+    .in('tag_id', sourceTagIds);
+
+  type Row = { tag_id: string; tags: { name: string } | null };
+  return ((data ?? []) as Row[]).map((r) => r.tags?.name ?? '').filter(Boolean);
 }
 
 const routeHandler = withAuth(

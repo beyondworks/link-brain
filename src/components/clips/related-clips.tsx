@@ -1,26 +1,15 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Hash } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-
-interface RelatedClip {
-  id: string;
-  title: string | null;
-  url: string;
-  image: string | null;
-  platform: string | null;
-  summary: string | null;
-  similarity: number;
-}
+import { useRelatedClips } from '@/lib/hooks/use-related-clips';
 
 interface RelatedClipsProps {
   clipId: string;
-  userId: string;
 }
 
 const GRADIENT_COLORS = [
@@ -33,13 +22,6 @@ const GRADIENT_COLORS = [
 
 function getGradient(id: string): string {
   return GRADIENT_COLORS[id.charCodeAt(0) % GRADIENT_COLORS.length];
-}
-
-async function fetchRelatedClips(clipId: string): Promise<RelatedClip[]> {
-  const res = await fetch(`/api/v1/clips/${clipId}/related`);
-  if (!res.ok) throw new Error('관련 클립 로드 실패');
-  const json = await res.json() as { success: boolean; data: RelatedClip[] };
-  return json.data;
 }
 
 function RelatedClipSkeleton() {
@@ -55,15 +37,9 @@ function RelatedClipSkeleton() {
   );
 }
 
-export function RelatedClips({ clipId, userId: _userId }: RelatedClipsProps) {
+export function RelatedClips({ clipId }: RelatedClipsProps) {
   const router = useRouter();
-
-  const { data: clips, isLoading, error } = useQuery({
-    queryKey: ['related-clips', clipId],
-    queryFn: () => fetchRelatedClips(clipId),
-    staleTime: 60_000,
-    retry: false,
-  });
+  const { clips, isLoading } = useRelatedClips(clipId);
 
   if (isLoading) {
     return (
@@ -76,15 +52,8 @@ export function RelatedClips({ clipId, userId: _userId }: RelatedClipsProps) {
     );
   }
 
-  if (error || !clips || clips.length === 0) {
-    return (
-      <div className="space-y-1">
-        <h3 className="mb-2 text-sm font-semibold text-foreground">관련 클립</h3>
-        <p className="text-xs text-muted-foreground py-4 text-center">
-          관련 클립이 없습니다.
-        </p>
-      </div>
-    );
+  if (clips.length === 0) {
+    return null;
   }
 
   return (
@@ -94,9 +63,6 @@ export function RelatedClips({ clipId, userId: _userId }: RelatedClipsProps) {
         {clips.map((clip) => {
           const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
           const gradient = getGradient(clip.id);
-          const similarityPct = clip.similarity > 0
-            ? `${Math.round(clip.similarity * 100)}% 일치`
-            : null;
 
           return (
             <Card
@@ -131,20 +97,36 @@ export function RelatedClips({ clipId, userId: _userId }: RelatedClipsProps) {
                 <p className="line-clamp-2 text-xs font-medium leading-snug">
                   {clip.title ?? clip.url}
                 </p>
-                {clip.summary && (
-                  <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                    {clip.summary}
-                  </p>
+
+                {/* 공통 태그 뱃지 */}
+                {clip.commonTags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {clip.commonTags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                      >
+                        <Hash size={8} />
+                        {tag}
+                      </span>
+                    ))}
+                    {clip.commonTags.length > 3 && (
+                      <span className="rounded-full border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        +{clip.commonTags.length - 3}
+                      </span>
+                    )}
+                  </div>
                 )}
+
                 <div className="mt-1 flex items-center gap-2">
                   {clip.platform && (
                     <span className="text-xs text-muted-foreground capitalize">
                       {clip.platform}
                     </span>
                   )}
-                  {similarityPct && (
+                  {clip.similarity > 0 && (
                     <span className="text-xs text-primary font-medium">
-                      {similarityPct}
+                      {Math.round(clip.similarity * 100)}% 일치
                     </span>
                   )}
                   <a

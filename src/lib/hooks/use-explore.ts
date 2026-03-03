@@ -1,7 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 export interface ExploreClip {
   id: string;
@@ -9,49 +8,83 @@ export interface ExploreClip {
   summary: string | null;
   url: string;
   platform: string;
-  thumbnail_url: string | null;
-  created_at: string;
-  user_id: string;
+  thumbnailUrl: string | null;
+  createdAt: string;
+  userId: string;
+  likesCount: number;
+  views: number;
+  category: string | null;
 }
 
-export function useTrendingClips() {
-  return useQuery({
-    queryKey: ['explore', 'trending'],
-    queryFn: async (): Promise<ExploreClip[]> => {
-      const { data, error } = await supabase
-        .from('clips')
-        .select('id, title, summary, url, platform, thumbnail_url, created_at, user_id')
-        .eq('is_public', true)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-        .limit(20);
+export type ExploreSort = 'recent' | 'popular' | 'trending';
 
-      if (error) throw error;
-      return (data ?? []) as ExploreClip[];
-    },
-    staleTime: 300_000, // 5 minutes
+export const EXPLORE_CATEGORIES = [
+  { key: 'all', label: '전체' },
+  { key: '기술', label: '기술' },
+  { key: '디자인', label: '디자인' },
+  { key: '비즈니스', label: '비즈니스' },
+  { key: '학습', label: '학습' },
+  { key: '기타', label: '기타' },
+] as const;
+
+export type ExploreCategoryKey = (typeof EXPLORE_CATEGORIES)[number]['key'];
+
+interface ApiMeta {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data: ExploreClip[];
+  meta: ApiMeta;
+}
+
+const PAGE_SIZE = 20;
+
+async function fetchExploreClips({
+  category,
+  sort,
+  page,
+}: {
+  category: ExploreCategoryKey;
+  sort: ExploreSort;
+  page: number;
+}): Promise<ApiResponse> {
+  const params = new URLSearchParams({
+    sort,
+    page: String(page),
+    limit: String(PAGE_SIZE),
   });
+  if (category !== 'all') {
+    params.set('category', category);
+  }
+
+  const res = await fetch(`/api/v1/explore?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Explore API error: ${res.status}`);
+  }
+  return res.json() as Promise<ApiResponse>;
 }
 
-export function useFeaturedClips() {
-  return useQuery({
-    queryKey: ['explore', 'featured'],
-    queryFn: async (): Promise<ExploreClip[]> => {
-      const { data, error } = await supabase
-        .from('clips')
-        .select('id, title, summary, url, platform, thumbnail_url, created_at, user_id')
-        .eq('is_public', true)
-        .eq('is_featured', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        // is_featured column might not exist yet — graceful fallback
-        console.warn('[useExplore] Featured query failed, falling back:', error.message);
-        return [];
-      }
-      return (data ?? []) as ExploreClip[];
+export function useExploreClips({
+  category,
+  sort,
+}: {
+  category: ExploreCategoryKey;
+  sort: ExploreSort;
+}) {
+  return useInfiniteQuery({
+    queryKey: ['explore', 'clips', category, sort],
+    queryFn: ({ pageParam }) =>
+      fetchExploreClips({ category, sort, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage.meta.hasMore) return undefined;
+      return allPages.length + 1;
     },
-    staleTime: 300_000,
+    staleTime: 5 * 60 * 1000, // 5분
   });
 }

@@ -69,9 +69,12 @@ export function KeyboardShortcutsDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) closeModal(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-describedby="shortcuts-description">
         <DialogHeader>
           <DialogTitle>키보드 단축키</DialogTitle>
+          <p id="shortcuts-description" className="sr-only">
+            LinkBrain에서 사용 가능한 키보드 단축키 목록입니다.
+          </p>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 pt-1">

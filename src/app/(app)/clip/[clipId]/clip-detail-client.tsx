@@ -48,6 +48,7 @@ import { ClipNotes } from '@/components/clips/clip-notes';
 import { TextHighlighter } from '@/components/clips/text-highlighter';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
 import { ClipActivityTimeline } from '@/components/clips/clip-activity-timeline';
+import { RelatedClips } from '@/components/clips/related-clips';
 import {
   Tooltip,
   TooltipContent,
@@ -979,6 +980,13 @@ export function ClipDetailClient({ clipId }: Props) {
               <ClipActivityTimeline clipId={clipId} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Related clips */}
+      {!isSeed && (
+        <div className="mb-5 animate-fade-in-up animation-delay-400">
+          <RelatedClips clipId={clipId} />
         </div>
       )}
 
