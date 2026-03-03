@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -89,7 +90,7 @@ function ContinueReadingSkeleton() {
   );
 }
 
-export function ContinueReading({ userId }: ContinueReadingProps) {
+function ContinueReadingComponent({ userId }: ContinueReadingProps) {
   const router = useRouter();
 
   const { data: items, isLoading, error } = useQuery({
@@ -194,3 +195,8 @@ export function ContinueReading({ userId }: ContinueReadingProps) {
     </section>
   );
 }
+
+export const ContinueReading = memo(
+  ContinueReadingComponent,
+  (prev, next) => prev.userId === next.userId
+);

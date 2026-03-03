@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Plus, Globe, Settings } from 'lucide-react';
@@ -13,7 +14,7 @@ const NAV_ITEMS = [
   { href: '/settings', label: '설정', icon: Settings },
 ] as const;
 
-export function MobileBottomNav() {
+function MobileBottomNavComponent() {
   const pathname = usePathname();
   const { openModal } = useUIStore();
 
@@ -121,3 +122,5 @@ export function MobileBottomNav() {
     </nav>
   );
 }
+
+export const MobileBottomNav = memo(MobileBottomNavComponent);

@@ -1,8 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useInsights } from '@/lib/hooks/use-insights';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DonutChart } from '@/components/charts/donut-chart';
+
+const DonutChart = dynamic(
+  () => import('@/components/charts/donut-chart').then((m) => m.DonutChart),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[72px] w-[72px] rounded-full shrink-0" />,
+  }
+);
 import {
   BarChart3,
   TrendingUp,

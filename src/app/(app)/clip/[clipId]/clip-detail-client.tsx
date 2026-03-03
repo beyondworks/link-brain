@@ -3,8 +3,7 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useClip } from '@/lib/hooks/use-clips';
-import { useToggleFavorite } from '@/hooks/mutations/use-toggle-favorite';
-import { useArchiveClip } from '@/hooks/mutations/use-archive-clip';
+import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
 import { useReadingProgress } from '@/hooks/mutations/use-reading-progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -534,7 +533,7 @@ export function ClipDetailClient({ clipId }: Props) {
   const createHighlight = useCreateHighlight(isSeed ? '' : clipId);
   const deleteHighlight = useDeleteHighlight(isSeed ? '' : clipId);
   const toggleFavorite = useToggleFavorite();
-  const archiveClip = useArchiveClip();
+  const archiveClip = useToggleArchive();
   const { progress, update } = useReadingProgress(isSeed ? '' : clipId);
 
   const [scrollPct, setScrollPct] = useState(progress?.scroll_percentage ?? 0);

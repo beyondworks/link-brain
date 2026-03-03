@@ -39,8 +39,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
-import { StudioOutputPanel } from './studio-output-panel';
 import type { HistoryItem } from './studio-output-panel';
+import dynamic from 'next/dynamic';
+
+const StudioOutputPanel = dynamic(
+  () => import('./studio-output-panel').then((m) => m.StudioOutputPanel),
+  {
+    loading: () => <Skeleton className="h-48 rounded-2xl shimmer" />,
+  }
+);
 
 // ─── 콘텐츠 타입 메타데이터 ───────────────────────────────────────────────────
 

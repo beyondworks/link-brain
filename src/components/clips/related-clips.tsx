@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ExternalLink, Hash } from 'lucide-react';
@@ -37,7 +38,7 @@ function RelatedClipSkeleton() {
   );
 }
 
-export function RelatedClips({ clipId }: RelatedClipsProps) {
+function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
   const router = useRouter();
   const { clips, isLoading } = useRelatedClips(clipId);
 
@@ -148,3 +149,8 @@ export function RelatedClips({ clipId }: RelatedClipsProps) {
     </div>
   );
 }
+
+export const RelatedClips = memo(
+  RelatedClipsComponent,
+  (prev, next) => prev.clipId === next.clipId
+);

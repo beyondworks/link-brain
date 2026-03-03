@@ -28,8 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUIStore } from '@/stores/ui-store';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
-import { useToggleFavorite } from '@/hooks/mutations/use-toggle-favorite';
-import { useArchiveClip } from '@/hooks/mutations/use-archive-clip';
+import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS } from '@/config/constants';
@@ -85,7 +84,7 @@ function PeekContent({
   onClose: () => void;
 }) {
   const toggleFavorite = useToggleFavorite();
-  const archiveClip = useArchiveClip();
+  const archiveClip = useToggleArchive();
   const clipPeekMode = useUIStore((s) => s.clipPeekMode);
   const setClipPeekMode = useUIStore((s) => s.setClipPeekMode);
 
