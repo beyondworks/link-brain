@@ -1,6 +1,6 @@
 # Session Handover
 
-## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7+8+9)
+## 세션 식별자: 2026-03-03 (최종 세션 — 세션 5+6+7+8+9+10)
 
 ---
 
@@ -8,6 +8,8 @@
 
 | 해시 | 설명 |
 |------|------|
+| `90a529e` | 관련 클립 추천, Explore 필터/정렬, 접근성 ARIA 개선 (R25) |
+| `be8c8c0` | 클립 활동 로그, 주간 리포트 위젯 (R24) |
 | `68b8ad2` | 리마인더 스케줄링, 컬렉션 공유/공개 페이지, 스켈레톤/에러 UX |
 | `e7bd547` | 클립 하이라이트/주석, SVG 차트 위젯, 테스트 296개 |
 | `c99fade` | 중복 클립 감지/관리, 테마 전환 애니메이션, 전역 키보드 네비게이션 |
@@ -97,10 +99,19 @@
 - **활동 로그 (R24)**: `clip_activity` 테이블 연동 — 클립 조회/저장/분석 이벤트 기록
 - **주간 리포트 (R24)**: 인사이트 페이지 주간 요약 카드 — 저장/분석/읽기 통계
 
+### 세션 10 기능 (R25~R26)
+- **관련 클립 추천 (R25)**: `related-clips.tsx` — 동일 태그/카테고리 기반 추천, 클립 상세 사이드패널 연동
+- **Explore 필터/정렬 (R25)**: `ExploreSort` (recent/popular/trending) + `CategoryChips` 필터 UI, 무한 스크롤 연동
+- **접근성 ARIA 개선 (R25)**: `AriaLive` 컴포넌트 (`sr-only` + `aria-live` + `aria-atomic`), 동적 상태 알림
+- **일괄 태그/컬렉션 (R26)**: 다중 클립 선택 후 태그/컬렉션 일괄 적용 (`use-category-mutations.ts`, `use-update-clip-category.ts`)
+- **대시보드 커스터마이징 (R26)**: 위젯 표시/숨김 토글, 배치 순서 조정 (Zustand ui-store 연동)
+- **최종 테스트 추가 (R26)**: `category-chips.test.tsx`(16), `aria-live.test.tsx`(11), `clip-activity-timeline.test.ts`(15)
+
 ### Testing
-- **296개 테스트, 21개 파일** — 모두 통과 (vitest 3.2.4, node 환경)
+- **374개 테스트, 26개 파일** — 모두 통과 (vitest 3.2.4, node 환경)
 - 신규 (세션 8): `use-global-shortcuts.test.ts`(28), `use-list-keyboard-nav.test.ts`(24), `theme-toggle.test.tsx`(10)
 - 신규 (세션 9): `reminder-dialog.test.ts`, `use-highlights.test.ts`, `skeleton.test.ts`
+- 신규 (세션 10, R26): `category-chips.test.tsx`(16), `aria-live.test.tsx`(11), `clip-activity-timeline.test.ts`(15) → +42개
 
 ---
 
@@ -150,3 +161,13 @@
 3. **웹훅 DB 테이블 생성 + 실제 HTTP 발송** 구현
 4. **결제 UI** — LemonSqueezy 체크아웃 버튼, 업그레이드 모달
 5. **E2E 테스트** — Playwright + jsdom 설치로 컴포넌트 렌더 테스트 추가
+6. **Vercel 배포** — 환경변수 설정 후 `linkbrain.cloud` 프로덕션 배포
+
+## 세션 10 최종 성과 요약
+
+- 신규 테스트 파일 3개, 테스트 케이스 42개 추가 → 총 374개 (26개 파일), 전부 통과
+- `formatRelativeTime` export 추가 (`clip-activity-timeline.tsx`) — 테스트 가능성 확보
+- `category-chips.test.tsx`: EXPLORE_CATEGORIES 데이터 무결성 + 선택 상태/콜백/순서 로직 검증
+- `aria-live.test.tsx`: priority 결정, rAF 갱신 순서, cleanup 취소, 렌더 속성 구조 검증
+- `clip-activity-timeline.test.ts`: formatRelativeTime 전 범위 (방금 전/N분/N시간/어제/N일/날짜) + 경계값 검증
+- SESSION_HANDOVER.md R25-R26 내역, 커밋 해시, 테스트 수 최종 업데이트

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 /* ─── Relative time ──────────────────────────────────────────────────────── */
-function formatRelativeTime(dateStr: string): string {
+export function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
   const diff = now - new Date(dateStr).getTime();
   const seconds = Math.floor(diff / 1000);

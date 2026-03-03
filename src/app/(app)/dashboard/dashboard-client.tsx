@@ -19,6 +19,8 @@ import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { WeeklyReport } from '@/components/dashboard/weekly-report';
 import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
+import { DashboardSettings } from '@/components/dashboard/dashboard-settings';
+import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
 
 import type { ClipData } from '@/types/database';
 
@@ -215,6 +217,7 @@ export function DashboardClient() {
   const { user: authUser } = useSupabase();
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
+  const { widgets } = useDashboardPreferences();
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: credits, isLoading: creditsLoading } = useCredits();
@@ -289,51 +292,54 @@ export function DashboardClient() {
               저장된 클립을 확인하고 관리하세요.
             </p>
           </div>
+          <DashboardSettings />
         </div>
       </div>
 
       {/* Stats grid */}
-      <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard
-          icon={BookOpen}
-          value={statsLoading ? '—' : String(stats?.totalClips ?? 0)}
-          label="총 클립 수"
-          loading={statsLoading}
-          sparklineData={sparklineData.totalClips}
-          sparklineColor="#21DBA4"
-        />
-        <StatCard
-          icon={TrendingUp}
-          value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)}
-          label="이번 달 저장"
-          loading={statsLoading}
-          sparklineData={sparklineData.thisMonth}
-          sparklineColor="#3b82f6"
-        />
-        <StatCard
-          icon={Star}
-          value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)}
-          label="즐겨찾기"
-          loading={statsLoading}
-          sparklineData={sparklineData.favorites}
-          sparklineColor="#f59e0b"
-        />
-        <StatCard
-          icon={Gauge}
-          value={formatCredits()}
-          label="크레딧 잔여"
-          loading={creditsLoading}
-        />
-      </div>
+      {widgets.stats && (
+        <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard
+            icon={BookOpen}
+            value={statsLoading ? '—' : String(stats?.totalClips ?? 0)}
+            label="총 클립 수"
+            loading={statsLoading}
+            sparklineData={sparklineData.totalClips}
+            sparklineColor="#21DBA4"
+          />
+          <StatCard
+            icon={TrendingUp}
+            value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)}
+            label="이번 달 저장"
+            loading={statsLoading}
+            sparklineData={sparklineData.thisMonth}
+            sparklineColor="#3b82f6"
+          />
+          <StatCard
+            icon={Star}
+            value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)}
+            label="즐겨찾기"
+            loading={statsLoading}
+            sparklineData={sparklineData.favorites}
+            sparklineColor="#f59e0b"
+          />
+          <StatCard
+            icon={Gauge}
+            value={formatCredits()}
+            label="크레딧 잔여"
+            loading={creditsLoading}
+          />
+        </div>
+      )}
 
       {/* Weekly Report */}
-      <WeeklyReport />
+      {widgets.weeklyReport && <WeeklyReport />}
 
       {/* Continue Reading + Recent Activity */}
-      {authUser && (
+      {authUser && (widgets.continueReading || widgets.recentActivity) && (
         <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ContinueReading userId={authUser.id} />
-          <RecentActivity userId={authUser.id} />
+          {widgets.continueReading && <ContinueReading userId={authUser.id} />}
+          {widgets.recentActivity && <RecentActivity userId={authUser.id} />}
         </div>
       )}
 
@@ -365,10 +371,10 @@ export function DashboardClient() {
       <div className="divider-gradient animate-fade-in-up animation-delay-150 mb-7" />
 
       {/* Reminder section */}
-      {!isLoading && <ReminderSection clips={clips} />}
+      {widgets.reminders && !isLoading && <ReminderSection clips={clips} />}
 
       {/* Pinned clips */}
-      {!isLoading && pinnedClips.length > 0 && (
+      {widgets.pinnedClips && !isLoading && pinnedClips.length > 0 && (
         <div className="animate-fade-in-up animation-delay-150 mb-8">
           <div className="mb-3 flex items-center gap-2">
             <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />

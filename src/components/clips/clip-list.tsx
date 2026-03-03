@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { Loader2, Star, Archive, Trash2, FolderPlus, CheckSquare, X, Square } from 'lucide-react';
+import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
 import { ClipCard } from '@/components/clips/clip-card';
@@ -22,6 +22,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { BulkTagDialog } from '@/components/clips/bulk-tag-dialog';
+import { BulkCollectionDialog } from '@/components/clips/bulk-collection-dialog';
 
 interface ClipListProps {
   clips: ClipData[];
@@ -56,6 +58,8 @@ export function ClipList({
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [ariaMessage, setAriaMessage] = useState('');
 
   // clips 개수가 변할 때마다 스크린리더에 결과 수 안내
@@ -235,13 +239,23 @@ export function ClipList({
           </button>
 
           <button
-            disabled
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground opacity-40 cursor-not-allowed"
-            aria-label="컬렉션으로 이동 (준비 중)"
-            title="준비 중"
+            onClick={() => setTagDialogOpen(true)}
+            disabled={selectedCount === 0 || isBulkPending}
+            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="선택한 클립에 태그 추가"
+          >
+            <Tag className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">태그 추가</span>
+          </button>
+
+          <button
+            onClick={() => setCollectionDialogOpen(true)}
+            disabled={selectedCount === 0 || isBulkPending}
+            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="선택한 클립을 컬렉션에 추가"
           >
             <FolderPlus className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">컬렉션으로 이동</span>
+            <span className="hidden sm:inline">컬렉션에 추가</span>
           </button>
 
           {/* Cancel */}
@@ -378,6 +392,22 @@ export function ClipList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk tag dialog */}
+      <BulkTagDialog
+        open={tagDialogOpen}
+        onOpenChange={setTagDialogOpen}
+        clipIds={Array.from(selectedClipIds)}
+        onSuccess={clearSelection}
+      />
+
+      {/* Bulk collection dialog */}
+      <BulkCollectionDialog
+        open={collectionDialogOpen}
+        onOpenChange={setCollectionDialogOpen}
+        clipIds={Array.from(selectedClipIds)}
+        onSuccess={clearSelection}
+      />
     </div>
   );
 }
