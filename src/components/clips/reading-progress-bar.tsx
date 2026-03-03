@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { useReadingProgress } from '@/hooks/mutations/use-reading-progress';
+import { useReadingProgress } from '@/lib/hooks/use-reading-progress';
 
 interface ReadingProgressBarProps {
   clipId: string;

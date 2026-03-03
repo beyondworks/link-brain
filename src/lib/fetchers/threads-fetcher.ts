@@ -39,7 +39,6 @@ const applyThreadsNormalization = (content: FetchedUrlContent): FetchedUrlConten
 
 const extractWithJina = async (url: string, authorHandle: string = ''): Promise<FetchedUrlContent> => {
     try {
-        console.log(`[Threads Fetcher/Jina] Fetching: ${url}`);
         const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
@@ -66,7 +65,6 @@ const extractWithJina = async (url: string, authorHandle: string = ''): Promise<
             authorOnlyChain: ENABLE_THREADS_AUTHOR_ONLY_CHAIN
         });
 
-        console.log(`[Threads Fetcher/Jina] ${rawContent.length} chars raw -> ${cleaned.length} chars cleaned`);
         return { rawText: cleaned, images };
     } catch (error) {
         console.error('[Threads Fetcher/Jina] Error:', error);
@@ -87,8 +85,6 @@ export class ThreadsFetcher implements PlatformFetcher {
         }
 
         try {
-            console.log(`[Threads Fetcher] Starting extraction for: ${url}`);
-
             // Step 1: Puppeteer extraction (primary)
             const puppeteerResult = await extractWithPuppeteer(url);
 
@@ -126,11 +122,9 @@ export class ThreadsFetcher implements PlatformFetcher {
             puppeteerResult.rawText.includes('[[[COMMENTS_SECTION]]]');
 
         if (hasComments) {
-            console.log('[Threads Fetcher] Puppeteer has comments, normalizing directly');
             return applyThreadsNormalization(puppeteerResult);
         }
 
-        console.log('[Threads Fetcher] No comments from Puppeteer, trying Jina supplement');
         let jinaUrl = url;
         if (url.includes('threads.com')) {
             jinaUrl = url.replace('threads.com', 'threads.net');
@@ -144,8 +138,6 @@ export class ThreadsFetcher implements PlatformFetcher {
              jinaSupplement.rawText.length > puppeteerResult.rawText.length + 100);
 
         if (jinaHasComments && jinaSupplement.rawText) {
-            console.log('[Threads Fetcher] Jina has comments, merging (body from Puppeteer + comments from Jina)');
-
             const normalizedPuppeteer = applyThreadsNormalization(puppeteerResult);
             const puppeteerSections = splitThreadsSections(normalizedPuppeteer.rawText);
             const jinaSections = splitThreadsSections(jinaSupplement.rawText);
@@ -165,7 +157,6 @@ export class ThreadsFetcher implements PlatformFetcher {
             };
         }
 
-        console.log('[Threads Fetcher] No comments from Jina, using Puppeteer only');
         return applyThreadsNormalization(puppeteerResult);
     }
 
@@ -201,8 +192,6 @@ export class ThreadsFetcher implements PlatformFetcher {
                     rawText: '',
                 });
             }
-
-            console.log('[Threads Fetcher] Jina fallback succeeded, merging');
 
             if (ENABLE_THREADS_AUTHOR_ONLY_CHAIN) {
                 const normalizedPuppeteer = applyThreadsNormalization({

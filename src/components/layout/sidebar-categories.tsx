@@ -9,7 +9,7 @@ import {
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
-} from '@/hooks/mutations/use-category-mutations';
+} from '@/lib/hooks/use-category-mutations';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,

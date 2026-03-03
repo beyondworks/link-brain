@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { useCollections } from '@/lib/hooks/use-collections';
-import { useMoveToCollection } from '@/hooks/mutations/use-move-to-collection';
+import { useMoveToCollection } from '@/lib/hooks/use-move-to-collection';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { FolderPlus, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';

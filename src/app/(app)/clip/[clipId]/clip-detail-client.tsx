@@ -4,7 +4,7 @@ import { useMemo, useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
-import { useReadingProgress } from '@/hooks/mutations/use-reading-progress';
+import { useReadingProgress } from '@/lib/hooks/use-reading-progress';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';

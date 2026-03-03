@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useClips } from '@/lib/hooks/use-clips';
-import { useMoveToCollection } from '@/hooks/mutations/use-move-to-collection';
+import { useMoveToCollection } from '@/lib/hooks/use-move-to-collection';
 import { toast } from 'sonner';
 import { Search, Globe, Loader2 } from 'lucide-react';
 import type { ClipData } from '@/types/database';

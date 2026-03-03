@@ -102,7 +102,6 @@ const getOrCreateCategory = async (
         (c) => c.name.toLowerCase() === categoryName.toLowerCase()
       );
       if (match) {
-        console.log(`[Category] Found existing: "${categoryName}" -> ${match.id}`);
         return match.id;
       }
     }
@@ -120,7 +119,6 @@ const getOrCreateCategory = async (
       return null;
     }
 
-    console.log(`[Category] Created: "${categoryName}" -> ${(created as Pick<Category, 'id'>).id}`);
     return (created as Pick<Category, 'id'>).id;
   } catch (err) {
     console.error('[Category] getOrCreateCategory failed:', err);
@@ -141,7 +139,6 @@ export const generateClipMetadata = async (
   language = 'KR'
 ): Promise<ClipMetadata | null> => {
   if (!rawText || rawText.trim().length === 0) {
-    console.log('[AI Metadata] Skipping: No raw text');
     return null;
   }
 
@@ -220,7 +217,6 @@ const generateMetadataFromUrl = async (
     if (!jsonMatch) return null;
 
     const aiData = JSON.parse(jsonMatch[0]) as Partial<ClipMetadata>;
-    console.log('[AI Metadata] URL-based generation succeeded');
 
     return {
       title: aiData.title || fallbackTitle(url),
@@ -348,11 +344,6 @@ export const processNewClip = async (
   } = input;
   const language = options?.language ?? 'KR';
 
-  console.log('[ClipService] Processing new clip');
-  console.log(`[ClipService] URL: ${url}`);
-  console.log(`[ClipService] Raw text length: ${rawText?.length ?? 0}`);
-  console.log(`[ClipService] Images: ${images?.length ?? 0}`);
-
   const rawMarkdown = rawText ?? '';
   const contentHtml = htmlContent ?? '';
 
@@ -371,7 +362,6 @@ export const processNewClip = async (
     metadata = await generateClipMetadata(rawMarkdown, url, sourceType, language);
   }
   if (!metadata) {
-    console.log('[ClipService] Falling back to URL-based metadata');
     metadata = await generateMetadataFromUrl(url, sourceType, language);
   }
 
@@ -454,7 +444,6 @@ export const processNewClip = async (
   }
 
   const clipId = (clipRow as { id: string }).id;
-  console.log(`[ClipService] Clip created: ${clipId}`);
 
   const { error: contentError } = await db
     .from('clip_contents')

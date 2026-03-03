@@ -43,7 +43,6 @@ export const fetchUrlContent = async (url: string): Promise<FetchedUrlContent> =
 
     const platform = detectPlatform(url);
     const FetcherClass = FETCHER_MAP[platform] ?? FETCHER_MAP.web;
-    console.log(`[Content Router] ${platform} -> ${FetcherClass.name}`);
 
     const fetcher = new FetcherClass();
     return fetcher.fetch(url);

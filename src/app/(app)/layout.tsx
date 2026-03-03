@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
@@ -34,6 +34,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isLoading } = useSupabase();
   const { theme, setTheme } = useTheme();
   const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
@@ -259,11 +260,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" className="w-56">
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center gap-2">
-                      <User size={16} />
-                      프로필 및 설정
-                    </Link>
+                  <DropdownMenuItem
+                    onSelect={() => router.push('/settings')}
+                    className="flex items-center gap-2"
+                  >
+                    <User size={16} />
+                    프로필 및 설정
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

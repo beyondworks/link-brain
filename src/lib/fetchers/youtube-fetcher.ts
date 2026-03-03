@@ -40,8 +40,6 @@ const fetchYouTubeOEmbed = async (url: string): Promise<FetchedUrlContent> => {
         if (title) textParts.push(title);
         if (author) textParts.push(`Channel: ${author}`);
 
-        console.log(`[YouTube Fetcher/oEmbed] Title: ${title}, Author: ${author}`);
-
         return {
             rawText: textParts.join('\n\n'),
             images: thumbnailUrl ? [thumbnailUrl] : [],
@@ -85,7 +83,6 @@ const cleanYouTubePageText = (raw: string): string => {
  */
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        console.log(`[YouTube Fetcher/Jina] Fetching: ${url}`);
         const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
@@ -109,7 +106,6 @@ const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
         const images = extractImagesFromMarkdown(rawContent);
         const cleaned = cleanYouTubePageText(rawContent);
 
-        console.log(`[YouTube Fetcher/Jina] ${rawContent.length} chars raw -> ${cleaned.length} chars cleaned`);
         return { rawText: cleaned, images };
     } catch (error) {
         console.error('[YouTube Fetcher/Jina] Error:', error);
@@ -130,14 +126,11 @@ export class YouTubeFetcher implements PlatformFetcher {
         }
 
         try {
-            console.log(`[YouTube Fetcher] Starting extraction for: ${url}`);
-
             // Strategy 1: YouTube Data API v3 + transcript (best quality)
             const ytData = await extractYouTubeContent(url);
 
             if (ytData && ytData.hasTranscript) {
                 const richText = buildYouTubeRichText(ytData);
-                console.log(`[YouTube Fetcher] Transcript available: ${richText.length} chars`);
                 return {
                     rawText: richText,
                     images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : [],
@@ -148,13 +141,11 @@ export class YouTubeFetcher implements PlatformFetcher {
             }
 
             // Strategy 2: No transcript — try Jina to supplement with page description
-            console.log('[YouTube Fetcher] No transcript, trying Jina Reader for description');
             const jinaResult = await extractWithJina(url);
 
             if (ytData && jinaResult.rawText && jinaResult.rawText.length > 100) {
                 const enriched = { ...ytData, description: jinaResult.rawText };
                 const richText = buildYouTubeRichText(enriched);
-                console.log(`[YouTube Fetcher] oEmbed+Jina merged: ${richText.length} chars`);
                 return {
                     rawText: richText,
                     images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : jinaResult.images,
@@ -165,14 +156,12 @@ export class YouTubeFetcher implements PlatformFetcher {
             }
 
             // Strategy 3: Puppeteer
-            console.log('[YouTube Fetcher] Trying Puppeteer for page description');
             const puppeteerResult = await extractWithPuppeteer(url);
 
             if (ytData && puppeteerResult.rawText && puppeteerResult.rawText.length > 100) {
                 const cleanedPuppeteer = cleanYouTubePageText(puppeteerResult.rawText);
                 const enriched = { ...ytData, description: cleanedPuppeteer };
                 const richText = buildYouTubeRichText(enriched);
-                console.log(`[YouTube Fetcher] oEmbed+Puppeteer merged: ${richText.length} chars`);
                 return {
                     rawText: richText,
                     images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : puppeteerResult.images,
@@ -184,7 +173,6 @@ export class YouTubeFetcher implements PlatformFetcher {
 
             if (ytData) {
                 const richText = buildYouTubeRichText(ytData);
-                console.log(`[YouTube Fetcher] oEmbed only: ${richText.length} chars`);
                 return {
                     rawText: richText,
                     images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : [],
@@ -195,17 +183,14 @@ export class YouTubeFetcher implements PlatformFetcher {
             }
 
             if (jinaResult.rawText && jinaResult.rawText.length > 100) {
-                console.log(`[YouTube Fetcher] Jina only: ${jinaResult.rawText.length} chars`);
                 return jinaResult;
             }
 
             if (puppeteerResult.rawText && puppeteerResult.rawText.length > 30) {
-                console.log(`[YouTube Fetcher] Puppeteer only: ${puppeteerResult.rawText.length} chars`);
                 return puppeteerResult;
             }
 
             // Strategy 4: Standalone oEmbed (last resort)
-            console.log('[YouTube Fetcher] Trying standalone oEmbed');
             const oembedResult = await fetchYouTubeOEmbed(url);
             return oembedResult.rawText ? oembedResult : { rawText: '', images: [] };
 

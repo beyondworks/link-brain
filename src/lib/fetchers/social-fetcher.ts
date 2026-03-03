@@ -18,7 +18,6 @@ export class SocialFetcher implements PlatformFetcher {
         }
 
         try {
-            console.log(`[Social Fetcher] Using Puppeteer for: ${url}`);
             const result = await extractWithPuppeteer(url);
 
             if (!result.rawText || result.rawText.length < 50) {

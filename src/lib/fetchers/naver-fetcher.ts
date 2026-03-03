@@ -30,7 +30,6 @@ const convertToNaverMobile = (url: string): string => {
  */
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        console.log(`[Naver Fetcher/Jina] Fetching: ${url}`);
         const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
@@ -53,7 +52,6 @@ const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
 
         const images = extractImagesFromMarkdown(rawContent);
 
-        console.log(`[Naver Fetcher/Jina] ${rawContent.length} chars extracted, ${images.length} images`);
         return { rawText: rawContent, images };
     } catch (error) {
         console.error('[Naver Fetcher/Jina] Error:', error);
@@ -75,15 +73,12 @@ export class NaverFetcher implements PlatformFetcher {
 
         try {
             const mobileUrl = convertToNaverMobile(url);
-            console.log(`[Naver Fetcher] Starting extraction: ${mobileUrl}`);
 
             // Strategy 1: Jina Reader with mobile URL
             const jinaResult = await extractWithJina(mobileUrl);
 
             if (jinaResult.rawText && jinaResult.rawText.length > 50) {
-                console.log('[Naver Fetcher] Jina succeeded');
                 const normalizedText = normalizeNaverBlog(jinaResult.rawText);
-                console.log(`[Naver Fetcher] Normalized: ${jinaResult.rawText.length} -> ${normalizedText.length} chars`);
                 return {
                     ...jinaResult,
                     rawText: normalizedText,

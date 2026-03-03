@@ -102,6 +102,4 @@ export const indexClipEmbedding = async (params: {
 
   const embedding = await generateEmbedding(embeddingText);
   await storeEmbedding(clipId, embedding);
-
-  console.log(`[Embeddings] Indexed clip ${clipId} (${embedding.length}d vector)`);
 };

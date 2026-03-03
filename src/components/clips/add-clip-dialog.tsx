@@ -193,8 +193,9 @@ export function AddClipDialog() {
       });
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? 'URL 분석에 실패했습니다.');
+        const body = await res.json();
+        const msg = body?.error?.message ?? body?.error ?? 'URL 분석에 실패했습니다.';
+        throw new Error(typeof msg === 'string' ? msg : 'URL 분석에 실패했습니다.');
       }
 
       const data = (await res.json()) as AnalyzeResult;
@@ -244,8 +245,9 @@ export function AddClipDialog() {
       }
 
       if (!res.ok) {
-        const err = (await res.json()) as { error?: string };
-        throw new Error(err.error ?? '저장에 실패했습니다.');
+        const body = await res.json();
+        const msg = body?.error?.message ?? body?.error ?? '저장에 실패했습니다.';
+        throw new Error(typeof msg === 'string' ? msg : '저장에 실패했습니다.');
       }
 
       await queryClient.invalidateQueries({ queryKey: ['clips'] });

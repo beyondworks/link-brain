@@ -142,9 +142,6 @@ async function upsertSubscription(
     throw error;
   }
 
-  console.log(
-    `[LemonSqueezy] Upserted subscription for user ${userId}: tier=${tier}, status=${resolvedStatus}`
-  );
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -166,8 +163,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const eventName = payload.meta.event_name;
   const authUid = payload.meta.custom_data?.user_id;
-
-  console.log(`[LemonSqueezy] Received event: ${eventName}`);
 
   try {
     switch (eventName) {
@@ -217,12 +212,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       case 'order_created': {
-        console.log('[LemonSqueezy] Order created:', payload.data.id);
         break;
       }
 
       default:
-        console.log(`[LemonSqueezy] Unhandled event: ${eventName}`);
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

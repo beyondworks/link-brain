@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { useAnnotations, useCreateAnnotation, useDeleteAnnotation } from '@/hooks/mutations/use-annotations';
+import { useAnnotations, useCreateAnnotation, useDeleteAnnotation } from '@/lib/hooks/use-annotations';
 // Annotation type defined locally below
 
 // ─── 타입 ──────────────────────────────────────────────────────────────────────

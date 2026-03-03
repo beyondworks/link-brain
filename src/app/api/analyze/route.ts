@@ -126,8 +126,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.info(`[Analyze] Processing: ${url} for user: ${userId}`);
-
     // Fetch page metadata using Jina Reader (no Puppeteer dependency in v2)
     let title = url;
     let summary = '';

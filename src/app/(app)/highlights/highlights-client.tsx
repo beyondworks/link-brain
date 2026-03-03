@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useAllAnnotations, useDeleteAnnotation } from '@/hooks/mutations/use-annotations';
-import type { AnnotationWithClip } from '@/hooks/mutations/use-annotations';
+import { useAllAnnotations, useDeleteAnnotation } from '@/lib/hooks/use-annotations';
+import type { AnnotationWithClip } from '@/lib/hooks/use-annotations';
 import { HighlightBadge, HIGHLIGHT_COLORS } from '@/components/media/text-highlighter';
 
 type ColorEntry = (typeof HIGHLIGHT_COLORS)[number];

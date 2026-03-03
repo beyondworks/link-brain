@@ -42,10 +42,6 @@ const applyWebNormalization = (content: FetchedUrlContent): FetchedUrlContent =>
     const lossRate = 1 - (normalized.length / original.length);
     const tooAggressive = normalized.length < 100 || lossRate > 0.7;
 
-    if (tooAggressive) {
-        console.log(`[Web Normalizer] Keeping original: normalized ${normalized.length} chars vs original ${original.length} chars (loss ${Math.round(lossRate * 100)}%)`);
-    }
-
     const effectiveText = tooAggressive ? original : normalized;
 
     return {
@@ -115,7 +111,6 @@ const cleanJinaWebContent = (content: string): string => {
  */
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        console.log(`[Web Fetcher/Jina] Fetching: ${url}`);
         const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
@@ -140,7 +135,6 @@ const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
         const images = extractImagesFromMarkdown(rawContent);
         const cleaned = cleanJinaWebContent(rawContent);
 
-        console.log(`[Web Fetcher/Jina] ${rawContent.length} chars raw -> ${cleaned.length} chars cleaned`);
         return { rawText: cleaned, images };
     } catch (error) {
         console.error('[Web Fetcher/Jina] Error:', error);
@@ -161,8 +155,6 @@ export class WebFetcher implements PlatformFetcher {
         }
 
         try {
-            console.log(`[Web Fetcher] Starting extraction for: ${url}`);
-
             // Step 1: Jina Reader (primary)
             const jinaResult = await extractWithJina(url);
 
@@ -171,7 +163,6 @@ export class WebFetcher implements PlatformFetcher {
 
             // Step 3: Check if result is strong enough
             if (!ENABLE_WEB_FALLBACK_MERGE || !isWeakWebResult(normalizedJina)) {
-                console.log(`[Web Fetcher] Jina succeeded: ${normalizedJina.rawText.length} chars`);
                 return normalizedJina;
             }
 
@@ -198,7 +189,6 @@ export class WebFetcher implements PlatformFetcher {
                 embeddedLinks: normalizedJina.embeddedLinks || normalizedPuppeteer.embeddedLinks
             };
 
-            console.log(`[Web Fetcher] Merged result: ${merged.rawText.length} chars`);
             return merged;
 
         } catch (error) {

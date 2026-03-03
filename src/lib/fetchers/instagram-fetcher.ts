@@ -18,7 +18,6 @@ export class InstagramFetcher implements PlatformFetcher {
         }
 
         try {
-            console.log(`[Instagram Fetcher] Using Puppeteer for: ${url}`);
             const result = await extractWithPuppeteer(url);
 
             if (!result.rawText || result.rawText.length < 50) {
