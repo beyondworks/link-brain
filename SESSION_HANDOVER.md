@@ -1,6 +1,6 @@
 # Session Handover
 
-## 세션 식별자: 2026-03-03 (세션 12 — DB 마이그레이션 + 안정화)
+## 날짜: 2026-03-04 (세션 14 — Threads OAuth 연동 완성)
 
 ---
 
@@ -8,65 +8,111 @@
 
 | 해시 | 설명 |
 |------|------|
+| `5c07039` | feat: Threads OAuth 연동 + 미디어 추출 개선 |
+| `1b752c2` | fix: DB 마이그레이션 적용 + as any 정리 + omni_search 구문 수정 |
 | `a56619b` | fix: [object Object] 토스트 + 설정 네비 + console.log 정리 + 훅 통합 |
 | `f917cb1` | docs: MEMORY.md + SESSION_HANDOVER.md 세션 11 업데이트 |
-| `ffc1971` | refactor: 중복 훅 정리 + 성능 최적화 (memo, dynamic import) |
-| `e5831fc` | test: getErrorMessage 유틸 테스트 13개 |
-| `a204ca5` | fix: 에러 핸들링 안정화 — [object Object] 토스트 제거 |
-| ... | (이전 세션 커밋 — 세션 11 핸드오버 참조) |
+| ... | (이전 세션 커밋) |
+
+**브랜치**: `feat/threads-oauth` → GitHub push 완료 (`https://github.com/beyondworks/link-brain.git`)
 
 ---
 
-## 세션 12 완료 작업
+## 세션 14 완료 작업
 
-### Supabase DB 마이그레이션 (P0 해소)
-- **7개 마이그레이션 전부 적용 완료**:
-  - `001_initial_schema.sql` — users, clips, collections, categories, tags, subscriptions, credits, notifications, webhooks
-  - `002_pgvector_embeddings.sql` — clip_embeddings, 벡터 인덱스
-  - `003_annotations.sql` — clip_annotations
-  - `004_reading_progress.sql` — reading_progress
-  - `005_search_functions.sql` — smart_search, omni_search (UNION ALL 구문 수정)
-  - `006_rls_policies.sql` — 전체 테이블 RLS 정책
-  - `007_user_creation_trigger.sql` — auth.users 변경 시 public.users 자동 생성
-- Supabase CLI `supabase link` + `supabase db push` 사용
-- **005번 SQL 구문 에러 수정**: UNION ALL 각 브랜치에 괄호 추가
+### 1. Threads OAuth 전체 구현 (5단계 플랜 완수)
 
-### 버그 수정 (이전 세션에서 커밋 완료, 이번 세션에서 검증)
-- **[object Object] 토스트**: API 에러 응답 파싱 수정 (`add-clip-dialog.tsx`)
-- **설정 네비게이션 안 열림**: Radix DropdownMenuItem + Next.js Link 충돌 → `router.push()` 방식으로 변경 (`layout.tsx`)
+#### 1-1. DB 마이그레이션
+- **`009_oauth_connections.sql`** — `oauth_connections` 테이블 생성, RLS 적용, UNIQUE(user_id, provider)
+- 컬럼: id, user_id, provider, provider_user_id, provider_username, access_token(암호화), token_expires_at, scopes, connected_at, updated_at
 
-### 코드 정리
-- **console.log ~52개 제거** (11개 서버 파일)
-- **훅 통합**: `src/hooks/mutations/` → `src/lib/hooks/` (4개 이동, 3개 dead 파일 삭제)
-- **as any 정리**:
-  - `continue-reading.tsx`: 불필요한 `supabase as any` 제거
-  - `use-annotations.ts`: `as any` 제거 + 누락된 `user_id` 명시적 추가 (인증 강화)
-  - 서버측 `supabaseAdmin as any` (30개): 복원 — Database 타입 비호환, `supabase gen types` 필요
-- **빌드 lint 에러 수정**: `ai/route.ts` eslint-disable 추가, `breadcrumbs.tsx` 불필요 주석 제거
+#### 1-2. OAuth API 라우트 (3개)
+- **`authorize/route.ts`** — `GET /api/v1/oauth/authorize?provider=threads` → Threads OAuth URL 생성 + state 쿠키 (5분 TTL)
+- **`callback/route.ts`** — code → short-lived → long-lived 토큰 교환 → 프로필 조회 → 암호화 저장 → 설정 페이지 redirect
+- **`connections/route.ts`** — GET (연결 목록), DELETE (연결 해제)
 
-### Dev 서버 안정화
-- **근본 원인**: `next build`와 `next dev` 동시 실행 시 `.next` 캐시 충돌 + Webpack 메모리 비대화 (2.4GB)
-- **해결**: Turbopack으로 전환 (메모리 949MB, 60% 절감)
-- `package.json`에 이미 `--turbopack` 설정됨 — `npm run dev` 사용 필수 (`npx next dev` 금지)
+#### 1-3. 토큰 매니저
+- **`token-manager.ts`** — AES-256-GCM 암호화/복호화, 만료 7일 전 자동 갱신, upsert 저장
+- `btoa` loop 인코딩 (spread stack overflow 방지)
+
+#### 1-4. Threads API 클라이언트
+- **`threads-api.ts`** — `getThreadsProfile()`, `getMyThreads()`, `getThreadMedia()`, `getCarouselChildren()`
+- 본인 게시물 최근 50개에서 permalink 매칭 → 캐러셀/동영상 미디어 추출
+
+#### 1-5. Threads Fetcher 개선
+- **`threads-fetcher.ts`** — OAuth 토큰 있으면 API 우선 추출 (캐러셀 전체 이미지, 동영상 URL), 실패 시 Jina fallback
+- **`orchestrator.ts`** — `fetchUrlContent(url, options?)` 시그니처 확장
+- **`types.ts`** — `PlatformFetcherOptions.oauthToken` 추가
+- **`clips/route.ts`** — 클립 생성 시 사용자 Threads 토큰 조회 → fetcher에 전달
+
+#### 1-6. Settings UI
+- **`connected-accounts.tsx`** — 연결된 계정 섹션 (연결/해제 UI)
+- **`use-oauth-connections.ts`** — TanStack Query 훅 (목록 조회 + 해제 mutation)
+- **`settings-client.tsx`** — ConnectedAccounts 섹션 추가
+
+#### 1-7. E2E 테스트
+- **`e2e/oauth-threads.spec.ts`** — 14개 테스트 (13 pass, 1 skip), Playwright 설정 추가
+
+### 2. 아키텍트 검증 + 수정 (4건)
+- callback: 사용자 거부 시 oauth_state 쿠키 클리어 추가
+- callback: shortLived.user_id ↔ profile.id 크로스 체크 추가
+- token-manager: btoa spread → loop 인코딩 변경
+- connections: VALID_PROVIDERS를 authorize와 동기화 (`['threads']`만)
+
+### 3. Git 브랜치 + Push
+- `feat/threads-oauth` 브랜치 생성
+- `https://github.com/beyondworks/link-brain.git` remote 추가 + push 완료
+
+### 4. Dev 서버 안정화
+- `.next` 캐시 충돌 해결 (빌드+dev 동시 실행으로 인한 corruption)
+- `.next` 삭제 후 dev 서버 재시작 → 정상 확인 (200 OK)
 
 ---
 
-## 테스트 현황: 399개 통과 (28 파일)
+## 신규 파일 (커밋 완료)
+
+| 파일 | 용도 |
+|------|------|
+| `supabase/migrations/009_oauth_connections.sql` | oauth_connections 테이블 + RLS |
+| `src/app/api/v1/oauth/authorize/route.ts` | OAuth 인증 시작 |
+| `src/app/api/v1/oauth/callback/route.ts` | 콜백 처리 + 토큰 저장 |
+| `src/app/api/v1/oauth/connections/route.ts` | 연결 목록/해제 |
+| `src/lib/oauth/token-manager.ts` | 토큰 조회/갱신/암호화 |
+| `src/lib/oauth/threads-api.ts` | Threads Graph API 클라이언트 |
+| `src/lib/hooks/use-oauth-connections.ts` | TanStack Query 훅 |
+| `src/components/settings/connected-accounts.tsx` | 연결된 계정 UI |
+| `e2e/oauth-threads.spec.ts` | E2E 테스트 (14개) |
+| `playwright.config.ts` | Playwright 설정 |
 
 ---
 
-## 알려진 미완료 사항
+## 미커밋 변경사항
+
+세션 13에서 미커밋 상태로 남아있는 파일 44개 (세션 14에서 커밋하지 않음):
+- API routes 26개: `auth.userId` → `auth.publicUserId` 전환
+- Fetcher 개선: orchestrator, utils, web/youtube/naver fetcher
+- UI: clip-card, clip-list, clip-row, clip-peek-panel, sidebar-categories 등
+- DB: `008_platform_check_update.sql` (threads/naver/pinterest platform)
+- 신규: `ensure-user.ts`, `markdown-content.tsx`, `alert-dialog.tsx`, `full_migration.sql`
+
+---
+
+## 미완료 사항
 
 ### P0 — 프로덕션 필수
-- [ ] E2E 테스트 (Playwright — 로그인, 클립 CRUD, 공유)
-- [ ] Vercel 배포 (`linkbrain.cloud`)
+- [ ] 세션 13 미커밋 44파일 커밋 (auth identity 분리 + fetcher 개선 + UI)
+- [ ] `008_platform_check_update.sql` DB 적용 (`supabase db push`)
+- [ ] `009_oauth_connections.sql` DB 적용 (`supabase db push`)
+- [ ] 환경변수 Vercel 등록: `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET`, `OAUTH_ENCRYPTION_KEY`
+- [ ] Meta Developer Console: Redirect URI 등록 (`https://linkbrain.cloud/api/v1/oauth/callback`)
+- [ ] Vercel 배포
 
 ### P1 — 기능 완성
 - [ ] pgvector 임베딩 + 지식 그래프 RPC
 - [ ] 실시간 알림 (Supabase Realtime → push)
 - [ ] 웹훅 실제 HTTP 발송
 - [ ] 결제 UI (LemonSqueezy 체크아웃)
-- [ ] `supabase gen types typescript`로 Database 타입 재생성 → `as any` 30개 제거
+- [ ] `supabase gen types typescript` → `as any` 30개 제거
 
 ### P2 — 품질
 - [ ] WCAG AA 최종 점검
@@ -76,25 +122,25 @@
 
 ## 에러/학습
 
-### Dev 서버 불안정 반복 문제
-- **원인**: `next build`와 `next dev`가 `.next` 폴더 동시 접근 → 캐시 충돌, 메모리 폭증
-- **해결**: 빌드 검증 시 dev 서버 종료 후 빌드, 완료 후 재시작. Turbopack 사용.
-- **교훈**: `npm run dev` (turbopack 포함) 사용, `npx next dev` 금지
+### `.next` 캐시 충돌
+- **원인**: `npm run build`와 dev 서버 동시 실행 → `.next` 디렉토리 corruption → Internal Server Error
+- **해결**: `.next` 삭제 후 dev 서버 재시작
+- **교훈**: 빌드와 dev 서버는 절대 동시 실행 금지
 
-### Supabase as any 제거 시도
-- Database 타입이 수기 작성 → Supabase JS의 `.insert()` 제네릭 체인과 비호환
-- `Insert` 타입이 `never`로 해석됨 (Partial & Pick 조합이 내부 제네릭과 맞지 않음)
-- **근본 해결**: `supabase gen types typescript` 실행 필요
+### btoa spread stack overflow
+- `btoa(String.fromCharCode(...combined))` — 큰 Uint8Array에서 stack overflow
+- **해결**: for 루프로 binary 문자열 생성 후 btoa
 
-### omni_search UNION ALL 구문 에러
-- PostgreSQL에서 UNION ALL 각 브랜치에 ORDER BY/LIMIT 사용 시 괄호 필수
-- `005_search_functions.sql` 수정 완료
+### macOS 파일 잠금
+- VSCode TypeScript server가 `.next` 파일을 잡고 있어 `rm -rf` hang
+- **해결**: VSCode 외부 터미널에서 삭제 실행
 
 ---
 
-## 다음 세션 권장 첫 작업
+## 다음 세션 시작 시
 
-1. 브라우저에서 클립 추가/즐겨찾기/아카이브 등 핵심 기능 수동 테스트
-2. `supabase gen types typescript`로 타입 재생성 → `as any` 30개 제거
-3. E2E 테스트 작성 (Playwright)
-4. Vercel 배포
+1. **세션 13 미커밋 파일 커밋** — `git diff --name-only`로 확인 후 적절한 메시지로 커밋
+2. **DB 마이그레이션** — `supabase db push` (008 + 009)
+3. **환경변수 설정** — Vercel에 OAuth 관련 3개 등록
+4. **Meta Developer Console** — 앱 등록 + Redirect URI 설정
+5. **통합 테스트** — 브라우저에서 Threads 연결 → 클립 저장 → 캐러셀 이미지 추출 확인
