@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 interface ErrorRetryProps {
-  error?: Error | null;
+  error?: unknown;
   onRetry: () => void;
   message?: string;
   autoRetrySeconds?: number;
@@ -43,7 +44,7 @@ export function ErrorRetry({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRetrySeconds]);
 
-  const errorMessage = error instanceof Error ? error.message : null;
+  const errorMessage = error ? getErrorMessage(error) : null;
 
   return (
     <div

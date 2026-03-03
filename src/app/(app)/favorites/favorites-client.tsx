@@ -17,7 +17,7 @@ export function FavoritesClient() {
   if (isError) {
     return (
       <ErrorRetry
-        error={error instanceof Error ? error : null}
+        error={error}
         onRetry={() => refetch()}
         message="즐겨찾기 클립을 불러오는 중 오류가 발생했습니다"
       />

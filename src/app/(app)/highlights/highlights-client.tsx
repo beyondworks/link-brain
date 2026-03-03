@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { Download, Trash2, ExternalLink, Highlighter, AlertTriangle } from 'lucide-react';
 
 // ─── 마크다운 내보내기 ─────────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ export function HighlightsClient() {
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
         <AlertTriangle className="h-12 w-12 text-destructive" />
         <h2 className="text-lg font-semibold">하이라이트를 불러오지 못했습니다</h2>
-        <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'}</p>
+        <p className="text-sm text-muted-foreground">{getErrorMessage(error, '알 수 없는 오류가 발생했습니다')}</p>
         <Button onClick={() => refetch()} variant="outline">다시 시도</Button>
       </div>
     );

@@ -17,7 +17,7 @@ export function ArchiveClient() {
   if (isError) {
     return (
       <ErrorRetry
-        error={error instanceof Error ? error : null}
+        error={error}
         onRetry={() => refetch()}
         message="아카이브 클립을 불러오는 중 오류가 발생했습니다"
       />

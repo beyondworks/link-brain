@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 const signupSchema = z.object({
   displayName: z.string().min(1, '이름을 입력해주세요'),
@@ -97,7 +98,7 @@ export default function SignupPage() {
     });
 
     if (error) {
-      toast.error(error.message ?? '회원가입에 실패했습니다.');
+      toast.error(getErrorMessage(error, '회원가입에 실패했습니다.'));
       setIsLoading(false);
       return;
     }

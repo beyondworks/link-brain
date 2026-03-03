@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 const loginSchema = z.object({
   email: z.string().email('올바른 이메일을 입력해주세요'),
@@ -63,7 +64,7 @@ function LoginForm() {
     });
 
     if (error) {
-      toast.error(error.message ?? '로그인에 실패했습니다.');
+      toast.error(getErrorMessage(error, '로그인에 실패했습니다.'));
       setIsLoading(false);
       return;
     }

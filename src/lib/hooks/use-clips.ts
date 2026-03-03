@@ -6,6 +6,7 @@ import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { supabase } from '@/lib/supabase/client';
 import type { ClipData, ClipContent } from '@/types/database';
 import type { ClipFilters, ClipSortBy, SortOrder } from '@/types/clip';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 const PAGE_SIZE = 30;
 
@@ -120,7 +121,7 @@ export function useClips(options: UseClipsOptions = {}) {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
 
       return {
         data: (data ?? []) as ClipData[],
@@ -149,7 +150,7 @@ export function useClip(clipId: string | null) {
         .eq('id', clipId)
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
       return data as ClipData & { clip_contents: ClipContent[] };
     },
     enabled: !!clipId && !!user,
@@ -190,7 +191,7 @@ export function useClipsCount() {
         .eq('user_id', user.id)
         .eq('is_archived', false);
 
-      if (error) throw error;
+      if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
       return count ?? 0;
     },
     enabled: !!authUser && !!user,

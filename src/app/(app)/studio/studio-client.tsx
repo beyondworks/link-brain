@@ -38,6 +38,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { StudioOutputPanel } from './studio-output-panel';
 import type { HistoryItem } from './studio-output-panel';
 
@@ -208,8 +209,8 @@ export function StudioClient() {
       toast.success('클립으로 저장되었습니다.');
       void queryClient.invalidateQueries({ queryKey: ['clips'] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, '클립 저장에 실패했습니다.'));
     },
   });
 
@@ -271,8 +272,7 @@ export function StudioClient() {
         setHistory((prev) => [newItem, ...prev].slice(0, MAX_HISTORY));
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다.';
-      toast.error(message);
+      toast.error(getErrorMessage(err, '네트워크 오류가 발생했습니다.'));
     } finally {
       setIsGenerating(false);
     }

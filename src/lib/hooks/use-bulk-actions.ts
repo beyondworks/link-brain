@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,8 +61,8 @@ export function useBulkAddTags() {
       );
       queryClient.invalidateQueries({ queryKey: ['clips'] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, '태그 일괄 추가에 실패했습니다.'));
     },
   });
 }
@@ -77,8 +78,8 @@ export function useBulkRemoveTags() {
       );
       queryClient.invalidateQueries({ queryKey: ['clips'] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, '태그 일괄 제거에 실패했습니다.'));
     },
   });
 }
@@ -93,8 +94,8 @@ export function useBulkMoveToCollection() {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
       queryClient.invalidateQueries({ queryKey: ['collections'] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, '컬렉션 일괄 추가에 실패했습니다.'));
     },
   });
 }
@@ -109,8 +110,8 @@ export function useBulkRemoveFromCollection() {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
       queryClient.invalidateQueries({ queryKey: ['collections'] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, '컬렉션 일괄 제거에 실패했습니다.'));
     },
   });
 }
