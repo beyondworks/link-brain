@@ -166,7 +166,7 @@ BEGIN
     RETURN QUERY
 
     -- Clips
-    SELECT
+    (SELECT
         'clip'::TEXT,
         c.id,
         coalesce(c.title, c.url),
@@ -180,12 +180,12 @@ BEGIN
             OR similarity(coalesce(c.title, ''), p_query) > 0.15
           )
     ORDER BY 5 DESC
-    LIMIT p_match_count
+    LIMIT p_match_count)
 
     UNION ALL
 
     -- Collections
-    SELECT
+    (SELECT
         'collection'::TEXT,
         col.id,
         col.name,
@@ -195,19 +195,18 @@ BEGIN
     WHERE (col.user_id = p_user_id OR col.is_public)
       AND similarity(col.name, p_query) > 0.15
     ORDER BY 5 DESC
-    LIMIT p_match_count
+    LIMIT p_match_count)
 
     UNION ALL
 
     -- Tags
-    SELECT
+    (SELECT
         'tag'::TEXT,
         t.id,
         t.name,
         NULL::TEXT,
         similarity(t.name, p_query)::FLOAT
     FROM  public.tags t
-    -- Only surface tags the user has actually used
     WHERE EXISTS (
         SELECT 1
         FROM   public.clip_tags ct
@@ -217,7 +216,7 @@ BEGIN
     )
       AND similarity(t.name, p_query) > 0.20
     ORDER BY 5 DESC
-    LIMIT p_match_count;
+    LIMIT p_match_count);
 END;
 $$;
 

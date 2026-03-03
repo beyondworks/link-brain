@@ -37,7 +37,6 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
 
   return (
     <>
-      {/* eslint-disable-next-line react/no-danger -- safe: content is JSON.stringify of our own data */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString }} />
       <nav aria-label="탐색 경로">
         {/* Desktop: all items */}

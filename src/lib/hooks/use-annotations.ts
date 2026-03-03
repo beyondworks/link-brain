@@ -47,17 +47,20 @@ export function useCreateAnnotation() {
     mutationFn: async (input: CreateAnnotationInput): Promise<ClipAnnotation> => {
       const { clipId, type, selected_text, note_text, position_data, color } = input;
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('인증이 필요합니다.');
+
       const { data, error } = await supabase
         .from('clip_annotations')
         .insert({
           clip_id: clipId,
+          user_id: user.id,
           type,
           selected_text: selected_text ?? null,
           note_text: note_text ?? null,
           position_data: (position_data ?? null) as Record<string, unknown> | null,
           color: color ?? 'yellow',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
+        })
         .select()
         .single();
 

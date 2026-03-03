@@ -8,8 +8,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, ErrorCodes } from '@/lib/api/response';
 
-// supabaseAdmin을 직접 사용 (select 쿼리는 타입 안전)
-const db = supabaseAdmin;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database Insert 타입 비호환 우회
+const db = supabaseAdmin as any;
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 

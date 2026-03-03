@@ -34,8 +34,7 @@ function getGradient(id: string): string {
 }
 
 async function fetchContinueReading(userId: string): Promise<ProgressWithClip[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  const db = supabase;
 
   const { data, error } = await db
     .from('reading_progress')
