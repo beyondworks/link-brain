@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,13 +31,16 @@ function applyTransition() {
 
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleSetTheme = (value: string) => {
     applyTransition();
     setTheme(value);
   };
 
-  const current = theme ?? 'system';
+  const current = mounted ? (theme ?? 'system') : 'system';
   const CurrentIcon =
     current === 'light' ? Sun : current === 'dark' ? Moon : Monitor;
 
@@ -53,7 +57,7 @@ export function ThemeToggle() {
               size="icon"
               className={cn(
                 'relative h-8 w-8 rounded-lg text-muted-foreground transition-spring hover:text-foreground',
-                resolvedTheme === 'dark'
+                mounted && resolvedTheme === 'dark'
                   ? 'hover:bg-white/10'
                   : 'hover:bg-black/5',
               )}
