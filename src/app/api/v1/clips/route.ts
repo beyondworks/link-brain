@@ -18,6 +18,11 @@ import {
   clipFiltersSchema,
   dateRangeSchema,
 } from '@/lib/api/validate';
+import { fetchUrlContent } from '@/lib/fetchers/orchestrator';
+import type { FetchedUrlContent } from '@/lib/fetchers/types';
+import { detectPlatform } from '@/lib/fetchers/platform-detector';
+import { processNewClip } from '@/lib/services/clip-service';
+import { getValidToken } from '@/lib/oauth/token-manager';
 import type { ClipData, Category } from '@/types/database';
 import { z } from 'zod';
 
@@ -76,7 +81,7 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
       const { data: catRow } = await db
         .from('categories')
         .select('id')
-        .eq('user_id', auth.userId)
+        .eq('user_id', auth.publicUserId)
         .eq('name', category)
         .single();
       categoryId = (catRow as Pick<Category, 'id'> | null)?.id;
@@ -90,7 +95,7 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
           : '*',
         { count: 'exact' }
       )
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .order(sortCol, { ascending: order === 'asc' });
 
     if (categoryId) query = query.eq('category_id', categoryId);
@@ -138,6 +143,10 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
 
 /**
  * POST /api/v1/clips
+ *
+ * Uses the fetcher orchestrator + clip-service pipeline:
+ * 1. fetchUrlContent() — platform-specific content extraction
+ * 2. processNewClip() — AI metadata, category, tags, embedding, DB insert
  */
 async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const bodyResult = await validateBody(req, createClipSchema);
@@ -151,7 +160,7 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
     const { data: existing } = await db
       .from('clips')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .eq('url', url)
       .single();
 
@@ -161,106 +170,73 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
       });
     }
 
-    // Analyze URL via internal endpoint
-    let analyzedData: Record<string, unknown> = {};
+    // 1. Fetch content via orchestrator (platform-specific)
+    const platform = detectPlatform(url);
+
+    // Look up OAuth token for authenticated API access
+    let oauthToken: string | undefined;
+    if (platform === 'threads') {
+      try {
+        oauthToken = await getValidToken(auth.publicUserId, 'threads');
+      } catch {
+        // No token or lookup failed — continue without OAuth
+      }
+    }
+
+    let fetchedContent: FetchedUrlContent = { rawText: '', images: [] };
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-      const analyzeRes = await fetch(`${baseUrl}/api/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, userId: auth.userId, language: 'KR' }),
-      });
-      if (analyzeRes.ok) {
-        analyzedData = (await analyzeRes.json()) as Record<string, unknown>;
-      }
-    } catch (analyzeErr) {
-      console.warn('[API v1 Clips] URL analysis failed, continuing:', analyzeErr);
+      fetchedContent = await fetchUrlContent(url, oauthToken ? { oauthToken } : undefined);
+    } catch (fetchErr) {
+      console.warn('[API v1 Clips] Content fetch failed, continuing with URL-only:', fetchErr);
     }
 
-    // Resolve category_id (get or create)
-    const categoryName = (body.category as string | undefined) ??
-      (analyzedData.category as string | undefined) ??
-      'Other';
-    let categoryId: string | null = null;
-    {
-      const { data: catRow } = await db
-        .from('categories')
-        .select('id')
-        .eq('user_id', auth.userId)
-        .ilike('name', categoryName)
-        .single();
-
-      if (catRow) {
-        categoryId = (catRow as Pick<Category, 'id'>).id;
-      } else {
-        // Auto-create category if it doesn't exist
-        const CATEGORY_COLORS = [
-          '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
-          '#F59E0B', '#F97316', '#14B8A6', '#6366F1',
-        ];
-        const color = CATEGORY_COLORS[Math.floor(Math.random() * CATEGORY_COLORS.length)];
-        const { data: newCat } = await db
-          .from('categories')
-          .insert({ user_id: auth.userId, name: categoryName, color, sort_order: 0 })
-          .select('id')
-          .single();
-        categoryId = newCat ? (newCat as Pick<Category, 'id'>).id : null;
-      }
-    }
-
-    const clipInsert = {
-      user_id: auth.userId,
-      url,
-      title: (body.title ?? (analyzedData.title as string | undefined) ?? url) as string,
-      summary: (body.summary ?? (analyzedData.summary as string | undefined) ?? '') as string,
-      platform: (analyzedData.platform as string | undefined) ?? 'web',
-      image: (analyzedData.image as string | undefined) ?? null,
-      author: (analyzedData.author as string | undefined) ?? '',
-      category_id: categoryId,
-      is_favorite: false,
-      is_read_later: false,
-      is_archived: false,
-      is_public: false,
+    // 2. Process clip via clip-service (AI metadata + DB insert)
+    const sourceTypeMap: Record<string, 'instagram' | 'threads' | 'youtube' | 'web' | 'twitter'> = {
+      instagram: 'instagram',
+      threads: 'threads',
+      youtube: 'youtube',
+      twitter: 'twitter',
+      web: 'web',
     };
+    const sourceType = sourceTypeMap[platform] ?? 'web';
 
-    const { data: clip, error: insertError } = await db
-      .from('clips')
-      .insert(clipInsert)
-      .select()
-      .single();
+    const result = await processNewClip({
+      url,
+      sourceType,
+      platform,
+      rawText: fetchedContent.rawText,
+      htmlContent: fetchedContent.htmlContent,
+      images: fetchedContent.images,
+      userId: auth.publicUserId,
+      author: fetchedContent.author,
+      authorAvatar: fetchedContent.authorAvatar,
+      authorHandle: fetchedContent.authorHandle,
+      embeddedLinks: fetchedContent.embeddedLinks,
+    });
 
-    if (insertError || !clip) {
-      console.error('[API v1 Clips] Insert error:', insertError);
-      return errors.internalError();
-    }
-
-    const clipRow = clip as ClipData;
-
-    // Save content separately
-    const htmlContent = (analyzedData.htmlContent as string | undefined) ?? '';
-    const contentMarkdown = (analyzedData.contentMarkdown as string | undefined) ?? null;
-    const rawMarkdown = (analyzedData.rawMarkdown as string | undefined) ?? null;
-    if (htmlContent || contentMarkdown) {
-      await db.from('clip_contents').insert({
-        clip_id: clipRow.id,
-        html_content: htmlContent.substring(0, 100000) || null,
-        content_markdown: contentMarkdown,
-        raw_markdown: rawMarkdown,
-      });
-    }
-
-    // Handle collectionIds
+    // 3. Handle collectionIds (not in clip-service)
     if (body.collectionIds && body.collectionIds.length > 0) {
       const joinRows = body.collectionIds.map((cid: string) => ({
-        clip_id: clipRow.id,
+        clip_id: result.clipId,
         collection_id: cid,
       }));
       await db.from('clip_collections').insert(joinRows);
     }
 
+    // 4. Re-fetch the created clip for full response
+    const { data: createdClip } = await db
+      .from('clips')
+      .select('*')
+      .eq('id', result.clipId)
+      .single();
+
+    if (!createdClip) {
+      return errors.internalError();
+    }
+
     return sendSuccess(
       formatClipResponse(
-        { ...(clipRow as unknown as Record<string, unknown>), collectionIds: body.collectionIds ?? [] }
+        { ...(createdClip as Record<string, unknown>), collectionIds: body.collectionIds ?? [] }
       ),
       201
     );

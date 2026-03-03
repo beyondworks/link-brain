@@ -44,6 +44,7 @@ import {
   Upload,
   Tags,
   Link2,
+  LinkIcon,
   ChevronDown,
   ChevronUp,
   GitMerge,
@@ -52,6 +53,7 @@ import {
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
 import { ProfileEditor } from '@/components/settings/profile-editor';
+import { ConnectedAccounts } from '@/components/settings/connected-accounts';
 import { TagManager } from '@/components/settings/tag-manager';
 import { WebhookManager } from '@/components/settings/webhook-manager';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
@@ -391,6 +393,18 @@ export function SettingsClient() {
           </div>
 
           <ProfileEditor />
+        </section>
+
+        {/* Connected Accounts section */}
+        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-150 rounded-2xl border border-border bg-card p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500/20 to-teal-500/5 ring-1 ring-teal-500/20">
+              <LinkIcon size={15} className="text-teal-500" />
+            </div>
+            <h2 className="text-base font-semibold text-foreground">연결된 계정</h2>
+          </div>
+
+          <ConnectedAccounts />
         </section>
 
         {/* Appearance section */}

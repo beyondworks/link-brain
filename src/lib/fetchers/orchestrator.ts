@@ -13,6 +13,7 @@ import { NaverFetcher } from './naver-fetcher';
 import { InstagramFetcher } from './instagram-fetcher';
 import { SocialFetcher } from './social-fetcher';
 import { WebFetcher } from './web-fetcher';
+import { fetchOgMeta } from './utils';
 import type { FetchedUrlContent, PlatformFetcher } from './types';
 
 const FETCHER_MAP: Record<string, new () => PlatformFetcher> = {
@@ -33,8 +34,12 @@ const FETCHER_MAP: Record<string, new () => PlatformFetcher> = {
  * 2. YouTube — API v3 + transcript first, Jina/oEmbed/Puppeteer fallback
  * 3. Naver Blog — Mobile version + Jina Reader
  * 4. General web — Jina Reader with optional Puppeteer fallback
+ * 5. OG image fallback — when fetcher returns no images
  */
-export const fetchUrlContent = async (url: string): Promise<FetchedUrlContent> => {
+export const fetchUrlContent = async (
+    url: string,
+    options?: { oauthToken?: string },
+): Promise<FetchedUrlContent> => {
     const urlValidation = validateUrl(url);
     if (!urlValidation.valid) {
         console.error(`[Content Router] SSRF blocked: ${urlValidation.error}`);
@@ -45,5 +50,26 @@ export const fetchUrlContent = async (url: string): Promise<FetchedUrlContent> =
     const FetcherClass = FETCHER_MAP[platform] ?? FETCHER_MAP.web;
 
     const fetcher = new FetcherClass();
-    return fetcher.fetch(url);
+    const result = await fetcher.fetch(url, options?.oauthToken ? { oauthToken: options.oauthToken } : undefined);
+
+    // OG meta fallback: if fetcher returned weak results, fill from HTML meta tags
+    const isWeak = !result.rawText || result.rawText.length < 100;
+    if (isWeak || result.images.length === 0 || !result.title) {
+        try {
+            const ogMeta = await fetchOgMeta(url);
+            if (result.images.length === 0 && ogMeta.image) {
+                result.images = [ogMeta.image];
+            }
+            if (!result.title && ogMeta.title) {
+                result.title = ogMeta.title;
+            }
+            if (!result.description && ogMeta.description) {
+                result.description = ogMeta.description;
+            }
+        } catch {
+            // Non-fatal: continue with what we have
+        }
+    }
+
+    return result;
 };

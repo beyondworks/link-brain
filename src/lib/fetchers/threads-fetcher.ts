@@ -15,7 +15,8 @@ import { normalizeThreads } from './normalizers/threads';
 import { validateUrl } from './url-validator';
 import { ENABLE_THREADS_AUTHOR_ONLY_CHAIN } from './feature-flags';
 import { fetchWithTimeout, extractImagesFromMarkdown, splitThreadsSections, buildThreadsSections, selectBetterText } from './utils';
-import type { FetchedUrlContent, PlatformFetcher } from './types';
+import { extractWithThreadsAPI } from '@/lib/oauth/threads-api';
+import type { FetchedUrlContent, PlatformFetcher, PlatformFetcherOptions } from './types';
 
 /**
  * Apply Threads-specific text normalization
@@ -39,7 +40,7 @@ const applyThreadsNormalization = (content: FetchedUrlContent): FetchedUrlConten
 
 const extractWithJina = async (url: string, authorHandle: string = ''): Promise<FetchedUrlContent> => {
     try {
-        const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+        const jinaUrl = `https://r.jina.ai/${url}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
         const headers: Record<string, string> = { 'Accept': 'application/json' };
@@ -73,20 +74,65 @@ const extractWithJina = async (url: string, authorHandle: string = ''): Promise<
 };
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Extract author handle from Threads URL pattern.
+ * e.g. https://www.threads.net/@username/post/xxx → username
+ */
+const extractAuthorFromThreadsUrl = (url: string): string => {
+    try {
+        const pathname = new URL(url).pathname;
+        const match = pathname.match(/^\/@?([^/]+)/);
+        return match ? match[1] : '';
+    } catch {
+        return '';
+    }
+};
+
+// ============================================================================
 // MAIN FETCHER
 // ============================================================================
 
 export class ThreadsFetcher implements PlatformFetcher {
-    async fetch(url: string): Promise<FetchedUrlContent> {
+    async fetch(url: string, options?: PlatformFetcherOptions): Promise<FetchedUrlContent> {
         const urlValidation = validateUrl(url);
         if (!urlValidation.valid) {
             console.error(`[Threads Fetcher] SSRF blocked: ${urlValidation.error}`);
             return { rawText: '', images: [] };
         }
 
+        // Extract author from URL as baseline metadata
+        const urlAuthor = extractAuthorFromThreadsUrl(url);
+
+        // ── OAuth API path (when token available) ──
+        if (options?.oauthToken) {
+            try {
+                const apiResult = await extractWithThreadsAPI(url, options.oauthToken);
+                if (apiResult && apiResult.rawText) {
+                    // Ensure author metadata
+                    if (!apiResult.authorHandle && urlAuthor) {
+                        apiResult.authorHandle = `@${urlAuthor}`;
+                        apiResult.author = apiResult.author || urlAuthor;
+                    }
+                    return apiResult;
+                }
+                // API returned null (post not found / not owned) — fall through to Jina
+            } catch (apiErr) {
+                console.warn('[Threads Fetcher] API extraction failed, falling back:', apiErr);
+            }
+        }
+
         try {
             // Step 1: Puppeteer extraction (primary)
             const puppeteerResult = await extractWithPuppeteer(url);
+
+            // Ensure author metadata from URL is always present
+            if (!puppeteerResult.authorHandle && urlAuthor) {
+                puppeteerResult.authorHandle = `@${urlAuthor}`;
+                puppeteerResult.author = puppeteerResult.author || urlAuthor;
+            }
 
             // Step 2: Check if result is usable
             const textLower = (puppeteerResult.rawText || '').toLowerCase();
@@ -106,7 +152,12 @@ export class ThreadsFetcher implements PlatformFetcher {
 
         } catch (error) {
             console.error('[Threads Fetcher] Error:', error);
-            return { rawText: '', images: [] };
+            return {
+                rawText: '',
+                images: [],
+                author: urlAuthor,
+                authorHandle: urlAuthor ? `@${urlAuthor}` : undefined,
+            };
         }
     }
 

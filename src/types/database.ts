@@ -8,7 +8,7 @@ export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled
 export type ClipPlatform =
   | 'web' | 'twitter' | 'youtube' | 'github'
   | 'medium' | 'substack' | 'reddit' | 'linkedin'
-  | 'instagram' | 'tiktok' | 'other';
+  | 'instagram' | 'tiktok' | 'threads' | 'naver' | 'pinterest' | 'other';
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +150,24 @@ export interface ClipAnnotation {
   created_at: string;
 }
 
+// ─── OAuth Connections ───────────────────────────────────────────────────────
+
+export type OAuthProvider = 'threads' | 'youtube';
+
+export interface OAuthConnection {
+  id: string;
+  user_id: string;
+  provider: OAuthProvider;
+  provider_user_id: string;
+  provider_username: string | null;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  scopes: string[] | null;
+  connected_at: string;
+  updated_at: string;
+}
+
 // ─── API Keys ─────────────────────────────────────────────────────────────────
 
 export interface ApiKey {
@@ -205,6 +223,7 @@ export interface Database {
       reading_progress: { Row: ReadingProgress; Insert: Partial<ReadingProgress> & Pick<ReadingProgress, 'clip_id' | 'user_id'>; Update: Partial<ReadingProgress>; Relationships: []; };
       api_keys: { Row: ApiKey; Insert: Omit<ApiKey, 'id' | 'timestamp' | 'last_used_at'>; Update: Partial<ApiKey>; Relationships: []; };
       webhooks: { Row: Webhook; Insert: Omit<Webhook, 'id' | 'timestamp'>; Update: Partial<Webhook>; Relationships: []; };
+      oauth_connections: { Row: OAuthConnection; Insert: Partial<OAuthConnection> & Pick<OAuthConnection, 'user_id' | 'provider' | 'provider_user_id' | 'access_token'>; Update: Partial<OAuthConnection>; Relationships: []; };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
