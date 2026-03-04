@@ -215,7 +215,10 @@ const parseTaggedComment = (comment: string): { handle: string; text: string } =
 
 /**
  * Detect and split comments from body text when no Comments(N) marker exists.
- * Uses pattern: `@?username · timestamp` where username differs from authorHandle.
+ *
+ * Strategy 1: `@?username · timestamp` pattern (Jina structured output)
+ * Strategy 2: Trailing short reaction paragraphs after substantive body
+ *
  * Safety: requires at least 2 comment signatures; cancels if body < 50 chars.
  */
 export function detectAndSplitComments(
@@ -225,8 +228,7 @@ export function detectAndSplitComments(
     const author = authorHandle.replace(/^@/, '').trim().toLowerCase();
     const paragraphs = text.split(/\n{2,}/);
 
-    // Pattern: "username · time" or "@username · time" (Jina common format)
-    // Time patterns: "2025-12-03", "2d", "3h", "1w", "12월 3일", "Dec 3"
+    // Strategy 1: "username · time" or "@username · time" (Jina common format)
     const commentSigRegex = /^@?([a-zA-Z0-9_.]+)\s*·\s*(\d{4}-\d{2}-\d{2}|\d+[dhmsw]|[\d]+월\s*[\d]+일|[A-Z][a-z]{2}\s+\d{1,2})/;
 
     let firstCommentIdx = -1;
@@ -238,29 +240,45 @@ export function detectAndSplitComments(
         if (!match) continue;
 
         const handle = match[1].toLowerCase();
-        if (author && handle === author) continue; // author's own line — not a comment
+        if (author && handle === author) continue;
 
         sigCount++;
         if (firstCommentIdx === -1) firstCommentIdx = i;
     }
 
-    // Safety: need at least 2 comment signatures
-    if (sigCount < 2 || firstCommentIdx === -1) {
-        return { body: text, commentsRaw: '' };
+    if (sigCount >= 2 && firstCommentIdx !== -1) {
+        const body = paragraphs.slice(0, firstCommentIdx).join('\n\n').trim();
+        const commentsRaw = paragraphs.slice(firstCommentIdx).join('\n\n').trim();
+        if (body.length >= 50) {
+            return { body, commentsRaw };
+        }
     }
 
-    const bodyParagraphs = paragraphs.slice(0, firstCommentIdx);
-    const commentParagraphs = paragraphs.slice(firstCommentIdx);
+    // Strategy 2: Trailing short reaction paragraphs
+    // Find the last "substantive" paragraph (>= 40 chars), then check if
+    // everything after it is short (< 40 chars) and looks like reactions.
+    if (paragraphs.length >= 3) {
+        let lastSubstantiveIdx = -1;
+        for (let i = 0; i < paragraphs.length; i++) {
+            if (paragraphs[i].trim().length >= 40) {
+                lastSubstantiveIdx = i;
+            }
+        }
 
-    const body = bodyParagraphs.join('\n\n').trim();
-    const commentsRaw = commentParagraphs.join('\n\n').trim();
-
-    // Safety: if body is too short after split, cancel
-    if (body.length < 50) {
-        return { body: text, commentsRaw: '' };
+        if (lastSubstantiveIdx >= 0 && lastSubstantiveIdx < paragraphs.length - 1) {
+            const trailing = paragraphs.slice(lastSubstantiveIdx + 1);
+            const allShort = trailing.every(p => p.trim().length < 40);
+            if (allShort && trailing.length >= 2) {
+                const body = paragraphs.slice(0, lastSubstantiveIdx + 1).join('\n\n').trim();
+                const commentsRaw = trailing.join('\n\n').trim();
+                if (body.length >= 50) {
+                    return { body, commentsRaw };
+                }
+            }
+        }
     }
 
-    return { body, commentsRaw };
+    return { body: text, commentsRaw: '' };
 }
 
 export function normalizeThreads(raw: string, options: NormalizeThreadsOptions = {}): string {

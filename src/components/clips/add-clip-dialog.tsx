@@ -24,6 +24,33 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabase } from '@/components/providers/supabase-provider';
 
+// ── Background save progress tracking (module-level) ──
+const SAVE_PROGRESS_TOAST_ID = 'save-progress';
+let pendingSaves = 0;
+let completedSaves = 0;
+
+function updateSaveProgressToast() {
+  if (pendingSaves <= 0) {
+    if (completedSaves > 0) {
+      toast.success(
+        completedSaves === 1
+          ? '클립이 저장되었습니다'
+          : `${completedSaves}개 클립이 저장되었습니다`,
+        { id: SAVE_PROGRESS_TOAST_ID, duration: 3000 }
+      );
+      completedSaves = 0;
+    }
+    return;
+  }
+  const total = pendingSaves + completedSaves;
+  toast.loading(
+    total === 1
+      ? '클립 저장 및 분석 중...'
+      : `클립 저장 및 분석 중... (${completedSaves}/${total})`,
+    { id: SAVE_PROGRESS_TOAST_ID, duration: Infinity }
+  );
+}
+
 interface AnalyzeResult {
   title: string;
   summary: string;
@@ -227,7 +254,8 @@ export function AddClipDialog() {
     keywords?: string[];
   }) {
     const label = payload.title || payload.url;
-    toast.info(`"${label}" 저장 중...`);
+    pendingSaves++;
+    updateSaveProgressToast();
 
     fetch('/api/v1/clips', {
       method: 'POST',
@@ -236,6 +264,8 @@ export function AddClipDialog() {
     })
       .then(async (res) => {
         if (res.status === 409) {
+          pendingSaves--;
+          updateSaveProgressToast();
           toast.warning('이미 저장된 URL입니다.');
           return;
         }
@@ -244,10 +274,12 @@ export function AddClipDialog() {
           const msg = body?.error?.message ?? body?.error ?? '저장에 실패했습니다.';
           throw new Error(typeof msg === 'string' ? msg : '저장에 실패했습니다.');
         }
+        pendingSaves--;
+        completedSaves++;
+        updateSaveProgressToast();
         queryClient.invalidateQueries({ queryKey: ['clips'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
-        toast.success(`"${label}" 클립이 추가되었습니다`);
         addNotification({
           type: 'clip_saved',
           title: '클립이 저장되었습니다',
@@ -255,6 +287,8 @@ export function AddClipDialog() {
         });
       })
       .catch((err: unknown) => {
+        pendingSaves--;
+        updateSaveProgressToast();
         const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
         toast.error(message);
       });
