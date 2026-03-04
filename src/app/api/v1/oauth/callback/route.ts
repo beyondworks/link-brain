@@ -111,7 +111,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Step 3: Get profile info and cross-check user identity
     const profile = await getThreadsProfile(longLived.access_token);
 
-    if (shortLived.user_id !== profile.id) {
+    if (String(shortLived.user_id) !== String(profile.id)) {
       return NextResponse.redirect(
         `${APP_URL}/settings?oauth=error&reason=user_id_mismatch`,
       );
