@@ -26,11 +26,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       // Ignore drags (> 8px movement)
       if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) return;
       const target = e.target as HTMLElement;
-      if (target.closest('button, a')) return;
       const toastEl = target.closest('[data-sonner-toast]');
       if (!toastEl) return;
+      // Skip clicks on action buttons inside toast
+      if (target.closest('[data-close-button]') || target.closest('[data-action]')) return;
       const id = toastEl.getAttribute('data-sonner-toast');
-      if (id) toast.dismiss(id);
+      toast.dismiss(id || undefined);
     };
     document.addEventListener('pointerdown', onDown, true);
     document.addEventListener('pointerup', onUp, true);

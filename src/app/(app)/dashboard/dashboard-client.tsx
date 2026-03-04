@@ -342,7 +342,12 @@ export function DashboardClient() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
               <span className="text-foreground">{getGreeting()},&nbsp;</span>
-              <span className="text-gradient-shimmer">LinkBrain</span>
+              <span className="text-gradient-shimmer">
+                {authUser?.user_metadata?.display_name
+                  ?? authUser?.user_metadata?.full_name
+                  ?? authUser?.email?.split('@')[0]
+                  ?? 'LinkBrain'}
+              </span>
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground/70">
               저장된 클립을 확인하고 관리하세요.

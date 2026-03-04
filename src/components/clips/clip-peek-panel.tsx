@@ -470,7 +470,6 @@ function PeekBodyContent({
   const displayContent = cleanDisplayContent(rawContent);
   if (!displayContent) return null;
 
-  const isMarkdown = !!text;
   const { body, subContent } = splitContentSections(displayContent);
 
   return (
@@ -479,7 +478,7 @@ function PeekBodyContent({
         icon={FileText}
         title="Content"
         content={body}
-        isMarkdown={isMarkdown}
+        isMarkdown
         maxHeight={300}
       />
       {subContent && (
@@ -487,7 +486,7 @@ function PeekBodyContent({
           icon={MessageSquare}
           title="Sub-Contents"
           content={subContent}
-          isMarkdown={isMarkdown}
+          isMarkdown
           maxHeight={200}
         />
       )}

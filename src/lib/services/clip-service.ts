@@ -426,7 +426,11 @@ export const processNewClip = async (
       ? contentHtml.substring(0, MAX_CONTENT_LENGTH)
       : contentHtml;
 
-  const thumbnailImage = clipImages[0] ?? null;
+  // Skip likely profile pictures (Instagram/Threads CDN patterns) for thumbnail
+  const isLikelyProfile = (u: string) => /s\d{2,3}x\d{2,3}/.test(u) || /t51\.2885-19/.test(u);
+  const thumbnailImage = (clipImages.length > 1
+    ? clipImages.find((u) => !isLikelyProfile(u)) ?? clipImages[0]
+    : clipImages[0]) ?? null;
   const categoryId = await getOrCreateCategory(userId, categoryName);
 
   // Use explicitly passed platform, or fall back to sourceType mapping

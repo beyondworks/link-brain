@@ -107,12 +107,12 @@ export function NotificationCenter() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-80 overflow-hidden rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
+          className="flex w-80 max-h-[min(480px,calc(100vh-100px))] flex-col overflow-hidden rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
           role="dialog"
           aria-label="알림 목록"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
             <span className="text-sm font-semibold">알림</span>
             {unreadCount > 0 && (
               <Button
@@ -133,7 +133,7 @@ export function NotificationCenter() {
               <p className="text-sm text-muted-foreground">알림이 없습니다</p>
             </div>
           ) : (
-            <ScrollArea className="max-h-[400px]">
+            <ScrollArea className="min-h-0 flex-1">
               <div className="p-2">
                 {unread.length > 0 && (
                   <>
@@ -165,7 +165,7 @@ export function NotificationCenter() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="border-t border-border/40 px-4 py-2.5">
+            <div className="flex-shrink-0 border-t border-border/40 px-4 py-2.5">
               <button
                 type="button"
                 onClick={clearAll}

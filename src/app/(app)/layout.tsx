@@ -157,10 +157,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         ].join(' ')}
                         onClick={() => setSidebarOpen(false)}
                       >
-                        {/* Active indicator */}
-                        {isActive && (
-                          <span className="indicator-slide absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-gradient-brand" />
-                        )}
+                        {/* Active state is shown via bg/text color — no indicator bar */}
                         <span className={isActive ? 'icon-glow' : ''}>
                           <Icon
                             size={17}

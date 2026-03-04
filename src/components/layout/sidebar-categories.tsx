@@ -204,9 +204,7 @@ export function SidebarCategories() {
                     tabIndex={0}
                     onKeyDown={(e) => e.key === 'Enter' && handleCategoryClick(cat.id)}
                   >
-                    {isActive && (
-                      <span className="indicator-slide absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-gradient-brand" />
-                    )}
+                    {/* Active state shown via bg/text color */}
                     <span
                       className="h-3 w-3 flex-shrink-0 rounded-full"
                       style={{ backgroundColor: cat.color ?? '#21DBA4' }}
