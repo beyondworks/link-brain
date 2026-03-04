@@ -5,7 +5,7 @@
  * Authenticated via withAuth middleware — validates clip ownership.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, sendError, ErrorCodes, errors } from '@/lib/api/response';
@@ -55,20 +55,24 @@ async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextRes
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
   const internalSecret = process.env.INTERNAL_API_SECRET;
 
-  fetch(`${baseUrl}/api/internal/process-clip`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
-    },
-    body: JSON.stringify({
-      clipId: typedClip.id,
-      url: typedClip.url,
-      platform: typedClip.platform,
-      userId: typedClip.user_id,
-    }),
-  }).catch((err) => {
-    console.error(`[Retry] Background trigger failed for ${clipId}:`, err);
+  after(async () => {
+    try {
+      await fetch(`${baseUrl}/api/internal/process-clip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
+        },
+        body: JSON.stringify({
+          clipId: typedClip.id,
+          url: typedClip.url,
+          platform: typedClip.platform,
+          userId: typedClip.user_id,
+        }),
+      });
+    } catch (err) {
+      console.error(`[Retry] Background trigger failed for ${clipId}:`, err);
+    }
   });
 
   return sendSuccess({ clipId, status: 'retrying' });

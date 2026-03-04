@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
         const internalSecret = process.env.INTERNAL_API_SECRET;
 
-        fetch(`${baseUrl}/api/internal/process-clip`, {
+        await fetch(`${baseUrl}/api/internal/process-clip`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -79,8 +79,6 @@ export async function GET(req: NextRequest) {
             platform: clip.platform,
             userId: clip.user_id,
           }),
-        }).catch((err) => {
-          console.error(`[Cron/RetryClips] Failed to trigger processing for ${clip.id}:`, err);
         });
 
         results.push({ clipId: clip.id, status: 'triggered' });

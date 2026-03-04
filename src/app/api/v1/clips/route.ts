@@ -5,7 +5,7 @@
  * POST /api/v1/clips  - Create new clip with URL analysis
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, sendPaginated, sendError, ErrorCodes, errors } from '@/lib/api/response';
@@ -210,26 +210,30 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
       await db.from('clip_collections').insert(joinRows);
     }
 
-    // 4. Fire-and-forget: trigger background processing
+    // 4. Trigger background processing (after response is sent)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     const internalSecret = process.env.INTERNAL_API_SECRET;
 
     if (baseUrl && internalSecret) {
-      fetch(`${baseUrl}/api/internal/process-clip`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
-        },
-        body: JSON.stringify({
-          clipId,
-          url,
-          platform: detectedPlatform,
-          userId: auth.publicUserId,
-        }),
-      }).catch((err) => {
-        console.error('[API v1 Clips] Background processing trigger failed:', err);
+      after(async () => {
+        try {
+          await fetch(`${baseUrl}/api/internal/process-clip`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': internalSecret,
+            },
+            body: JSON.stringify({
+              clipId,
+              url,
+              platform: detectedPlatform,
+              userId: auth.publicUserId,
+            }),
+          });
+        } catch (err) {
+          console.error('[API v1 Clips] Background processing trigger failed:', err);
+        }
       });
     }
 
