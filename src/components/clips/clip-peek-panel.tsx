@@ -63,7 +63,7 @@ function ImageSlideshow({ images }: { images: string[] }) {
   return (
     <div className={cn(
       "relative overflow-hidden rounded-xl border border-border/60 shadow-card transition-opacity duration-300",
-      loaded ? "opacity-100" : "opacity-0 h-0"
+      loaded ? "opacity-100" : "opacity-0"
     )}>
       <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}

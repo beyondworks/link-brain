@@ -114,5 +114,27 @@ export function splitContentSections(text: string): { body: string; subContent: 
     if (body && sub) return { body, subContent: sub };
   }
 
+  // 5. Trailing short reaction paragraphs (display-time comment heuristic)
+  // If the last substantive paragraph (≥60 chars) is followed by 2+ short paragraphs (<60 chars),
+  // split them as comments. This catches social media replies not caught by normalizer markers.
+  const paragraphs = text.split(/\n{2,}/);
+  if (paragraphs.length >= 3) {
+    let lastSubstantiveIdx = -1;
+    for (let i = 0; i < paragraphs.length; i++) {
+      if (paragraphs[i].trim().length >= 60) {
+        lastSubstantiveIdx = i;
+      }
+    }
+    if (lastSubstantiveIdx >= 0 && lastSubstantiveIdx < paragraphs.length - 1) {
+      const trailing = paragraphs.slice(lastSubstantiveIdx + 1);
+      const allShort = trailing.every((p) => p.trim().length < 60);
+      if (allShort && trailing.length >= 2) {
+        const body = stripJinaFooter(paragraphs.slice(0, lastSubstantiveIdx + 1).join('\n\n'));
+        const sub = trailing.map((p) => p.trim()).filter(Boolean).join('\n\n---\n\n');
+        if (body && sub) return { body, subContent: sub };
+      }
+    }
+  }
+
   return { body: stripJinaFooter(text), subContent: null };
 }
