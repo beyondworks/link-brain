@@ -226,6 +226,10 @@ export async function listConnections(
     .eq('user_id', userId);
 
   if (error) {
+    // Table doesn't exist yet (migration 009 not applied) — return empty
+    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+      return [];
+    }
     throw new Error(`Failed to list connections: ${error.message}`);
   }
 

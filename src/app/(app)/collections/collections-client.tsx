@@ -212,7 +212,7 @@ export function CollectionsClient() {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('collections')
-        .insert({ user_id: user.id, name: createName, description: createDescription || null });
+        .insert({ user_id: user.id, name: createName, description: createDescription || null } as never);
       if (error) throw error;
     },
     onSuccess: () => {

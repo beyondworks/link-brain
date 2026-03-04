@@ -63,7 +63,7 @@ export function useCollectionClips(collectionId: string | null) {
         .eq('collection_id', collectionId);
 
       if (error) throw error;
-      return data?.map((row) => row.clips).filter(Boolean) ?? [];
+      return data?.map((row: { clips: unknown }) => row.clips).filter(Boolean) ?? [];
     },
     enabled: !!collectionId && !!user,
     staleTime: 30_000,

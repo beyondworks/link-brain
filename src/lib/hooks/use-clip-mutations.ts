@@ -50,7 +50,7 @@ export function useToggleFavorite() {
     mutationFn: async ({ clipId, isFavorite }: { clipId: string; isFavorite: boolean }) => {
       const { error } = await supabase
         .from('clips')
-        .update({ is_favorite: !isFavorite })
+        .update({ is_favorite: !isFavorite } as never)
         .eq('id', clipId);
       if (error) throw error;
       return { clipId, newValue: !isFavorite };
@@ -99,7 +99,7 @@ export function useToggleArchive() {
     mutationFn: async ({ clipId, isArchived }: { clipId: string; isArchived: boolean }) => {
       const { error } = await supabase
         .from('clips')
-        .update({ is_archived: !isArchived })
+        .update({ is_archived: !isArchived } as never)
         .eq('id', clipId);
       if (error) throw error;
       return { clipId, newValue: !isArchived };

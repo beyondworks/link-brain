@@ -49,6 +49,15 @@ async function handleAuthorize(
   }
 
   try {
+    // Check required env vars before starting flow
+    if (provider === 'threads' && !process.env.META_THREADS_APP_ID) {
+      return sendError(
+        ErrorCodes.INVALID_REQUEST,
+        'Threads OAuth가 아직 설정되지 않았습니다. META_THREADS_APP_ID 환경변수를 확인하세요.',
+        503,
+      );
+    }
+
     // Generate CSRF state
     const state = crypto.randomUUID();
 

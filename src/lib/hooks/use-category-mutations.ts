@@ -26,7 +26,7 @@ export function useCreateCategory() {
 
       const { data, error } = await supabase
         .from('categories')
-        .insert({ user_id: user.id, name, color, sort_order: nextOrder })
+        .insert({ user_id: user.id, name, color, sort_order: nextOrder } as never)
         .select()
         .single();
 
@@ -82,7 +82,7 @@ export function useUpdateCategory() {
 
       const { error } = await supabase
         .from('categories')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -127,7 +127,7 @@ export function useDeleteCategory() {
 
       const { error: clipError } = await supabase
         .from('clips')
-        .update({ category_id: null })
+        .update({ category_id: null } as never)
         .eq('category_id', id)
         .eq('user_id', user.id);
 

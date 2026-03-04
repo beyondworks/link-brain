@@ -23,7 +23,7 @@ function useClipCollections(clipId: string) {
         .select('collection_id')
         .eq('clip_id', clipId);
       if (error) throw error;
-      return (data ?? []).map((row) => row.collection_id);
+      return (data as Array<{ collection_id: string }> ?? []).map((row) => row.collection_id);
     },
     staleTime: 30_000,
   });

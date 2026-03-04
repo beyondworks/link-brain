@@ -138,21 +138,21 @@ export function OmniSearch() {
       ]);
 
       setClips(
-        (clipRes.data ?? []).map((c) => ({
+        (clipRes.data ?? []).map((c: { id: string; title: string | null }) => ({
           id: c.id,
           title: c.title ?? '제목 없음',
           type: 'clip' as const,
         }))
       );
       setCollections(
-        (colRes.data ?? []).map((c) => ({
+        (colRes.data ?? []).map((c: { id: string; name: string }) => ({
           id: c.id,
           title: c.name,
           type: 'collection' as const,
         }))
       );
       setTags(
-        (tagRes.data ?? []).map((t) => ({
+        (tagRes.data ?? []).map((t: { id: string; name: string }) => ({
           id: t.id,
           title: t.name,
           type: 'tag' as const,

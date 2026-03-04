@@ -24,7 +24,7 @@ export function useUpdateCollection() {
     mutationFn: async ({ collectionId, name, description, color }: UpdateCollectionVars) => {
       const { data, error } = await supabase
         .from('collections')
-        .update({ name, description: description ?? null, color: color ?? null })
+        .update({ name, description: description ?? null, color: color ?? null } as never)
         .eq('id', collectionId)
         .select()
         .single();

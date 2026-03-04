@@ -80,7 +80,7 @@ export function TagManager() {
 
   const renameTag = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from('tags').update({ name }).eq('id', id);
+      const { error } = await supabase.from('tags').update({ name } as never).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,7 +109,7 @@ export function TagManager() {
       // Upsert target tag
       const { data: targetData, error: upsertErr } = await supabase
         .from('tags')
-        .upsert({ name: targetName }, { onConflict: 'name' })
+        .upsert({ name: targetName } as never, { onConflict: 'name' })
         .select('id')
         .single();
       if (upsertErr || !targetData) throw upsertErr ?? new Error('대상 태그 생성 실패');
@@ -129,7 +129,7 @@ export function TagManager() {
             clip_id: r.clip_id,
             tag_id: targetId,
           }));
-          await supabase.from('clip_tags').upsert(rows, { onConflict: 'clip_id,tag_id' });
+          await supabase.from('clip_tags').upsert(rows as never, { onConflict: 'clip_id,tag_id' });
         }
 
         await supabase.from('tags').delete().eq('id', srcId);

@@ -185,7 +185,7 @@ export function SettingsClient() {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ language: value })
+        .update({ language: value } as never)
         .eq('id', user.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['user', authUser?.id] });
@@ -328,7 +328,7 @@ export function SettingsClient() {
         toArchive.map((clip) =>
           supabase
             .from('clips')
-            .update({ is_archived: true })
+            .update({ is_archived: true } as never)
             .eq('id', clip.id)
         )
       );

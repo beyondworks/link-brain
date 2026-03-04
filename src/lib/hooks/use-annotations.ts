@@ -60,7 +60,7 @@ export function useCreateAnnotation() {
           note_text: note_text ?? null,
           position_data: (position_data ?? null) as Record<string, unknown> | null,
           color: color ?? 'yellow',
-        })
+        } as never)
         .select()
         .single();
 

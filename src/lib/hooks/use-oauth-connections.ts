@@ -37,13 +37,12 @@ export function useOAuthAuthorize() {
   return useMutation<string, Error, OAuthProvider>({
     mutationFn: async (provider) => {
       const res = await fetch(`/api/v1/oauth/authorize?provider=${provider}`);
-      if (!res.ok) throw new Error('Failed to start OAuth flow');
       const json = (await res.json()) as {
         success: boolean;
         data: { authUrl: string };
         error?: { message: string };
       };
-      if (!json.success) {
+      if (!res.ok || !json.success) {
         throw new Error(json.error?.message ?? 'Failed to start OAuth flow');
       }
       return json.data.authUrl;

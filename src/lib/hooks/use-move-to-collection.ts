@@ -17,7 +17,7 @@ export function useMoveToCollection() {
     }) => {
       const { error } = await supabase
         .from('clip_collections')
-        .upsert({ clip_id: clipId, collection_id: collectionId });
+        .upsert({ clip_id: clipId, collection_id: collectionId } as never);
 
       if (error) throw error;
       return { clipId, collectionId };

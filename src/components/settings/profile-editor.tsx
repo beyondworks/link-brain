@@ -45,7 +45,7 @@ export function ProfileEditor() {
       if (user) {
         const { error: dbError } = await supabase
           .from('users')
-          .update({ display_name: displayName, avatar_url: avatarUrl })
+          .update({ display_name: displayName, avatar_url: avatarUrl } as never)
           .eq('id', user.id);
         if (dbError) throw dbError;
       }

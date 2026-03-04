@@ -43,7 +43,7 @@ export function useCreateTag() {
 
       const { data, error } = await supabase
         .from('tags')
-        .insert({ name })
+        .insert({ name } as never)
         .select('id, name')
         .single();
 

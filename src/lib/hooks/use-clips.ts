@@ -56,7 +56,7 @@ export function useClips(options: UseClipsOptions = {}) {
           .eq('collection_id', filters.collectionId)
           .eq('clips.user_id', user.id);
         if (clipIds && clipIds.length > 0) {
-          query = query.in('id', clipIds.map((r) => r.clip_id));
+          query = query.in('id', clipIds.map((r: { clip_id: string }) => r.clip_id));
         } else {
           return { data: [], nextPage: null };
         }
@@ -96,7 +96,7 @@ export function useClips(options: UseClipsOptions = {}) {
           .select('clip_id')
           .eq('user_id', user.id)
           .or('completed_at.not.is.null,scroll_percentage.gte.80');
-        const readIds = (readRows ?? []).map((r) => r.clip_id);
+        const readIds = (readRows ?? []).map((r: { clip_id: string }) => r.clip_id);
         if (readIds.length > 0) {
           query = query.in('id', readIds);
         } else {
@@ -108,7 +108,7 @@ export function useClips(options: UseClipsOptions = {}) {
           .select('clip_id')
           .eq('user_id', user.id)
           .or('completed_at.not.is.null,scroll_percentage.gte.80');
-        const readIds = (readRows ?? []).map((r) => r.clip_id);
+        const readIds = (readRows ?? []).map((r: { clip_id: string }) => r.clip_id);
         if (readIds.length > 0) {
           query = query.not('id', 'in', `(${readIds.join(',')})` );
         }

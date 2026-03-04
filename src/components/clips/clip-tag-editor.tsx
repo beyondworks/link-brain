@@ -23,7 +23,7 @@ function useClipTags(clipId: string) {
         .select('tag_id, tags(id, name)')
         .eq('clip_id', clipId);
       if (error) throw error;
-      return (data ?? [])
+      return ((data ?? []) as Array<{ tag_id: string; tags: unknown }>)
         .map((row) => {
           const t = row.tags;
           if (!t) return null;
@@ -45,7 +45,7 @@ function useAddClipTag() {
     mutationFn: async ({ clipId, tagId }: { clipId: string; tagId: string }) => {
       const { error } = await supabase
         .from('clip_tags')
-        .upsert({ clip_id: clipId, tag_id: tagId });
+        .upsert({ clip_id: clipId, tag_id: tagId } as never);
       if (error) throw error;
     },
     onSuccess: (_data, { clipId }) => {
