@@ -82,6 +82,15 @@ Pretendard Variable. text-xs(12) / text-sm(14) / text-base(16) / text-lg(18) / t
 - 조건부 훅 호출 금지
 - 에러: try/catch + `unknown` 타입
 
+### 중복 방지 규칙
+- **플랫폼 상수**: `PLATFORM_COLORS`, `PLATFORM_ICONS`, `PLATFORM_LABELS_EN`, `GRADIENT_COLORS`, `getGradient`는 **반드시** `@/config/constants.ts`에서 import. 로컬 복사본 생성 금지
+- **클립 콘텐츠 유틸**: `extractYouTubeVideoId`, `extractImagesFromContent`, `splitContentSections`는 **반드시** `@/lib/utils/clip-content.ts`에서 import
+- **Auth 게이트 감지**: `hasAuthGate()`는 `@/lib/fetchers/utils.ts`에서 import. 인라인 재구현 금지
+- **DB batch 패턴**: 반복문 안에서 개별 INSERT 금지 → batch upsert + re-query 패턴 사용 (예: `autoTagClip`)
+
+### 오버레이/그라데이션
+- 콘텐츠 위에 겹치는 그라데이션 div는 반드시 `pointer-events-none` 추가 (CollapsibleSection 등)
+
 ## 네이밍
 - 파일: `kebab-case.tsx`
 - 컴포넌트: `PascalCase`
