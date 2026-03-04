@@ -332,34 +332,41 @@ export interface ProcessNewClipResult {
   categoryId: string | null;
 }
 
-/**
- * Main entry point: process a new clip from raw content.
- *
- * Steps:
- * 1. Generate AI metadata from rawText (or URL as fallback)
- * 2. Get or create category
- * 3. Insert clip row into Supabase `clips`
- * 4. Insert `clip_contents` row (heavy content)
- * 5. Auto-tag from keywords
- * 6. Generate and store embedding (fire-and-forget, non-blocking)
- */
-export const processNewClip = async (
-  input: ClipContentInput,
-  options?: { language?: string }
-): Promise<ProcessNewClipResult> => {
-  const {
-    url,
-    sourceType,
-    rawText,
-    htmlContent,
-    images,
-    userId,
-    author,
-    authorAvatar,
-    authorHandle,
-  } = input;
-  const language = options?.language ?? 'KR';
+// ─── Platform helpers ─────────────────────────────────────────────────────────
 
+const PLATFORM_FALLBACK: Record<string, string> = {
+  instagram: 'instagram',
+  threads: 'threads',
+  youtube: 'youtube',
+  web: 'web',
+  twitter: 'twitter',
+};
+
+const DB_VALID_PLATFORMS = new Set([
+  'web', 'twitter', 'youtube', 'github', 'medium', 'substack',
+  'reddit', 'linkedin', 'instagram', 'tiktok', 'threads', 'naver', 'pinterest', 'other',
+]);
+
+/** Resolve a detected platform string to a DB-safe value */
+export const resolveDbPlatform = (
+  detectedPlatform: string | undefined,
+  sourceType: string
+): string => {
+  const raw = detectedPlatform ?? PLATFORM_FALLBACK[sourceType] ?? 'other';
+  return DB_VALID_PLATFORMS.has(raw) ? raw : 'other';
+};
+
+// ─── Content preparation helpers ──────────────────────────────────────────────
+
+// Skip likely profile pictures and low-res thumbnails (Instagram/Threads CDN patterns)
+const isLowQualityThumb = (u: string) =>
+  /[/]s\d{2,3}x\d{2,3}[/]/.test(u) ||
+  /[/]p\d{2,3}x\d{2,3}[/]/.test(u) ||
+  /t51\.2885-19/.test(u);
+
+/** Prepare images, content, and thumbnail from raw input */
+function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | null, language: string) {
+  const { url, sourceType, rawText, htmlContent, images } = input;
   const rawMarkdown = rawText ?? '';
   const contentHtml = htmlContent ?? '';
 
@@ -372,17 +379,6 @@ export const processNewClip = async (
     }
   }
   clipImages = clipImages.slice(0, MAX_IMAGES);
-
-  // Use detected platform for AI prompts so AI knows the exact source (e.g. 'threads' not 'web')
-  const aiPlatform = input.platform || sourceType;
-
-  let metadata: ClipMetadata | null = null;
-  if (rawMarkdown.trim().length > 0) {
-    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
-  }
-  if (!metadata) {
-    metadata = await generateMetadataFromUrl(url, aiPlatform, language);
-  }
 
   const title = metadata?.title ?? fallbackTitle(url, rawMarkdown);
   const summary = metadata?.summary ?? fallbackSummary(rawMarkdown, language);
@@ -408,7 +404,6 @@ export const processNewClip = async (
       .join('\n\n');
   }
 
-  // Embed extra images as HTML comment for gallery extraction on display
   if (clipImages.length > 1) {
     displayMarkdown += `\n\n<!-- CLIP_GALLERY:${clipImages.join('|')} -->`;
   }
@@ -426,41 +421,163 @@ export const processNewClip = async (
       ? contentHtml.substring(0, MAX_CONTENT_LENGTH)
       : contentHtml;
 
-  // Skip likely profile pictures and low-res thumbnails (Instagram/Threads CDN patterns)
-  const isLowQualityThumb = (u: string) =>
-    /[/]s\d{2,3}x\d{2,3}[/]/.test(u) ||
-    /[/]p\d{2,3}x\d{2,3}[/]/.test(u) ||
-    /t51\.2885-19/.test(u);
   const thumbnailImage = (clipImages.length > 1
     ? clipImages.find((u) => !isLowQualityThumb(u)) ?? clipImages[0]
     : clipImages[0]) ?? null;
-  const categoryId = await getOrCreateCategory(userId, categoryName);
 
-  // Use explicitly passed platform, or fall back to sourceType mapping
-  const platformFallback: Record<string, string> = {
-    instagram: 'instagram',
-    threads: 'threads',
-    youtube: 'youtube',
-    web: 'web',
-    twitter: 'twitter',
+  return { title, summary, keywords, categoryName, thumbnailImage, truncRaw, truncDisplay, truncHtml };
+}
+
+// ─── Enrichment function (for background processing) ─────────────────────────
+
+export interface EnrichClipContentInput {
+  clipId: string;
+  url: string;
+  sourceType: 'instagram' | 'threads' | 'youtube' | 'web' | 'twitter';
+  platform?: string;
+  rawText?: string;
+  htmlContent?: string;
+  images?: string[];
+  userId: string;
+  author?: string;
+  authorAvatar?: string;
+  authorHandle?: string;
+  embeddedLinks?: Array<{ label: string; url: string }>;
+}
+
+/**
+ * Enrich an existing clip with AI metadata + content.
+ * Used by the background processing pipeline.
+ *
+ * Steps:
+ * 1. Generate AI metadata from rawText (or URL fallback)
+ * 2. Get or create category
+ * 3. UPDATE clips row (title, summary, image, category, status)
+ * 4. INSERT clip_contents row
+ * 5. Auto-tag + embedding (fire-and-forget)
+ */
+export const enrichClipContent = async (
+  input: EnrichClipContentInput,
+  options?: { language?: string }
+): Promise<ProcessNewClipResult> => {
+  const { clipId, url, sourceType, userId } = input;
+  const language = options?.language ?? 'KR';
+  const rawMarkdown = input.rawText ?? '';
+  const aiPlatform = input.platform || sourceType;
+
+  // AI metadata
+  let metadata: ClipMetadata | null = null;
+  if (rawMarkdown.trim().length > 0) {
+    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
+  }
+  if (!metadata) {
+    metadata = await generateMetadataFromUrl(url, aiPlatform, language);
+  }
+
+  const prepared = prepareClipContent(
+    { ...input, url, sourceType, userId },
+    metadata,
+    language
+  );
+
+  const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
+
+  // UPDATE existing clip row with enriched data
+  const { error: updateError } = await db
+    .from('clips')
+    .update({
+      title: prepared.title,
+      summary: prepared.summary,
+      image: prepared.thumbnailImage,
+      category_id: categoryId,
+      author: input.author ?? null,
+      author_handle: input.authorHandle ?? null,
+      author_avatar: input.authorAvatar ?? null,
+      processing_status: 'ready',
+      processing_error: null,
+      processed_at: new Date().toISOString(),
+    })
+    .eq('id', clipId);
+
+  if (updateError) {
+    console.error('[ClipService] Enrich update error:', updateError);
+    throw new Error(`Failed to enrich clip: ${updateError.message}`);
+  }
+
+  // INSERT clip_contents
+  const { error: contentError } = await db
+    .from('clip_contents')
+    .insert({
+      clip_id: clipId,
+      html_content: prepared.truncHtml || null,
+      content_markdown: prepared.truncDisplay || null,
+      raw_markdown: prepared.truncRaw || null,
+    });
+
+  if (contentError) {
+    console.error('[ClipService] clip_contents insert error:', contentError);
+  }
+
+  // Auto-tag (non-fatal)
+  autoTagClip(clipId, prepared.keywords).catch((err) =>
+    console.error('[ClipService] autoTagClip failed:', err)
+  );
+
+  // Embedding (non-fatal, fire-and-forget)
+  indexClipEmbedding({
+    clipId,
+    title: prepared.title,
+    summary: prepared.summary,
+    rawText: prepared.truncRaw,
+  }).catch((err) => console.error('[ClipService] Embedding failed:', err));
+
+  return {
+    clipId,
+    title: prepared.title,
+    summary: prepared.summary,
+    keywords: prepared.keywords,
+    categoryId,
   };
-  const rawPlatform = input.platform ?? platformFallback[sourceType] ?? 'other';
+};
 
-  // DB CHECK constraint — requires migration 008 for threads/naver/pinterest
-  const DB_VALID_PLATFORMS = new Set([
-    'web', 'twitter', 'youtube', 'github', 'medium', 'substack',
-    'reddit', 'linkedin', 'instagram', 'tiktok', 'threads', 'naver', 'pinterest', 'other',
-  ]);
-  const platform = DB_VALID_PLATFORMS.has(rawPlatform) ? rawPlatform : 'other';
+// ─── Legacy main entry point (backward-compatible) ───────────────────────────
+
+/**
+ * Main entry point: process a new clip from raw content.
+ * Creates a new clip row + enriches it in one call.
+ * Kept for backward compatibility.
+ */
+export const processNewClip = async (
+  input: ClipContentInput,
+  options?: { language?: string }
+): Promise<ProcessNewClipResult> => {
+  const { url, sourceType, rawText, userId, author, authorAvatar, authorHandle } = input;
+  const language = options?.language ?? 'KR';
+
+  const rawMarkdown = rawText ?? '';
+  const aiPlatform = input.platform || sourceType;
+
+  // AI metadata
+  let metadata: ClipMetadata | null = null;
+  if (rawMarkdown.trim().length > 0) {
+    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
+  }
+  if (!metadata) {
+    metadata = await generateMetadataFromUrl(url, aiPlatform, language);
+  }
+
+  const prepared = prepareClipContent(input, metadata, language);
+  const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
+  const platform = resolveDbPlatform(input.platform, sourceType);
 
   const { data: clipRow, error: clipError } = await db
     .from('clips')
     .insert({
       user_id: userId,
       url,
-      title,
-      summary,
-      image: thumbnailImage,
+      title: prepared.title,
+      summary: prepared.summary,
+      image: prepared.thumbnailImage,
       platform,
       author: author ?? null,
       author_handle: authorHandle ?? null,
@@ -472,6 +589,8 @@ export const processNewClip = async (
       category_id: categoryId,
       views: 0,
       likes_count: 0,
+      processing_status: 'ready',
+      processed_at: new Date().toISOString(),
     })
     .select('id')
     .single();
@@ -487,9 +606,9 @@ export const processNewClip = async (
     .from('clip_contents')
     .insert({
       clip_id: clipId,
-      html_content: truncHtml || null,
-      content_markdown: truncDisplay || null,
-      raw_markdown: truncRaw || null,
+      html_content: prepared.truncHtml || null,
+      content_markdown: prepared.truncDisplay || null,
+      raw_markdown: prepared.truncRaw || null,
     });
 
   if (contentError) {
@@ -497,17 +616,17 @@ export const processNewClip = async (
   }
 
   // Auto-tag asynchronously (non-fatal)
-  autoTagClip(clipId, keywords).catch((err) =>
+  autoTagClip(clipId, prepared.keywords).catch((err) =>
     console.error('[ClipService] autoTagClip failed:', err)
   );
 
   // Generate embedding asynchronously (non-fatal, fire-and-forget)
   indexClipEmbedding({
     clipId,
-    title,
-    summary,
-    rawText: truncRaw,
+    title: prepared.title,
+    summary: prepared.summary,
+    rawText: prepared.truncRaw,
   }).catch((err) => console.error('[ClipService] Embedding failed:', err));
 
-  return { clipId, title, summary, keywords, categoryId };
+  return { clipId, title: prepared.title, summary: prepared.summary, keywords: prepared.keywords, categoryId };
 };

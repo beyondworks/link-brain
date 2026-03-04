@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Star, ExternalLink, Share2, Pin, Check } from 'lucide-react';
+import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
@@ -122,6 +122,16 @@ export const ClipRow = memo(function ClipRow({
             {firstLetter}
           </div>
         )}
+        {clip.processing_status && clip.processing_status !== 'ready' && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px]">
+            {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
+              <Loader2 className="h-5 w-5 animate-spin text-white" />
+            )}
+            {clip.processing_status === 'failed' && (
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Text */}
@@ -133,6 +143,12 @@ export const ClipRow = memo(function ClipRow({
           <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground/70">
             {clip.summary}
           </p>
+        )}
+        {clip.processing_status === 'failed' && (
+          <p className="mt-0.5 text-[11px] font-medium text-amber-500">추출 실패 — 재시도 가능</p>
+        )}
+        {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
+          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/60">분석 중...</p>
         )}
         <div className="mt-2 flex items-center gap-2.5">
           {clip.platform && (
@@ -255,6 +271,7 @@ export const ClipRow = memo(function ClipRow({
 }, (prev, next) =>
   prev.clip.id === next.clip.id &&
   prev.clip.updated_at === next.clip.updated_at &&
+  prev.clip.processing_status === next.clip.processing_status &&
   prev.isSelected === next.isSelected &&
   prev.isSelectionMode === next.isSelectionMode &&
   prev.categoryName === next.categoryName &&

@@ -3,14 +3,14 @@
  *
  * Handles:
  * 1. Jina Reader primary extraction
- * 2. Puppeteer fallback for weak results
+ * 2. Readability fallback for weak results
  * 3. Web normalization with bug fixes:
  *    - B3: Single normalization pass (was applied 3x on merge path)
  *    - B4: Footer detection no longer resets after detection
  */
 
 import { normalizeWeb } from './normalizers/web';
-import { extractWithPuppeteer } from './puppeteer-extractor';
+import { extractWithReadability } from './readability-fetcher';
 import { validateUrl } from './url-validator';
 import { ENABLE_WEB_FALLBACK_MERGE } from './feature-flags';
 import { fetchWithTimeout, extractImagesFromMarkdown, hasAuthGate, selectBetterText } from './utils';
@@ -196,27 +196,27 @@ export class WebFetcher implements PlatformFetcher {
                 return normalizedJina;
             }
 
-            // Step 4: Weak result — Puppeteer fallback merge
-            console.warn(`[Web Fetcher] Weak Jina result (${normalizedJina.rawText.length} chars), trying Puppeteer fallback`);
-            const puppeteerResult = await extractWithPuppeteer(url);
+            // Step 4: Weak result — Readability fallback merge
+            console.warn(`[Web Fetcher] Weak Jina result (${normalizedJina.rawText.length} chars), trying Readability fallback`);
+            const readabilityResult = await extractWithReadability(url);
 
             // BUG FIX B3: Do NOT normalize individual sources then normalize again.
-            const normalizedPuppeteer = applyWebNormalization(puppeteerResult);
+            const normalizedReadability = applyWebNormalization(readabilityResult);
 
-            const mergedText = selectBetterText(normalizedJina.rawText, normalizedPuppeteer.rawText);
-            const mergedImages = normalizedPuppeteer.images.length > 0
-                ? normalizedPuppeteer.images
+            const mergedText = selectBetterText(normalizedJina.rawText, normalizedReadability.rawText);
+            const mergedImages = normalizedReadability.images.length > 0
+                ? normalizedReadability.images
                 : normalizedJina.images;
 
             const merged: FetchedUrlContent = {
                 rawText: mergedText,
-                htmlContent: normalizedJina.htmlContent || normalizedPuppeteer.htmlContent,
+                htmlContent: normalizedJina.htmlContent || normalizedReadability.htmlContent,
                 images: mergedImages,
-                author: normalizedJina.author || normalizedPuppeteer.author,
-                authorAvatar: normalizedJina.authorAvatar || normalizedPuppeteer.authorAvatar,
-                authorHandle: normalizedJina.authorHandle || normalizedPuppeteer.authorHandle,
-                finalUrl: normalizedJina.finalUrl || normalizedPuppeteer.finalUrl || url,
-                embeddedLinks: normalizedJina.embeddedLinks || normalizedPuppeteer.embeddedLinks
+                author: normalizedJina.author || normalizedReadability.author,
+                authorAvatar: normalizedJina.authorAvatar || normalizedReadability.authorAvatar,
+                authorHandle: normalizedJina.authorHandle || normalizedReadability.authorHandle,
+                finalUrl: normalizedJina.finalUrl || normalizedReadability.finalUrl || url,
+                embeddedLinks: normalizedJina.embeddedLinks || normalizedReadability.embeddedLinks
             };
 
             return merged;

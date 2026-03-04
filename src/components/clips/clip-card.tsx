@@ -2,10 +2,11 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check } from 'lucide-react';
+import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
+import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -39,6 +40,7 @@ export const ClipCard = memo(function ClipCard({
 }: ClipCardProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
+  const retryClip = useRetryClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
@@ -246,6 +248,24 @@ export const ClipCard = memo(function ClipCard({
             </Tooltip>
           </div>
         </div>
+
+        {/* Processing status overlay */}
+        {clip.processing_status && clip.processing_status !== 'ready' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
+              <div className="flex flex-col items-center gap-1.5">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+                <span className="text-xs font-medium text-white/90">분석 중...</span>
+              </div>
+            )}
+            {clip.processing_status === 'failed' && (
+              <div className="flex flex-col items-center gap-1.5">
+                <AlertTriangle className="h-6 w-6 text-amber-400" />
+                <span className="text-xs font-medium text-white/90">추출 실패</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -257,6 +277,19 @@ export const ClipCard = memo(function ClipCard({
           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
             {clip.summary}
           </p>
+        )}
+
+        {clip.processing_status === 'failed' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              retryClip.mutate({ clipId: clip.id });
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            <RotateCcw className="h-3 w-3" />
+            재시도
+          </button>
         )}
 
         {/* Bottom row */}
@@ -300,6 +333,7 @@ export const ClipCard = memo(function ClipCard({
 }, (prev, next) =>
   prev.clip.id === next.clip.id &&
   prev.clip.updated_at === next.clip.updated_at &&
+  prev.clip.processing_status === next.clip.processing_status &&
   prev.isSelected === next.isSelected &&
   prev.isSelectionMode === next.isSelectionMode &&
   prev.categoryName === next.categoryName &&

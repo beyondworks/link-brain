@@ -253,7 +253,7 @@ export function AddClipDialog() {
         queryClient.invalidateQueries({ queryKey: ['categories'] });
         addNotification({
           type: 'clip_saved',
-          title: '클립이 저장되었습니다',
+          title: '저장됨 — 콘텐츠 분석 중...',
           message: label,
         });
       })

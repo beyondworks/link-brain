@@ -55,6 +55,8 @@ export interface Collection {
 
 // ─── Clips ───────────────────────────────────────────────────────────────────
 
+export type ClipProcessingStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
 export interface ClipData {
   id: string;
   user_id: string;
@@ -78,6 +80,10 @@ export interface ClipData {
   views: number;
   likes_count: number;
   remind_at: string | null;
+  processing_status: ClipProcessingStatus;
+  processing_error: string | null;
+  retry_count: number;
+  processed_at: string | null;
   created_at: string;
   updated_at: string;
 }

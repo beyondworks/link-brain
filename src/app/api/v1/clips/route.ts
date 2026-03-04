@@ -18,11 +18,8 @@ import {
   clipFiltersSchema,
   dateRangeSchema,
 } from '@/lib/api/validate';
-import { fetchUrlContent } from '@/lib/fetchers/orchestrator';
-import type { FetchedUrlContent } from '@/lib/fetchers/types';
 import { detectPlatform } from '@/lib/fetchers/platform-detector';
-import { processNewClip } from '@/lib/services/clip-service';
-import { getValidToken } from '@/lib/oauth/token-manager';
+import { resolveDbPlatform } from '@/lib/services/clip-service';
 import type { ClipData, Category } from '@/types/database';
 import { z } from 'zod';
 
@@ -144,9 +141,11 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
 /**
  * POST /api/v1/clips
  *
- * Uses the fetcher orchestrator + clip-service pipeline:
- * 1. fetchUrlContent() — platform-specific content extraction
- * 2. processNewClip() — AI metadata, category, tags, embedding, DB insert
+ * Async pipeline: instant save (status: pending) → 200 → background processing.
+ * 1. Duplicate check
+ * 2. Insert clip row with processing_status = 'pending'
+ * 3. Return 201 immediately
+ * 4. Fire-and-forget: trigger /api/internal/process-clip
  */
 async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const bodyResult = await validateBody(req, createClipSchema);
@@ -170,73 +169,74 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
       });
     }
 
-    // 1. Fetch content via orchestrator (platform-specific)
-    const platform = detectPlatform(url);
+    // 1. Detect platform and resolve DB-safe value
+    const detectedPlatform = detectPlatform(url);
+    const platform = resolveDbPlatform(detectedPlatform, detectedPlatform);
 
-    // Look up OAuth token for authenticated API access
-    let oauthToken: string | undefined;
-    if (platform === 'threads') {
-      try {
-        oauthToken = await getValidToken(auth.publicUserId, 'threads');
-      } catch {
-        // No token or lookup failed — continue without OAuth
-      }
+    // 2. Instant save — minimal clip row with processing_status = 'pending'
+    const { data: clipRow, error: insertError } = await db
+      .from('clips')
+      .insert({
+        user_id: auth.publicUserId,
+        url,
+        title: null,
+        summary: null,
+        image: null,
+        platform,
+        is_favorite: false,
+        is_read_later: false,
+        is_archived: false,
+        is_public: false,
+        views: 0,
+        likes_count: 0,
+        processing_status: 'pending',
+      })
+      .select('*')
+      .single();
+
+    if (insertError || !clipRow) {
+      console.error('[API v1 Clips] Insert error:', insertError);
+      return errors.internalError();
     }
 
-    let fetchedContent: FetchedUrlContent = { rawText: '', images: [] };
-    try {
-      fetchedContent = await fetchUrlContent(url, oauthToken ? { oauthToken } : undefined);
-    } catch (fetchErr) {
-      console.warn('[API v1 Clips] Content fetch failed, continuing with URL-only:', fetchErr);
-    }
+    const clipId = (clipRow as { id: string }).id;
 
-    // 2. Process clip via clip-service (AI metadata + DB insert)
-    const sourceTypeMap: Record<string, 'instagram' | 'threads' | 'youtube' | 'web' | 'twitter'> = {
-      instagram: 'instagram',
-      threads: 'threads',
-      youtube: 'youtube',
-      twitter: 'twitter',
-      web: 'web',
-    };
-    const sourceType = sourceTypeMap[platform] ?? 'web';
-
-    const result = await processNewClip({
-      url,
-      sourceType,
-      platform,
-      rawText: fetchedContent.rawText,
-      htmlContent: fetchedContent.htmlContent,
-      images: fetchedContent.images,
-      userId: auth.publicUserId,
-      author: fetchedContent.author,
-      authorAvatar: fetchedContent.authorAvatar,
-      authorHandle: fetchedContent.authorHandle,
-      embeddedLinks: fetchedContent.embeddedLinks,
-    });
-
-    // 3. Handle collectionIds (not in clip-service)
+    // 3. Handle collectionIds
     if (body.collectionIds && body.collectionIds.length > 0) {
       const joinRows = body.collectionIds.map((cid: string) => ({
-        clip_id: result.clipId,
+        clip_id: clipId,
         collection_id: cid,
       }));
       await db.from('clip_collections').insert(joinRows);
     }
 
-    // 4. Re-fetch the created clip for full response
-    const { data: createdClip } = await db
-      .from('clips')
-      .select('*')
-      .eq('id', result.clipId)
-      .single();
+    // 4. Fire-and-forget: trigger background processing
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    const internalSecret = process.env.INTERNAL_API_SECRET;
 
-    if (!createdClip) {
-      return errors.internalError();
+    if (baseUrl && internalSecret) {
+      fetch(`${baseUrl}/api/internal/process-clip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
+        },
+        body: JSON.stringify({
+          clipId,
+          url,
+          platform: detectedPlatform,
+          userId: auth.publicUserId,
+        }),
+      }).catch((err) => {
+        console.error('[API v1 Clips] Background processing trigger failed:', err);
+      });
     }
 
+    // 5. Return immediately with the pending clip
     return sendSuccess(
       formatClipResponse(
-        { ...(createdClip as Record<string, unknown>), collectionIds: body.collectionIds ?? [] }
+        { ...(clipRow as Record<string, unknown>), collectionIds: body.collectionIds ?? [] }
       ),
       201
     );
@@ -270,6 +270,10 @@ function formatClipResponse(
     notes: '',
     keyTakeaways: '',
     collectionIds: clip.collectionIds ?? [],
+    processingStatus: clip.processing_status ?? 'ready',
+    processingError: clip.processing_error ?? null,
+    retryCount: clip.retry_count ?? 0,
+    processedAt: clip.processed_at ?? null,
     createdAt: clip.created_at,
     updatedAt: clip.updated_at,
   };
