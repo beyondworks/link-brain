@@ -426,10 +426,13 @@ export const processNewClip = async (
       ? contentHtml.substring(0, MAX_CONTENT_LENGTH)
       : contentHtml;
 
-  // Skip likely profile pictures (Instagram/Threads CDN patterns) for thumbnail
-  const isLikelyProfile = (u: string) => /s\d{2,3}x\d{2,3}/.test(u) || /t51\.2885-19/.test(u);
+  // Skip likely profile pictures and low-res thumbnails (Instagram/Threads CDN patterns)
+  const isLowQualityThumb = (u: string) =>
+    /[/]s\d{2,3}x\d{2,3}[/]/.test(u) ||
+    /[/]p\d{2,3}x\d{2,3}[/]/.test(u) ||
+    /t51\.2885-19/.test(u);
   const thumbnailImage = (clipImages.length > 1
-    ? clipImages.find((u) => !isLikelyProfile(u)) ?? clipImages[0]
+    ? clipImages.find((u) => !isLowQualityThumb(u)) ?? clipImages[0]
     : clipImages[0]) ?? null;
   const categoryId = await getOrCreateCategory(userId, categoryName);
 

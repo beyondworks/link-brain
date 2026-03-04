@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, Check, Trash2, Bookmark, Sparkles, FolderOpen, AlertTriangle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { AriaLive } from '@/components/ui/aria-live';
 import { useNotifications } from '@/lib/hooks/use-notifications';
@@ -133,7 +132,7 @@ export function NotificationCenter() {
               <p className="text-sm text-muted-foreground">알림이 없습니다</p>
             </div>
           ) : (
-            <ScrollArea className="min-h-0 flex-1">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="p-2">
                 {unread.length > 0 && (
                   <>
@@ -160,7 +159,7 @@ export function NotificationCenter() {
                   </>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           )}
 
           {/* Footer */}

@@ -44,7 +44,7 @@ interface JinaData {
     images?: Array<string | { src?: string; url?: string; alt?: string }>;
 }
 
-const extractWithJina = async (url: string, authorHandle: string = ''): Promise<FetchedUrlContent> => {
+const extractWithJina = async (url: string, _authorHandle: string = ''): Promise<FetchedUrlContent> => {
     try {
         const jinaUrl = `https://r.jina.ai/${url}`;
         const jinaApiKey = process.env.JINA_API_KEY;
@@ -66,7 +66,7 @@ const extractWithJina = async (url: string, authorHandle: string = ''): Promise<
             return { rawText: '', images: [] };
         }
 
-        // Extract images from markdown content
+        // Extract images from markdown content (before normalization strips them)
         const images = extractImagesFromMarkdown(rawContent);
 
         // Also extract from Jina structured image data
@@ -77,12 +77,8 @@ const extractWithJina = async (url: string, authorHandle: string = ''): Promise<
             }
         }
 
-        const cleaned = normalizeThreads(rawContent, {
-            authorHandle,
-            authorOnlyChain: ENABLE_THREADS_AUTHOR_ONLY_CHAIN
-        });
-
-        return { rawText: cleaned, images, title: structured.title };
+        // Return raw content — normalization is done ONCE by applyThreadsNormalization
+        return { rawText: rawContent, images, title: structured.title };
     } catch (error) {
         console.error('[Threads Fetcher/Jina] Error:', error);
         return { rawText: '', images: [] };

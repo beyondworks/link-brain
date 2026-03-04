@@ -233,6 +233,7 @@ export function detectAndSplitComments(
 
     let firstCommentIdx = -1;
     let sigCount = 0;
+    let authorSigCount = 0;
 
     for (let i = 0; i < paragraphs.length; i++) {
         const line = paragraphs[i].trim();
@@ -240,7 +241,10 @@ export function detectAndSplitComments(
         if (!match) continue;
 
         const handle = match[1].toLowerCase();
-        if (author && handle === author) continue;
+        if (author && handle === author) {
+            authorSigCount++;
+            continue;
+        }
 
         sigCount++;
         if (firstCommentIdx === -1) firstCommentIdx = i;
@@ -252,6 +256,12 @@ export function detectAndSplitComments(
         if (body.length >= 50) {
             return { body, commentsRaw };
         }
+    }
+
+    // Skip Strategy 2 if we found signatures that all belong to the author —
+    // trailing short paragraphs are likely author's own thread continuation.
+    if (authorSigCount > 0 && sigCount === 0) {
+        return { body: text, commentsRaw: '' };
     }
 
     // Strategy 2: Trailing short reaction paragraphs
