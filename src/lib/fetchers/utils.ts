@@ -102,6 +102,7 @@ export const hasAuthGate = (text: string): boolean => {
     return lower.includes('log in') ||
         lower.includes('sign up') ||
         lower.includes('create an account') ||
+        lower.includes('continue with instagram') ||
         lower.includes('로그인') ||
         lower.includes('회원가입');
 };
@@ -123,4 +124,84 @@ export const selectBetterText = (primary: string, secondary: string): string => 
     if (!firstWeak && secondWeak) return first;
 
     return second.length > first.length ? second : first;
+};
+
+/**
+ * Decode HTML entities (&#xHEX; and &#DEC; and &amp; etc.)
+ */
+const decodeHtmlEntities = (text: string): string => {
+    return text
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#0?39;/g, "'")
+        .replace(/&#064;/g, '@');
+};
+
+/**
+ * Extract a meta tag content value from HTML head.
+ */
+const extractMeta = (head: string, property: string, attr = 'property'): string | null => {
+    const re1 = new RegExp(`<meta[^>]*${attr}=["']${property}["'][^>]*content=["']([^"']+)["']`, 'i');
+    const re2 = new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*${attr}=["']${property}["']`, 'i');
+    const match = head.match(re1) || head.match(re2);
+    return match?.[1] ? decodeHtmlEntities(match[1]) : null;
+};
+
+export interface OgMeta {
+    title: string | null;
+    description: string | null;
+    image: string | null;
+}
+
+/**
+ * Fetch OG metadata (title, description, image) from a URL's HTML head.
+ * Lightweight fallback when content fetchers return weak results.
+ * Uses Googlebot UA to get SEO-friendly meta tags from social media pages.
+ */
+export const fetchOgMeta = async (url: string): Promise<OgMeta> => {
+    const empty: OgMeta = { title: null, description: null, image: null };
+    try {
+        const res = await fetchWithTimeout(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                'Accept': 'text/html',
+            },
+        }, 8000);
+        if (!res.ok) return empty;
+
+        const text = await res.text();
+        const head = text.substring(0, 50000);
+
+        const titleTagMatch = head.match(/<title[^>]*>([^<]+)<\/title>/i);
+        const title =
+            extractMeta(head, 'og:title') ||
+            extractMeta(head, 'twitter:title', 'name') ||
+            (titleTagMatch?.[1] ? decodeHtmlEntities(titleTagMatch[1]) : null);
+
+        const description =
+            extractMeta(head, 'og:description') ||
+            extractMeta(head, 'twitter:description', 'name') ||
+            extractMeta(head, 'description', 'name');
+
+        const image =
+            extractMeta(head, 'og:image') ||
+            extractMeta(head, 'twitter:image', 'name');
+
+        return { title, description, image };
+    } catch {
+        return empty;
+    }
+};
+
+/**
+ * Fetch OG image from a URL by reading the HTML head section.
+ * Lightweight fallback when content fetchers don't return images.
+ */
+export const fetchOgImage = async (url: string): Promise<string | null> => {
+    const meta = await fetchOgMeta(url);
+    return meta.image;
 };

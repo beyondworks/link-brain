@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+export type DashboardView = 'summary' | 'detail';
+
 export type WidgetKey =
   | 'stats'
   | 'weeklyReport'
@@ -34,6 +36,7 @@ export const WIDGET_META: WidgetMeta[] = [
 ];
 
 const STORAGE_KEY = 'linkbrain-dashboard-widgets';
+const VIEW_STORAGE_KEY = 'linkbrain-dashboard-view';
 
 const DEFAULT_WIDGETS: DashboardWidgets = {
   stats: true,
@@ -75,16 +78,31 @@ function saveToStorage(widgets: DashboardWidgets): void {
   }
 }
 
+function loadViewFromStorage(): DashboardView {
+  if (typeof window === 'undefined') return 'detail';
+  try {
+    const raw = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (raw === 'summary' || raw === 'detail') return raw;
+    return 'detail';
+  } catch {
+    return 'detail';
+  }
+}
+
 export function useDashboardPreferences(): {
   widgets: DashboardWidgets;
   toggleWidget: (key: WidgetKey) => void;
   resetDefaults: () => void;
+  dashboardView: DashboardView;
+  setDashboardView: (view: DashboardView) => void;
 } {
   const [widgets, setWidgets] = useState<DashboardWidgets>(() => loadFromStorage());
+  // SSR 안전: 서버/클라이언트 초기값 일치시킨 후, useEffect에서 localStorage 동기화
+  const [dashboardView, setDashboardViewState] = useState<DashboardView>('detail');
 
-  // SSR hydration 동기화: 클라이언트 마운트 시 localStorage 값으로 갱신
+  // SSR hydration 동기화: dashboardView만 클라이언트에서 갱신 (widgets는 useState 초기화로 처리)
   useEffect(() => {
-    setWidgets(loadFromStorage());
+    setDashboardViewState(loadViewFromStorage());
   }, []);
 
   const toggleWidget = useCallback((key: WidgetKey) => {
@@ -101,5 +119,10 @@ export function useDashboardPreferences(): {
     setWidgets(defaults);
   }, []);
 
-  return { widgets, toggleWidget, resetDefaults };
+  const setDashboardView = useCallback((view: DashboardView) => {
+    setDashboardViewState(view);
+    try { window.localStorage.setItem(VIEW_STORAGE_KEY, view); } catch { /* ignore */ }
+  }, []);
+
+  return { widgets, toggleWidget, resetDefaults, dashboardView, setDashboardView };
 }

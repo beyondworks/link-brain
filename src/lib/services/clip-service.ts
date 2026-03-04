@@ -18,6 +18,8 @@ const db = supabaseAdmin as any;
 export interface ClipContentInput {
   url: string;
   sourceType: 'instagram' | 'threads' | 'youtube' | 'web' | 'twitter';
+  /** Detected platform for DB storage (e.g. 'threads', 'github', 'naver'). Falls back to sourceType mapping. */
+  platform?: string;
   rawText?: string;       // Actual extracted text; never AI-generated
   htmlContent?: string;  // Actual HTML; never AI-generated
   images?: string[];     // Actual image URLs; never AI-generated
@@ -254,29 +256,43 @@ export const autoTagClip = async (
     );
 
     const tagIds: string[] = [];
+    const missingNames: string[] = [];
 
     for (const keyword of keywords) {
       const lc = keyword.toLowerCase().trim();
       if (!lc) continue;
 
-      let tagId = tagMap.get(lc);
+      const tagId = tagMap.get(lc);
+      if (tagId) {
+        tagIds.push(tagId);
+      } else {
+        missingNames.push(lc);
+      }
+    }
 
-      if (!tagId) {
-        const { data: newTag, error } = await db
-          .from('tags')
-          .insert({ name: lc })
-          .select('id')
-          .single();
+    // Batch-insert all missing tags at once (N+1 → 1 query)
+    if (missingNames.length > 0) {
+      const { error } = await db
+        .from('tags')
+        .upsert(
+          missingNames.map((name) => ({ name })),
+          { onConflict: 'name', ignoreDuplicates: true },
+        );
 
-        if (error || !newTag) {
-          console.warn(`[AutoTag] Could not create tag "${lc}":`, error);
-          continue;
-        }
-        tagId = (newTag as Pick<Tag, 'id'>).id;
-        tagMap.set(lc, tagId);
+      if (error) {
+        console.warn('[AutoTag] batch tag upsert error:', error);
       }
 
-      tagIds.push(tagId);
+      // Re-query to get IDs for newly created tags
+      const { data: newTags } = await db
+        .from('tags')
+        .select('id, name')
+        .in('name', missingNames);
+
+      for (const t of (newTags ?? []) as Pick<Tag, 'id' | 'name'>[]) {
+        tagIds.push(t.id);
+        tagMap.set(t.name.toLowerCase(), t.id);
+      }
     }
 
     if (tagIds.length > 0) {
@@ -357,12 +373,15 @@ export const processNewClip = async (
   }
   clipImages = clipImages.slice(0, MAX_IMAGES);
 
+  // Use detected platform for AI prompts so AI knows the exact source (e.g. 'threads' not 'web')
+  const aiPlatform = input.platform || sourceType;
+
   let metadata: ClipMetadata | null = null;
   if (rawMarkdown.trim().length > 0) {
-    metadata = await generateClipMetadata(rawMarkdown, url, sourceType, language);
+    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
   }
   if (!metadata) {
-    metadata = await generateMetadataFromUrl(url, sourceType, language);
+    metadata = await generateMetadataFromUrl(url, aiPlatform, language);
   }
 
   const title = metadata?.title ?? fallbackTitle(url, rawMarkdown);
@@ -389,6 +408,11 @@ export const processNewClip = async (
       .join('\n\n');
   }
 
+  // Embed extra images as HTML comment for gallery extraction on display
+  if (clipImages.length > 1) {
+    displayMarkdown += `\n\n<!-- CLIP_GALLERY:${clipImages.join('|')} -->`;
+  }
+
   const truncRaw =
     rawMarkdown.length > MAX_CONTENT_LENGTH
       ? rawMarkdown.substring(0, MAX_CONTENT_LENGTH) + '\n\n[Content truncated...]'
@@ -405,15 +429,22 @@ export const processNewClip = async (
   const thumbnailImage = clipImages[0] ?? null;
   const categoryId = await getOrCreateCategory(userId, categoryName);
 
-  // Map sourceType to DB-allowed platform values
-  const platformMap: Record<string, string> = {
+  // Use explicitly passed platform, or fall back to sourceType mapping
+  const platformFallback: Record<string, string> = {
     instagram: 'instagram',
-    threads: 'other',
+    threads: 'threads',
     youtube: 'youtube',
     web: 'web',
     twitter: 'twitter',
   };
-  const platform = platformMap[sourceType] ?? 'other';
+  const rawPlatform = input.platform ?? platformFallback[sourceType] ?? 'other';
+
+  // DB CHECK constraint — requires migration 008 for threads/naver/pinterest
+  const DB_VALID_PLATFORMS = new Set([
+    'web', 'twitter', 'youtube', 'github', 'medium', 'substack',
+    'reddit', 'linkedin', 'instagram', 'tiktok', 'threads', 'naver', 'pinterest', 'other',
+  ]);
+  const platform = DB_VALID_PLATFORMS.has(rawPlatform) ? rawPlatform : 'other';
 
   const { data: clipRow, error: clipError } = await db
     .from('clips')
