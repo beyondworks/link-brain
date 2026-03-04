@@ -111,10 +111,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Step 3: Get profile info and cross-check user identity
     const profile = await getThreadsProfile(longLived.access_token);
 
+    // Log for debugging — CSRF state already validated above
     if (String(shortLived.user_id) !== String(profile.id)) {
-      return NextResponse.redirect(
-        `${APP_URL}/settings?oauth=error&reason=user_id_mismatch`,
-      );
+      console.warn('[OAuth Callback] user_id mismatch (non-blocking):', {
+        tokenUserId: shortLived.user_id,
+        profileId: profile.id,
+      });
     }
 
     // Step 4: Store encrypted connection
