@@ -85,7 +85,6 @@ export function AddClipDialog() {
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [platform, setPlatform] = useState('web');
@@ -148,7 +147,6 @@ export function AddClipDialog() {
       setUrl('');
       setUrlError('');
       setIsAnalyzing(false);
-      setIsSaving(false);
       setTitle('');
       setSummary('');
       setPlatform('web');
@@ -220,50 +218,89 @@ export function AddClipDialog() {
     if (e.key === 'Enter') handleAnalyze();
   }
 
-  async function handleSave() {
-    setIsSaving(true);
+  /** Background save helper — fires API call and resets form immediately */
+  function fireBackgroundSave(payload: {
+    url: string;
+    title?: string;
+    summary?: string;
+    category?: string;
+    keywords?: string[];
+  }) {
+    const label = payload.title || payload.url;
+    toast.info(`"${label}" 저장 중...`);
 
-    // Resolve category name from selectedCategoryId
+    fetch('/api/v1/clips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        if (res.status === 409) {
+          toast.warning('이미 저장된 URL입니다.');
+          return;
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          const msg = body?.error?.message ?? body?.error ?? '저장에 실패했습니다.';
+          throw new Error(typeof msg === 'string' ? msg : '저장에 실패했습니다.');
+        }
+        queryClient.invalidateQueries({ queryKey: ['clips'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        toast.success(`"${label}" 클립이 추가되었습니다`);
+        addNotification({
+          type: 'clip_saved',
+          title: '클립이 저장되었습니다',
+          message: label,
+        });
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+        toast.error(message);
+      });
+  }
+
+  /** Quick save — skip analyze, save directly in background */
+  function handleQuickSave() {
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setUrlError('URL을 입력해주세요.');
+      return;
+    }
+    if (!isValidUrl(trimmed)) {
+      setUrlError('유효한 URL을 입력해주세요.');
+      return;
+    }
+
+    fireBackgroundSave({ url: trimmed });
+    handleClose();
+  }
+
+  /** Save with reviewed details — non-blocking */
+  function handleSave() {
     const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
-    try {
-      const res = await fetch('/api/v1/clips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: url.trim(),
-          title,
-          summary,
-          ...(selectedCategory ? { category: selectedCategory.name } : {}),
-          ...(selectedTags.length > 0 ? { keywords: selectedTags } : {}),
-        }),
-      });
+    fireBackgroundSave({
+      url: url.trim(),
+      title,
+      summary,
+      ...(selectedCategory ? { category: selectedCategory.name } : {}),
+      ...(selectedTags.length > 0 ? { keywords: selectedTags } : {}),
+    });
 
-      if (res.status === 409) {
-        toast.warning('이미 저장된 URL입니다.');
-        return;
-      }
-
-      if (!res.ok) {
-        const body = await res.json();
-        const msg = body?.error?.message ?? body?.error ?? '저장에 실패했습니다.';
-        throw new Error(typeof msg === 'string' ? msg : '저장에 실패했습니다.');
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ['clips'] });
-      toast.success('클립이 추가되었습니다');
-      addNotification({
-        type: 'clip_saved',
-        title: '클립이 저장되었습니다',
-        message: title || url.trim(),
-      });
-      handleClose();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
-    }
+    // Reset to step 1 for next URL
+    setStep(1);
+    setUrl('');
+    setUrlError('');
+    setTitle('');
+    setSummary('');
+    setPlatform('web');
+    setSelectedCategoryId(null);
+    setSelectedTags([]);
+    setTagInput('');
+    setDuplicateClip(null);
+    setAllowDuplicate(false);
+    urlInputRef.current?.focus();
   }
 
   const addTag = useCallback(
@@ -307,7 +344,7 @@ export function AddClipDialog() {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         aria-describedby="add-clip-description"
-        className="border-gradient bg-glass-heavy overflow-y-auto max-h-[85vh] rounded-2xl shadow-elevated sm:max-w-lg"
+        className="border-gradient bg-background overflow-y-auto max-h-[85vh] rounded-2xl shadow-elevated sm:max-w-lg"
       >
         <DialogHeader>
           <div className="mb-1 flex items-center gap-3">
@@ -410,11 +447,19 @@ export function AddClipDialog() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end">
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={handleQuickSave}
+                disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip)}
+                className="rounded-xl border-border transition-spring hover-lift sm:w-auto"
+              >
+                바로 저장
+              </Button>
               <Button
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="w-full bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
+                className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
               >
                 {isAnalyzing ? (
                   <>
@@ -569,24 +614,15 @@ export function AddClipDialog() {
               <Button
                 variant="outline"
                 onClick={handleClose}
-                disabled={isSaving}
                 className="rounded-xl border-border transition-spring hover-lift"
               >
                 취소
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={isSaving}
                 className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring"
               >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    저장 중...
-                  </>
-                ) : (
-                  '저장'
-                )}
+                저장
               </Button>
             </div>
           </div>

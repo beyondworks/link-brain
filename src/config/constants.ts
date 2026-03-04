@@ -27,6 +27,69 @@ export const PLATFORM_LABELS: Record<Platform, { en: string; ko: string }> = {
   pinterest: { en: 'Pinterest', ko: '핀터레스트' },
 };
 
+/* ─── Platform visual maps (extends beyond PLATFORMS tuple) ─────────── */
+
+export const PLATFORM_COLORS: Record<string, string> = {
+  web: 'bg-gray-500',
+  youtube: 'bg-red-500',
+  github: 'bg-gray-800',
+  twitter: 'bg-sky-500',
+  medium: 'bg-gray-700',
+  reddit: 'bg-orange-600',
+  substack: 'bg-orange-500',
+  linkedin: 'bg-blue-600',
+  instagram: 'bg-pink-500',
+  tiktok: 'bg-black',
+  threads: 'bg-gray-900',
+  naver: 'bg-green-500',
+  pinterest: 'bg-red-600',
+};
+
+export const PLATFORM_ICONS: Record<string, string> = {
+  web: '🌐',
+  youtube: '▶️',
+  github: '🐙',
+  twitter: '𝕏',
+  medium: '✍️',
+  reddit: '🔥',
+  substack: '📰',
+  linkedin: '💼',
+  instagram: '📸',
+  tiktok: '🎵',
+  threads: '🧵',
+  naver: '📗',
+  pinterest: '📌',
+};
+
+export const PLATFORM_LABELS_EN: Record<string, string> = {
+  web: 'Web',
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  threads: 'Threads',
+  twitter: 'Twitter',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+  medium: 'Medium',
+  substack: 'Substack',
+  reddit: 'Reddit',
+  naver: 'Naver',
+  pinterest: 'Pinterest',
+};
+
+export const GRADIENT_COLORS = [
+  'from-violet-500 to-purple-600',
+  'from-blue-500 to-cyan-600',
+  'from-green-500 to-emerald-600',
+  'from-orange-500 to-red-600',
+  'from-pink-500 to-rose-600',
+];
+
+export function getGradient(id: string): string {
+  const index = id.charCodeAt(0) % GRADIENT_COLORS.length;
+  return GRADIENT_COLORS[index];
+}
+
 export const VIEW_MODES = ['grid', 'list', 'headlines'] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 

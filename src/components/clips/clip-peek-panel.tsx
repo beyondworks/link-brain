@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { MarkdownContent } from '@/components/clips/markdown-content';
 import {
   Star,
   Archive,
@@ -16,6 +17,10 @@ import {
   Eye,
   ThumbsUp,
   ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  MessageSquare,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -28,44 +33,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUIStore } from '@/stores/ui-store';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
+import { useCategories } from '@/lib/hooks/use-categories';
 import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import { PLATFORM_LABELS } from '@/config/constants';
-import type { ClipData } from '@/types/database';
+import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections } from '@/lib/utils/clip-content';
+import type { ClipData, ClipContent } from '@/types/database';
 
-/* ─── Platform colors ─────────────────────────────────────────── */
-const PLATFORM_COLORS: Record<string, string> = {
-  web: 'bg-gray-500',
-  youtube: 'bg-red-500',
-  github: 'bg-gray-800',
-  twitter: 'bg-sky-500',
-  medium: 'bg-gray-700',
-  reddit: 'bg-orange-600',
-  substack: 'bg-orange-500',
-  linkedin: 'bg-blue-600',
-  instagram: 'bg-pink-500',
-  tiktok: 'bg-black',
-  threads: 'bg-gray-900',
-  naver: 'bg-green-500',
-  pinterest: 'bg-red-600',
-};
-
-const PLATFORM_ICONS: Record<string, string> = {
-  web: '🌐',
-  youtube: '▶️',
-  github: '🐙',
-  twitter: '𝕏',
-  medium: '✍️',
-  reddit: '🔥',
-  substack: '📰',
-  linkedin: '💼',
-  instagram: '📸',
-  tiktok: '🎵',
-  threads: '🧵',
-  naver: '📗',
-  pinterest: '📌',
-};
 
 const MODE_OPTIONS: { mode: ClipPeekMode; icon: React.ElementType; label: string }[] = [
   { mode: 'side', icon: PanelRight, label: '사이드' },
@@ -73,15 +48,84 @@ const MODE_OPTIONS: { mode: ClipPeekMode; icon: React.ElementType; label: string
   { mode: 'full', icon: Maximize2, label: '전체화면' },
 ];
 
+/* ─── Image slideshow ─────────────────────────────────────────── */
+function ImageSlideshow({ images }: { images: string[] }) {
+  const [current, setCurrent] = useState(0);
+  const [errored, setErrored] = useState<Set<number>>(new Set());
+
+  const validImages = images.filter((_, i) => !errored.has(i));
+  if (validImages.length === 0) return null;
+
+  const displayIdx = Math.min(current, validImages.length - 1);
+  const actualSrc = validImages[displayIdx];
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border/60 shadow-card">
+      <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={actualSrc}
+          src={actualSrc}
+          alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
+          className="h-full w-full object-cover transition-opacity duration-300"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            const originalIdx = images.indexOf(actualSrc);
+            if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
+          }}
+        />
+      </div>
+      {validImages.length > 1 && (
+        <>
+          <button
+            onClick={() => setCurrent((p) => (p - 1 + validImages.length) % validImages.length)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-spring hover:bg-black/70"
+            aria-label="이전 이미지"
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => setCurrent((p) => (p + 1) % validImages.length)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-spring hover:bg-black/70"
+            aria-label="다음 이미지"
+          >
+            ›
+          </button>
+          {/* Dots */}
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {validImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full transition-all',
+                  i === displayIdx ? 'w-4 bg-white' : 'bg-white/50 hover:bg-white/70'
+                )}
+                aria-label={`이미지 ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Peek content (shared across all modes) ──────────────────── */
 function PeekContent({
   clip,
+  clipContents,
   isSeed,
   onClose,
+  categoryName,
+  categoryColor,
 }: {
   clip: ClipData;
+  clipContents?: ClipContent[];
   isSeed: boolean;
   onClose: () => void;
+  categoryName?: string;
+  categoryColor?: string | null;
 }) {
   const toggleFavorite = useToggleFavorite();
   const archiveClip = useToggleArchive();
@@ -97,7 +141,7 @@ function PeekContent({
   const platformIcon = PLATFORM_ICONS[platform] ?? '🌐';
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Header toolbar */}
       <div className="flex items-center justify-between border-b border-border/50 px-5 py-3">
         {/* Mode switcher */}
@@ -193,15 +237,29 @@ function PeekContent({
           'px-6 py-6',
           clipPeekMode === 'full' && 'mx-auto max-w-3xl'
         )}>
-          {/* Platform badge */}
-          {platformLabel && (
+          {/* Platform + Category badge */}
+          {(platformLabel || categoryName) && (
             <div className="mb-3 flex items-center gap-2">
-              <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
-                {platformIcon}
-              </span>
-              <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+              {platformLabel && (
+                <>
+                  <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
+                    {platformIcon}
+                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+                </>
+              )}
               {clip.author_handle && (
                 <span className="text-xs text-muted-foreground/60">· {clip.author_handle}</span>
+              )}
+              {categoryName && (
+                <>
+                  {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: categoryColor ?? '#21DBA4' }}
+                  />
+                  <span className="text-xs font-semibold text-muted-foreground">{categoryName}</span>
+                </>
               )}
             </div>
           )}
@@ -252,15 +310,35 @@ function PeekContent({
             )}
           </div>
 
-          {/* OG Image */}
-          {clip.image && (
-            <div className="mt-5 overflow-hidden rounded-xl border border-border/60 shadow-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={clip.image} alt={clip.title ?? ''} className="w-full object-cover" />
-            </div>
-          )}
+          {/* YouTube embed or Image slideshow */}
+          {(() => {
+            if (platform === 'youtube') {
+              const videoId = extractYouTubeVideoId(clip.url);
+              if (videoId) {
+                return (
+                  <div className="mt-5 overflow-hidden rounded-xl border border-border/60 shadow-card">
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title={clip.title ?? 'YouTube video'}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full"
+                      />
+                    </div>
+                  </div>
+                );
+              }
+            }
+            const allImages = extractImagesFromContent(clipContents, clip.image);
+            return allImages.length > 0 ? (
+              <div className="mt-5">
+                <ImageSlideshow images={allImages} />
+              </div>
+            ) : null;
+          })()}
 
-          {/* Summary */}
+          {/* AI Summary */}
           {clip.summary && (
             <div className="mt-5 rounded-xl border border-border/60 bg-glass p-5">
               <div className="mb-3 flex items-center gap-3">
@@ -272,6 +350,9 @@ function PeekContent({
               <p className="text-sm leading-relaxed text-foreground/90">{clip.summary}</p>
             </div>
           )}
+
+          {/* Body content from clip_contents */}
+          <PeekBodyContent clipContents={clipContents} />
 
           {/* Full detail link */}
           <div className="mt-5 flex items-center gap-3">
@@ -294,6 +375,112 @@ function PeekContent({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/* ─── Collapsible section ──────────────────────────────────────── */
+function CollapsibleSection({
+  icon: Icon,
+  title,
+  content,
+  isMarkdown,
+  maxHeight = 300,
+}: {
+  icon: React.ElementType;
+  title: string;
+  content: string;
+  isMarkdown: boolean;
+  maxHeight?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <Icon size={12} className="text-muted-foreground" />
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            {title}
+          </h3>
+        </div>
+        <div className="h-px flex-1 bg-border/50" />
+      </div>
+      <div
+        className="relative overflow-hidden rounded-xl border border-border/60 bg-glass p-5 transition-all duration-300"
+        style={!expanded ? { maxHeight } : undefined}
+      >
+        {isMarkdown ? (
+          <MarkdownContent content={content} />
+        ) : (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+            {content}
+          </p>
+        )}
+        {!expanded && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/95 to-transparent" />
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-muted-foreground transition-spring hover:text-foreground hover:bg-muted/30"
+      >
+        {expanded ? (
+          <>
+            <ChevronUp size={13} />
+            접기
+          </>
+        ) : (
+          <>
+            <ChevronDown size={13} />
+            더 보기
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Body content (collapsible, with body/comments split) ─────── */
+function PeekBodyContent({
+  clipContents,
+}: {
+  clipContents?: ClipContent[];
+}) {
+  const first = clipContents?.[0];
+  const text = first?.content_markdown ?? first?.raw_markdown;
+
+  if (!text && !first?.html_content) return null;
+
+  const displayContent = text
+    ? text
+    : (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (!displayContent) return null;
+
+  const isMarkdown = !!text;
+  const { body, subContent } = splitContentSections(displayContent);
+
+  return (
+    <div className="mt-5 space-y-5">
+      <CollapsibleSection
+        icon={FileText}
+        title="Content"
+        content={body}
+        isMarkdown={isMarkdown}
+        maxHeight={300}
+      />
+      {subContent && (
+        <CollapsibleSection
+          icon={MessageSquare}
+          title="Sub-Contents"
+          content={subContent}
+          isMarkdown={isMarkdown}
+          maxHeight={200}
+        />
+      )}
     </div>
   );
 }
@@ -325,6 +512,13 @@ export function ClipPeekPanel() {
   );
 
   const clip = seedClip ?? apiClip;
+  const rawCC = !isSeed && apiClip ? (apiClip as ClipData & { clip_contents?: ClipContent[] | ClipContent }).clip_contents : undefined;
+  const clipContents = rawCC ? (Array.isArray(rawCC) ? rawCC : [rawCC]) : undefined;
+
+  const { data: categories = [] } = useCategories();
+  const category = clip?.category_id
+    ? categories.find((c) => c.id === clip.category_id)
+    : undefined;
 
   // ESC closes peek — only needed for full mode (Sheet/Dialog handle their own ESC)
   const handleEsc = useCallback(
@@ -346,7 +540,7 @@ export function ClipPeekPanel() {
     !clip && isLoading ? (
       <PeekSkeleton />
     ) : clip ? (
-      <PeekContent clip={clip} isSeed={isSeed} onClose={closeClipPeek} />
+      <PeekContent clip={clip} clipContents={clipContents} isSeed={isSeed} onClose={closeClipPeek} categoryName={category?.name} categoryColor={category?.color} />
     ) : null;
 
   /* ─── Side mode: Sheet from right ────────────────────────── */
@@ -372,7 +566,7 @@ export function ClipPeekPanel() {
         <DialogContent
           showCloseButton={false}
           aria-describedby={undefined}
-          className="max-h-[85vh] overflow-hidden rounded-2xl border-border/60 bg-background p-0 shadow-elevated sm:max-w-3xl"
+          className="flex max-h-[85vh] flex-col overflow-hidden rounded-2xl border-border/60 bg-background p-0 shadow-elevated sm:max-w-3xl"
         >
           <DialogTitle className="sr-only">클립 미리보기</DialogTitle>
           {content}

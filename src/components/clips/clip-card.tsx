@@ -2,13 +2,14 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Heart, Archive, ExternalLink, Share2, MessageSquare, Pin } from 'lucide-react';
+import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
 import type { ClipData } from '@/types/database';
 
 interface ClipCardProps {
@@ -19,57 +20,21 @@ interface ClipCardProps {
   onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
+  categoryName?: string;
+  categoryColor?: string | null;
 }
 
-const PLATFORM_COLORS: Record<string, string> = {
-  twitter: 'bg-sky-400',
-  youtube: 'bg-red-500',
-  instagram: 'bg-pink-500',
-  tiktok: 'bg-black',
-  linkedin: 'bg-blue-600',
-  github: 'bg-gray-800',
-  medium: 'bg-gray-700',
-  substack: 'bg-orange-500',
-  reddit: 'bg-orange-600',
-  web: 'bg-gray-400',
-  other: 'bg-gray-400',
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-  instagram: 'Instagram',
-  tiktok: 'TikTok',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
-  medium: 'Medium',
-  substack: 'Substack',
-  reddit: 'Reddit',
-  web: 'Web',
-  other: '기타',
-};
-
-const GRADIENT_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-green-500 to-emerald-600',
-  'from-orange-500 to-red-600',
-  'from-pink-500 to-rose-600',
-];
-
-function getGradient(id: string): string {
-  const index = id.charCodeAt(0) % GRADIENT_COLORS.length;
-  return GRADIENT_COLORS[index];
-}
 
 export const ClipCard = memo(function ClipCard({
   clip,
   isSelected = false,
-  isSelectionMode: _isSelectionMode,
+  isSelectionMode = false,
   onSelect,
-  onToggleSelect: _onToggleSelect,
+  onToggleSelect,
   onToggleFavorite,
   onArchive,
+  categoryName,
+  categoryColor,
 }: ClipCardProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
@@ -77,11 +42,20 @@ export const ClipCard = memo(function ClipCard({
   const gradient = getGradient(clip.id);
 
   function handleCardClick() {
+    if (isSelectionMode && onToggleSelect) {
+      onToggleSelect();
+      return;
+    }
     if (onSelect) {
       onSelect(clip.id);
     } else {
       openClipPeek(clip.id);
     }
+  }
+
+  function handleCheckboxClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    onToggleSelect?.();
   }
 
   function handleFavorite(e: React.MouseEvent) {
@@ -138,18 +112,36 @@ export const ClipCard = memo(function ClipCard({
           </div>
         )}
 
-        {/* Platform badge — top left */}
-        {clip.platform && (
+        {/* Platform + Category badge — top left */}
+        {(clip.platform || categoryName) && (
           <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-glass px-2.5 py-1 backdrop-blur-md">
-            <span
-              className={cn(
-                'inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
-                PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
-              )}
-            />
-            <span className="text-[10px] font-semibold text-foreground/90">
-              {PLATFORM_LABELS[clip.platform] ?? clip.platform}
-            </span>
+            {clip.platform && (
+              <>
+                <span
+                  className={cn(
+                    'inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
+                    PLATFORM_COLORS[clip.platform] ?? 'bg-gray-400'
+                  )}
+                />
+                <span className="text-[10px] font-semibold text-foreground/90">
+                  {PLATFORM_LABELS_EN[clip.platform] ?? clip.platform}
+                </span>
+              </>
+            )}
+            {clip.platform && categoryName && (
+              <span className="text-[10px] text-foreground/40">·</span>
+            )}
+            {categoryName && (
+              <>
+                <span
+                  className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: categoryColor ?? '#21DBA4' }}
+                />
+                <span className="text-[10px] font-semibold text-foreground/90">
+                  {categoryName}
+                </span>
+              </>
+            )}
           </div>
         )}
 
@@ -159,8 +151,26 @@ export const ClipCard = memo(function ClipCard({
             <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgb(251,191,36)]" />
           )}
           {clip.is_favorite && (
-            <Heart className="h-4 w-4 fill-red-400 text-red-400 drop-shadow-[0_0_6px_rgb(248,113,113)]" />
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_6px_rgb(250,204,21)]" />
           )}
+        </div>
+
+        {/* Selection checkbox */}
+        <div
+          onClick={handleCheckboxClick}
+          className={cn(
+            'absolute left-2.5 bottom-2.5 z-10 transition-opacity',
+            isSelectionMode || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}
+        >
+          <div className={cn(
+            'flex h-5 w-5 items-center justify-center rounded border-2 cursor-pointer transition-spring',
+            isSelected
+              ? 'border-primary bg-primary text-white'
+              : 'border-white/60 bg-black/30 backdrop-blur-sm hover:border-white'
+          )}>
+            {isSelected && <Check className="h-3 w-3" />}
+          </div>
         </div>
 
         {/* Hover action overlay */}
@@ -172,11 +182,11 @@ export const ClipCard = memo(function ClipCard({
                   onClick={handleFavorite}
                   className={cn(
                     'animate-fade-in-up animation-delay-75 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
-                    clip.is_favorite && 'text-red-300'
+                    clip.is_favorite && 'text-yellow-300'
                   )}
                   aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
                 >
-                  <Heart className={cn('h-4 w-4', clip.is_favorite && 'fill-current heart-pulse')} />
+                  <Star className={cn('h-4 w-4', clip.is_favorite && 'fill-current')} />
                 </button>
               </TooltipTrigger>
               <TooltipContent><p>{clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}</p></TooltipContent>
@@ -265,6 +275,21 @@ export const ClipCard = memo(function ClipCard({
                 나중에
               </span>
             )}
+            <button
+              onClick={handleFavorite}
+              className="flex h-6 w-6 items-center justify-center rounded-full transition-spring hover:bg-yellow-500/10 hover:scale-110"
+              aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            >
+              <Star
+                size={13}
+                className={cn(
+                  'transition-spring',
+                  clip.is_favorite
+                    ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_4px_rgb(250,204,21)]'
+                    : 'text-muted-foreground/40 hover:text-yellow-400'
+                )}
+              />
+            </button>
           </div>
         </div>
       </div>
@@ -274,5 +299,7 @@ export const ClipCard = memo(function ClipCard({
   prev.clip.id === next.clip.id &&
   prev.clip.updated_at === next.clip.updated_at &&
   prev.isSelected === next.isSelected &&
-  prev.isSelectionMode === next.isSelectionMode
+  prev.isSelectionMode === next.isSelectionMode &&
+  prev.categoryName === next.categoryName &&
+  prev.categoryColor === next.categoryColor
 );

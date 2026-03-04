@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
+import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
 import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin, Bell, Clock } from 'lucide-react';
 import { Sparkline } from '@/components/charts/sparkline';
 import Link from 'next/link';
@@ -22,6 +23,7 @@ import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 import { DashboardSettings } from '@/components/dashboard/dashboard-settings';
 import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
 
+import { cn } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
 type QuickFilter = 'all' | 'favorite' | 'readLater';
@@ -213,11 +215,45 @@ function StatCard({
   );
 }
 
+function CompactStat({
+  icon: Icon,
+  value,
+  label,
+  loading,
+}: {
+  icon: React.ElementType;
+  value: string;
+  label: string;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon size={14} className="text-muted-foreground/60" />
+      {loading ? (
+        <div className="h-4 w-8 animate-pulse rounded bg-muted" />
+      ) : (
+        <span className="text-sm font-bold text-foreground">{value}</span>
+      )}
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 export function DashboardClient() {
   const { user: authUser } = useSupabase();
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
-  const { widgets } = useDashboardPreferences();
+  const { widgets, dashboardView, setDashboardView } = useDashboardPreferences();
+
+  const { data: categories = [] } = useCategories();
+  const toggleFavorite = useToggleFavorite();
+  const toggleArchive = useToggleArchive();
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string | null }>();
+    categories.forEach((c) => map.set(c.id, { name: c.name, color: c.color }));
+    return map;
+  }, [categories]);
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: credits, isLoading: creditsLoading } = useCredits();
@@ -266,6 +302,22 @@ export function DashboardClient() {
 
   const clips = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
   const pinnedClips = useMemo(() => clips.filter((c) => c.is_pinned), [clips]);
+
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      const clip = clips.find((c) => c.id === id);
+      if (clip) toggleFavorite.mutate({ clipId: id, isFavorite: clip.is_favorite });
+    },
+    [clips, toggleFavorite]
+  );
+
+  const handleArchive = useCallback(
+    (id: string) => {
+      const clip = clips.find((c) => c.id === id);
+      if (clip) toggleArchive.mutate({ clipId: id, isArchived: clip.is_archived });
+    },
+    [clips, toggleArchive]
+  );
   const hasActiveFilters = useMemo(() =>
     filters.categoryId || filters.collectionId || filters.platform ||
     filters.isFavorite || filters.isReadLater,
@@ -292,12 +344,39 @@ export function DashboardClient() {
               저장된 클립을 확인하고 관리하세요.
             </p>
           </div>
-          <DashboardSettings />
+          <div className="flex items-center gap-2">
+            {/* Dashboard view toggle */}
+            <div className="flex items-center rounded-lg border border-border/50 bg-muted/30 p-0.5">
+              <button
+                onClick={() => setDashboardView('summary')}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-spring',
+                  dashboardView === 'summary'
+                    ? 'bg-gradient-brand text-white shadow-brand'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                )}
+              >
+                요약
+              </button>
+              <button
+                onClick={() => setDashboardView('detail')}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-spring',
+                  dashboardView === 'detail'
+                    ? 'bg-gradient-brand text-white shadow-brand'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                )}
+              >
+                상세
+              </button>
+            </div>
+            <DashboardSettings />
+          </div>
         </div>
       </div>
 
-      {/* Stats grid */}
-      {widgets.stats && (
+      {/* Stats — detail: full cards with sparklines, summary: compact inline */}
+      {widgets.stats && dashboardView === 'detail' && (
         <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard
             icon={BookOpen}
@@ -331,12 +410,23 @@ export function DashboardClient() {
           />
         </div>
       )}
+      {widgets.stats && dashboardView === 'summary' && (
+        <div className="animate-fade-in-up animation-delay-50 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border/60 bg-card px-5 py-3 shadow-card">
+          <CompactStat icon={BookOpen} value={statsLoading ? '—' : String(stats?.totalClips ?? 0)} label="클립" loading={statsLoading} />
+          <div className="h-4 w-px bg-border/40" />
+          <CompactStat icon={TrendingUp} value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)} label="이번 달" loading={statsLoading} />
+          <div className="h-4 w-px bg-border/40" />
+          <CompactStat icon={Star} value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)} label="즐겨찾기" loading={statsLoading} />
+          <div className="h-4 w-px bg-border/40" />
+          <CompactStat icon={Gauge} value={formatCredits()} label="크레딧" loading={creditsLoading} />
+        </div>
+      )}
 
-      {/* Weekly Report */}
-      {widgets.weeklyReport && <WeeklyReport />}
+      {/* Weekly Report — detail only */}
+      {widgets.weeklyReport && dashboardView === 'detail' && <WeeklyReport />}
 
-      {/* Continue Reading + Recent Activity */}
-      {authUser && (widgets.continueReading || widgets.recentActivity) && (
+      {/* Continue Reading + Recent Activity — detail only */}
+      {authUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
         <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {widgets.continueReading && <ContinueReading userId={authUser.id} />}
           {widgets.recentActivity && <RecentActivity userId={authUser.id} />}
@@ -370,11 +460,11 @@ export function DashboardClient() {
       {/* Divider */}
       <div className="divider-gradient animate-fade-in-up animation-delay-150 mb-7" />
 
-      {/* Reminder section */}
-      {widgets.reminders && !isLoading && <ReminderSection clips={clips} />}
+      {/* Reminder section — detail only */}
+      {widgets.reminders && dashboardView === 'detail' && !isLoading && <ReminderSection clips={clips} />}
 
-      {/* Pinned clips */}
-      {widgets.pinnedClips && !isLoading && pinnedClips.length > 0 && (
+      {/* Pinned clips — detail only */}
+      {widgets.pinnedClips && dashboardView === 'detail' && !isLoading && pinnedClips.length > 0 && (
         <div className="animate-fade-in-up animation-delay-150 mb-8">
           <div className="mb-3 flex items-center gap-2">
             <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -384,7 +474,14 @@ export function DashboardClient() {
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {pinnedClips.slice(0, 5).map((clip) => (
-              <ClipCard key={clip.id} clip={clip} />
+              <ClipCard
+                key={clip.id}
+                clip={clip}
+                onToggleFavorite={handleToggleFavorite}
+                onArchive={handleArchive}
+                categoryName={clip.category_id ? categoryMap.get(clip.category_id)?.name : undefined}
+                categoryColor={clip.category_id ? categoryMap.get(clip.category_id)?.color : undefined}
+              />
             ))}
           </div>
         </div>

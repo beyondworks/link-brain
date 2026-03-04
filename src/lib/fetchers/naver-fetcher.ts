@@ -30,7 +30,7 @@ const convertToNaverMobile = (url: string): string => {
  */
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+        const jinaUrl = `https://r.jina.ai/${url}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
         const headers: Record<string, string> = { 'Accept': 'application/json' };

@@ -217,7 +217,7 @@ export function SidebarCategories() {
                         <button
                           type="button"
                           onClick={(e) => e.stopPropagation()}
-                          className="ml-auto hidden rounded-md p-0.5 text-muted-foreground/50 transition-smooth hover:bg-accent hover:text-foreground group-hover:flex"
+                          className="ml-auto flex rounded-md p-0.5 text-muted-foreground/50 opacity-0 transition-smooth hover:bg-accent hover:text-foreground group-hover:opacity-100"
                           aria-label="카테고리 옵션"
                         >
                           <MoreHorizontal size={13} />

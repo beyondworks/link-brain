@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
@@ -10,6 +10,7 @@ import { ClipHeadline } from '@/components/clips/clip-headline';
 import { AriaLive } from '@/components/ui/aria-live';
 import { useUIStore } from '@/stores/ui-store';
 import { useToggleFavorite, useToggleArchive, useDeleteClip } from '@/lib/hooks/use-clip-mutations';
+import { useCategories } from '@/lib/hooks/use-categories';
 import { useListKeyboardNav } from '@/lib/hooks/use-list-keyboard-nav';
 import { cn } from '@/lib/utils';
 import {
@@ -79,6 +80,29 @@ export function ClipList({
   const toggleFavorite = useToggleFavorite();
   const toggleArchive = useToggleArchive();
   const deleteClip = useDeleteClip();
+  const { data: categories = [] } = useCategories();
+
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, { name: string; color: string | null }>();
+    categories.forEach((c) => map.set(c.id, { name: c.name, color: c.color }));
+    return map;
+  }, [categories]);
+
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      const clip = clips.find((c) => c.id === id);
+      if (clip) toggleFavorite.mutate({ clipId: id, isFavorite: clip.is_favorite });
+    },
+    [clips, toggleFavorite]
+  );
+
+  const handleArchive = useCallback(
+    (id: string) => {
+      const clip = clips.find((c) => c.id === id);
+      if (clip) toggleArchive.mutate({ clipId: id, isArchived: clip.is_archived });
+    },
+    [clips, toggleArchive]
+  );
 
   const { focusedIndex } = useListKeyboardNav({ clips });
 
@@ -322,6 +346,10 @@ export function ClipList({
                     isSelected={isSelected}
                     isSelectionMode={isSelectionMode || selectedCount > 0}
                     onToggleSelect={() => toggleClipSelection(clip.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onArchive={handleArchive}
+                    categoryName={clip.category_id ? categoryMap.get(clip.category_id)?.name : undefined}
+                    categoryColor={clip.category_id ? categoryMap.get(clip.category_id)?.color : undefined}
                   />
                 </div>
               );
@@ -359,6 +387,9 @@ export function ClipList({
                     isSelected={isSelected}
                     isSelectionMode={isSelectionMode || selectedCount > 0}
                     onToggleSelect={() => toggleClipSelection(clip.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    categoryName={clip.category_id ? categoryMap.get(clip.category_id)?.name : undefined}
+                    categoryColor={clip.category_id ? categoryMap.get(clip.category_id)?.color : undefined}
                   />
                 </div>
               );

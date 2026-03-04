@@ -58,14 +58,28 @@ const fetchYouTubeOEmbed = async (url: string): Promise<FetchedUrlContent> => {
 const cleanYouTubePageText = (raw: string): string => {
     let cleaned = raw;
 
+    // Remove markdown images and bare links
     cleaned = cleaned.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+    cleaned = cleaned.replace(/\[]\([^)]+\)/g, '');
     cleaned = cleaned.replace(/^https?:\/\/[^\s]+$/gm, '');
     cleaned = cleaned.replace(/^\d+\s*$/gm, '');
+
+    // Remove YouTube page navigation & UI elements
+    cleaned = cleaned.replace(/^(Skip navigation|Search with your voice|Search|Back|Sign in.*|Subscribed|YouTube Home)\s*$/gim, '');
     cleaned = cleaned.replace(/^(구독|Subscribe|좋아요|Like|싫어요|Dislike|공유|Share|저장|Save|더보기|Show more|간략히|Show less|댓글|Comments?|정렬 기준|Sort by|Transcript|Show transcript|Follow along using the transcript\.?|\.\.\.more|감사합니다|Thanks|클립|Clip|오프라인 저장|Download|신고|Report|자세히|Learn more)\s*$/gim, '');
     cleaned = cleaned.replace(/^Channel:\s+.+$/gm, '');
+    // Remove subscriber counts, view counts, and relative timestamps
+    cleaned = cleaned.replace(/^[\d,.]+[KMB]?\s*(subscribers?|구독자)\s*$/gim, '');
     cleaned = cleaned.replace(/\d[\d,.]*\s*(회|views?|조회수)[^\n]*/gi, '');
     cleaned = cleaned.replace(/\d+\s*(시간|분|일|주|개월|년|hours?|minutes?|days?|weeks?|months?|years?)\s*(전|ago)/gi, '');
+    // Remove Sign in prompts and bot check messages
+    cleaned = cleaned.replace(/^Sign in to confirm.*$/gim, '');
+    cleaned = cleaned.replace(/^\[Sign in\].*$/gm, '');
+    cleaned = cleaned.replace(/^\[Learn more\].*$/gm, '');
+    // Remove markdown links to youtu.be / youtube.com
+    cleaned = cleaned.replace(/\[[^\]]*\]\(https?:\/\/(www\.)?(youtu\.be|youtube\.com)[^)]*\)\s*/g, '');
 
+    // Remove short non-content lines (likely UI labels)
     cleaned = cleaned.replace(/(^.{1,80}\n){2,4}/gm, (block: string) => {
         const lines = block.split('\n').filter(Boolean);
         const looksLikeContent = lines.some((l: string) => l.length > 80 || /[.,!?]/.test(l));
@@ -83,7 +97,7 @@ const cleanYouTubePageText = (raw: string): string => {
  */
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+        const jinaUrl = `https://r.jina.ai/${url}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
         const headers: Record<string, string> = { 'Accept': 'application/json' };
@@ -105,6 +119,11 @@ const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
 
         const images = extractImagesFromMarkdown(rawContent);
         const cleaned = cleanYouTubePageText(rawContent);
+
+        // Discard if cleaned content is too short (likely just UI noise)
+        if (cleaned.length < 50) {
+            return { rawText: '', images };
+        }
 
         return { rawText: cleaned, images };
     } catch (error) {

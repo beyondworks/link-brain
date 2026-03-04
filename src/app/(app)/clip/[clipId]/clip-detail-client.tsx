@@ -19,9 +19,7 @@ import {
   Eye,
   ThumbsUp,
   Sparkles,
-  Play,
   GitFork,
-  StarIcon,
   MessageSquare,
   Repeat2,
   ArrowUpRight,
@@ -36,6 +34,7 @@ import {
   ChevronDown,
   ChevronUp,
   History,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -54,280 +53,46 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useHighlights, useCreateHighlight, useDeleteHighlight } from '@/lib/hooks/use-highlights';
-import { PLATFORM_LABELS } from '@/config/constants';
+import { useCategories } from '@/lib/hooks/use-categories';
+import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import { estimateReadingTime } from '@/lib/utils/reading-time';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections } from '@/lib/utils/clip-content';
+import { MarkdownContent } from '@/components/clips/markdown-content';
 import type { ClipData, ClipContent } from '@/types/database';
 
 interface Props {
   clipId: string;
 }
 
-/* ─── Platform badge colors ─────────────────────────────────────────────── */
-const PLATFORM_COLORS: Record<string, string> = {
-  web: 'bg-gray-500',
-  youtube: 'bg-red-500',
-  github: 'bg-gray-800',
-  twitter: 'bg-sky-500',
-  medium: 'bg-gray-700',
-  reddit: 'bg-orange-600',
-  substack: 'bg-orange-500',
-  linkedin: 'bg-blue-600',
-};
-
-const PLATFORM_ICONS: Record<string, string> = {
-  web: '🌐',
-  youtube: '▶️',
-  github: '🐙',
-  twitter: '𝕏',
-  medium: '✍️',
-  reddit: '🔥',
-  substack: '📰',
-  linkedin: '💼',
-};
-
-/* ─── Simple markdown → JSX renderer (headings, code, tables, blockquotes) */
-function MarkdownContent({ content }: { content: string }) {
-  const blocks = useMemo(() => parseMarkdown(content), [content]);
-
-  return (
-    <div className="prose-custom space-y-4">
-      {blocks.map((block, i) => (
-        <MarkdownBlock key={i} block={block} />
-      ))}
-    </div>
-  );
-}
-
-type Block =
-  | { type: 'h2'; text: string }
-  | { type: 'h3'; text: string }
-  | { type: 'h4'; text: string }
-  | { type: 'p'; text: string }
-  | { type: 'blockquote'; text: string }
-  | { type: 'code'; lang: string; lines: string[] }
-  | { type: 'table'; headers: string[]; rows: string[][] }
-  | { type: 'list'; items: string[] };
-
-function parseMarkdown(md: string): Block[] {
-  const lines = md.split('\n');
-  const blocks: Block[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    // Code block
-    if (line.startsWith('```')) {
-      const lang = line.slice(3).trim();
-      const codeLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      blocks.push({ type: 'code', lang, lines: codeLines });
-      i++;
-      continue;
-    }
-
-    // Table
-    if (line.includes('|') && i + 1 < lines.length && lines[i + 1]?.includes('---')) {
-      const headers = line.split('|').map((c) => c.trim()).filter(Boolean);
-      i += 2; // skip header + separator
-      const rows: string[][] = [];
-      while (i < lines.length && lines[i].includes('|')) {
-        rows.push(lines[i].split('|').map((c) => c.trim()).filter(Boolean));
-        i++;
-      }
-      blocks.push({ type: 'table', headers, rows });
-      continue;
-    }
-
-    // Headings
-    if (line.startsWith('#### ')) {
-      blocks.push({ type: 'h4', text: line.slice(5) });
-      i++;
-      continue;
-    }
-    if (line.startsWith('### ')) {
-      blocks.push({ type: 'h3', text: line.slice(4) });
-      i++;
-      continue;
-    }
-    if (line.startsWith('## ')) {
-      blocks.push({ type: 'h2', text: line.slice(3) });
-      i++;
-      continue;
-    }
-
-    // Blockquote
-    if (line.startsWith('> ')) {
-      const quoteLines: string[] = [];
-      while (i < lines.length && lines[i].startsWith('> ')) {
-        quoteLines.push(lines[i].slice(2));
-        i++;
-      }
-      blocks.push({ type: 'blockquote', text: quoteLines.join(' ') });
-      continue;
-    }
-
-    // List items
-    if (line.startsWith('- ') || /^\d+\.\s/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && (lines[i].startsWith('- ') || /^\d+\.\s/.test(lines[i]))) {
-        items.push(lines[i].replace(/^[-\d.]+\s/, ''));
-        i++;
-      }
-      blocks.push({ type: 'list', items });
-      continue;
-    }
-
-    // Paragraph
-    if (line.trim()) {
-      blocks.push({ type: 'p', text: line });
-    }
-    i++;
-  }
-
-  return blocks;
-}
-
-function InlineCode({ text }: { text: string }) {
-  const parts = text.split(/(`[^`]+`)/g);
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.startsWith('`') && part.endsWith('`') ? (
-          <code key={i} className="rounded bg-muted/80 px-1.5 py-0.5 text-[13px] font-mono text-primary">
-            {part.slice(1, -1)}
-          </code>
-        ) : (
-          <span key={i}>{boldItalic(part)}</span>
-        )
-      )}
-    </>
-  );
-}
-
-function boldItalic(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) =>
-    p.startsWith('**') && p.endsWith('**') ? (
-      <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
-    ) : (
-      <span key={i}>{p}</span>
-    )
-  );
-}
-
-function MarkdownBlock({ block }: { block: Block }) {
-  switch (block.type) {
-    case 'h2':
-      return (
-        <div className="flex items-center gap-3 pt-2">
-          <h2 className="text-gradient-brand text-[11px] font-bold uppercase tracking-[0.14em]">
-            {block.text}
-          </h2>
-          <div className="divider-gradient flex-1" />
-        </div>
-      );
-    case 'h3':
-      return <h3 className="pt-1 text-base font-bold text-foreground">{block.text}</h3>;
-    case 'h4':
-      return <h4 className="text-sm font-semibold text-foreground/90">{block.text}</h4>;
-    case 'p':
-      return (
-        <p className="text-sm leading-relaxed text-foreground/80">
-          <InlineCode text={block.text} />
-        </p>
-      );
-    case 'blockquote':
-      return (
-        <blockquote className="border-l-2 border-primary/40 bg-primary/5 py-2 pl-4 pr-3 rounded-r-lg">
-          <p className="text-sm italic leading-relaxed text-foreground/70">
-            <InlineCode text={block.text} />
-          </p>
-        </blockquote>
-      );
-    case 'code':
-      return (
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-gray-950">
-          {block.lang && (
-            <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-2">
-              <span className="text-[11px] font-medium text-white/50">{block.lang}</span>
-            </div>
-          )}
-          <pre className="overflow-x-auto p-4">
-            <code className="text-[13px] leading-relaxed text-green-300/90 font-mono">
-              {block.lines.join('\n')}
-            </code>
-          </pre>
-        </div>
-      );
-    case 'table':
-      return (
-        <div className="overflow-x-auto rounded-xl border border-border/60">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/30">
-                {block.headers.map((h, i) => (
-                  <th key={i} className="px-3 py-2 text-left text-xs font-semibold text-foreground/70">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row, ri) => (
-                <tr key={ri} className="border-b border-border/30 last:border-0">
-                  {row.map((cell, ci) => (
-                    <td key={ci} className="px-3 py-2 text-xs text-foreground/70">
-                      <InlineCode text={cell} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    case 'list':
-      return (
-        <ul className="space-y-1.5 pl-1">
-          {block.items.map((item, i) => (
-            <li key={i} className="flex gap-2 text-sm text-foreground/80">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-              <InlineCode text={item} />
-            </li>
-          ))}
-        </ul>
-      );
-  }
-}
 
 /* ─── Platform-specific hero sections ────────────────────────────────── */
 function PlatformHero({ clip }: { clip: ClipData }) {
   const platform = clip.platform ?? 'web';
 
   switch (platform) {
-    case 'youtube':
+    case 'youtube': {
+      const videoId = extractYouTubeVideoId(clip.url);
       return (
         <div className="mb-7 animate-fade-in-up">
           <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/60 bg-gray-950 shadow-card">
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-red-600/20 to-red-900/40">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 shadow-lg transition-transform hover:scale-110">
-                <Play size={28} className="ml-1 text-white" fill="white" />
+            {videoId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title={clip.title ?? 'YouTube video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-red-600/20 to-red-900/40">
+                <p className="mt-4 text-sm font-medium text-white/70">YouTube 동영상</p>
               </div>
-              <p className="mt-4 text-sm font-medium text-white/70">YouTube 동영상</p>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-              <p className="text-lg font-bold text-white">{clip.title}</p>
-              <p className="mt-1 text-sm text-white/60">{clip.author} · {clip.read_time ? `${clip.read_time}분` : ''}</p>
-            </div>
+            )}
           </div>
         </div>
       );
+    }
 
     case 'github':
       return (
@@ -344,7 +109,7 @@ function PlatformHero({ clip }: { clip: ClipData }) {
           <p className="mt-3 text-sm leading-relaxed text-white/60">{clip.summary?.split('.')[0]}.</p>
           <div className="mt-4 flex items-center gap-5 border-t border-white/10 pt-4">
             <span className="flex items-center gap-1.5 text-sm text-yellow-400">
-              <StarIcon size={14} fill="currentColor" /> 12.4k
+              <Star size={14} fill="currentColor" /> 12.4k
             </span>
             <span className="flex items-center gap-1.5 text-sm text-white/50">
               <GitFork size={14} /> 1.8k
@@ -483,41 +248,138 @@ function TagList({ clipId }: { clipId: string }) {
   );
 }
 
+
+/* ─── Image slideshow component ───────────────────────────────────────── */
+function ImageSlideshow({ images }: { images: string[] }) {
+  const [current, setCurrent] = useState(0);
+  const [errored, setErrored] = useState<Set<number>>(new Set());
+
+  const validImages = images.filter((_, i) => !errored.has(i));
+  if (validImages.length === 0) return null;
+
+  const displayIdx = Math.min(current, validImages.length - 1);
+  const actualSrc = validImages[displayIdx];
+
+  return (
+    <div className="mb-5 animate-fade-in-up animation-delay-250">
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 shadow-card">
+        <div className="relative w-full" style={{ aspectRatio: validImages.length === 1 ? undefined : '16/10' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={actualSrc}
+            src={actualSrc}
+            alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
+            className={cn(
+              'w-full transition-opacity duration-300',
+              validImages.length === 1 ? 'object-contain max-h-[600px]' : 'h-full object-cover',
+            )}
+            referrerPolicy="no-referrer"
+            onError={() => {
+              const originalIdx = images.indexOf(actualSrc);
+              if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
+            }}
+          />
+        </div>
+        {validImages.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrent((p) => (p - 1 + validImages.length) % validImages.length)}
+              className="absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-spring hover:bg-black/70"
+              aria-label="이전 이미지"
+            >
+              &#8249;
+            </button>
+            <button
+              onClick={() => setCurrent((p) => (p + 1) % validImages.length)}
+              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-spring hover:bg-black/70"
+              aria-label="다음 이미지"
+            >
+              &#8250;
+            </button>
+          </>
+        )}
+        {validImages.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {validImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  i === displayIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/70',
+                )}
+                aria-label={`이미지 ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 /* ─── Real content renderer ──────────────────────────────────────────── */
 function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: string }) {
   const first = clipContents[0];
   const text = first?.content_markdown ?? first?.raw_markdown;
+  const displayContent = text || (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
-  if (text) {
+  if (!displayContent) {
     return (
       <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
-        <MarkdownContent content={text} />
+        <p className="text-sm text-muted-foreground">본문 콘텐츠가 아직 수집되지 않았습니다.</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowUpRight size={13} />
+          원본 페이지에서 읽기
+        </a>
       </div>
     );
   }
 
-  if (first?.html_content) {
-    // Render HTML as plain text (strip tags) — no sanitizer available
-    const plainText = first.html_content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    return (
-      <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{plainText}</p>
-      </div>
-    );
-  }
+  const isMarkdown = !!text;
+  const { body, subContent } = splitContentSections(displayContent);
 
   return (
-    <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
-      <p className="text-sm text-muted-foreground">본문 콘텐츠가 아직 수집되지 않았습니다.</p>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-      >
-        <ArrowUpRight size={13} />
-        원본 페이지에서 읽기
-      </a>
+    <div className="mb-5 space-y-4">
+      {/* Content section */}
+      <div className="rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <FileText size={12} className="text-muted-foreground" />
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Content</h3>
+          </div>
+          <div className="h-px flex-1 bg-border/50" />
+        </div>
+        {isMarkdown ? (
+          <MarkdownContent content={body} />
+        ) : (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{body}</p>
+        )}
+      </div>
+
+      {/* Sub-Contents section */}
+      {subContent && (
+        <div className="rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-400">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <MessageSquare size={12} className="text-muted-foreground" />
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sub-Contents</h3>
+            </div>
+            <div className="h-px flex-1 bg-border/50" />
+          </div>
+          {isMarkdown ? (
+            <MarkdownContent content={subContent} />
+          ) : (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{subContent}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -529,6 +391,7 @@ export function ClipDetailClient({ clipId }: Props) {
   const seedContent = isSeed ? SEED_CONTENT[clipId] : undefined;
 
   const { data: apiClip, isLoading } = useClip(isSeed ? '' : clipId);
+  const { data: categories = [] } = useCategories();
   const { data: highlights = [] } = useHighlights(isSeed ? '' : clipId);
   const createHighlight = useCreateHighlight(isSeed ? '' : clipId);
   const deleteHighlight = useDeleteHighlight(isSeed ? '' : clipId);
@@ -672,6 +535,9 @@ export function ClipDetailClient({ clipId }: Props) {
       : null;
   const platformColor = PLATFORM_COLORS[platform] ?? 'bg-gray-500';
   const platformIcon = PLATFORM_ICONS[platform] ?? '🌐';
+  const category = clip.category_id
+    ? categories.find((c) => c.id === clip.category_id)
+    : undefined;
 
   return (
     <div ref={articleRef} className="animate-blur-in mx-auto max-w-3xl px-4 py-8 md:px-6">
@@ -699,27 +565,40 @@ export function ClipDetailClient({ clipId }: Props) {
       {/* Platform-specific hero */}
       <PlatformHero clip={clip} />
 
-      {/* OG Image fallback for platforms without custom hero */}
-      {!['youtube', 'github', 'twitter', 'reddit'].includes(platform) && clip.image && (
-        <div className="card-glow mb-7 overflow-hidden rounded-2xl border border-border/60 shadow-card animate-fade-in-up">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={clip.image} alt={clip.title ?? ''} className="w-full object-cover" />
-        </div>
-      )}
+      {/* Image slideshow for platforms without custom hero (handles 1+ images) */}
+      {!['youtube', 'github', 'twitter', 'reddit'].includes(platform) && (() => {
+        const allImages = extractImagesFromContent(clipContents, clip.image);
+        if (allImages.length === 0) return null;
+        return <ImageSlideshow images={allImages} />;
+      })()}
 
       {/* Header card */}
       <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-100">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             {/* Platform badge inline */}
-            {platformLabel && (
+            {(platformLabel || category) && (
               <div className="mb-3 flex items-center gap-2">
-                <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
-                  {platformIcon}
-                </span>
-                <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+                {platformLabel && (
+                  <>
+                    <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
+                      {platformIcon}
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+                  </>
+                )}
                 {clip.author_handle && (
                   <span className="text-xs text-muted-foreground/60">· {clip.author_handle}</span>
+                )}
+                {category && (
+                  <>
+                    {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ backgroundColor: category.color ?? '#21DBA4' }}
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground">{category.name}</span>
+                  </>
                 )}
               </div>
             )}

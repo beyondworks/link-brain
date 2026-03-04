@@ -109,9 +109,19 @@ const cleanJinaWebContent = (content: string): string => {
 /**
  * Extract content using Jina Reader API (web-specific)
  */
+interface JinaData {
+    title?: string;
+    description?: string;
+    content?: string;
+    html?: string;
+    url?: string;
+    images?: Array<string | { src?: string; url?: string; alt?: string }>;
+    screenshotUrl?: string;
+}
+
 const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
     try {
-        const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+        const jinaUrl = `https://r.jina.ai/${url}`;
         const jinaApiKey = process.env.JINA_API_KEY;
 
         const headers: Record<string, string> = { 'Accept': 'application/json' };
@@ -124,18 +134,38 @@ const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
             return { rawText: '', images: [] };
         }
 
-        const data = await response.json() as { data?: { content?: string }; content?: string };
-        const rawContent = data.data?.content || data.content || '';
+        const json = await response.json() as { data?: JinaData; content?: string; title?: string };
+        const structured = (json.data ?? json) as JinaData;
+        const rawContent = structured.content || '';
 
         if (!rawContent || rawContent.length < 20) {
             console.warn('[Web Fetcher/Jina] Insufficient content');
             return { rawText: '', images: [] };
         }
 
+        // Extract images from markdown content
         const images = extractImagesFromMarkdown(rawContent);
+
+        // Also extract from Jina structured image data
+        if (structured.images && Array.isArray(structured.images)) {
+            for (const img of structured.images) {
+                const imgUrl = typeof img === 'string' ? img : (img.src || img.url || '');
+                if (imgUrl && !images.includes(imgUrl)) images.push(imgUrl);
+            }
+        }
+        if (structured.screenshotUrl && !images.includes(structured.screenshotUrl)) {
+            images.push(structured.screenshotUrl);
+        }
+
         const cleaned = cleanJinaWebContent(rawContent);
 
-        return { rawText: cleaned, images };
+        return {
+            rawText: cleaned,
+            images,
+            title: structured.title || undefined,
+            description: structured.description || undefined,
+            htmlContent: structured.html || undefined,
+        };
     } catch (error) {
         console.error('[Web Fetcher/Jina] Error:', error);
         return { rawText: '', images: [] };

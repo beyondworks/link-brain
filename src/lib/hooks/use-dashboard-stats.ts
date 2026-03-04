@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 
 export interface DashboardStats {
   totalClips: number;
@@ -11,11 +11,13 @@ export interface DashboardStats {
 }
 
 export function useDashboardStats() {
-  const { user } = useSupabase();
+  const { user } = useCurrentUser();
 
   return useQuery({
     queryKey: ['dashboard-stats', user?.id],
     queryFn: async (): Promise<DashboardStats> => {
+      if (!user) return { totalClips: 0, thisMonthClips: 0, favoriteCount: 0 };
+
       const monthStart = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -26,17 +28,17 @@ export function useDashboardStats() {
         supabase
           .from('clips')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .eq('is_archived', false),
         supabase
           .from('clips')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .gte('created_at', monthStart),
         supabase
           .from('clips')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user!.id)
+          .eq('user_id', user.id)
           .eq('is_favorite', true),
       ]);
 

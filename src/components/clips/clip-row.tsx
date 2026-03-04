@@ -2,12 +2,13 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Heart, ExternalLink, Share2, Pin } from 'lucide-react';
+import { Star, ExternalLink, Share2, Pin, Check } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
 import type { ClipData } from '@/types/database';
 
 interface ClipRowProps {
@@ -18,56 +19,20 @@ interface ClipRowProps {
   onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
+  categoryName?: string;
+  categoryColor?: string | null;
 }
 
-const PLATFORM_COLORS: Record<string, string> = {
-  twitter: 'bg-sky-400',
-  youtube: 'bg-red-500',
-  instagram: 'bg-pink-500',
-  tiktok: 'bg-black',
-  linkedin: 'bg-blue-600',
-  github: 'bg-gray-800',
-  medium: 'bg-gray-700',
-  substack: 'bg-orange-500',
-  reddit: 'bg-orange-600',
-  web: 'bg-gray-400',
-  other: 'bg-gray-400',
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-  instagram: 'Instagram',
-  tiktok: 'TikTok',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
-  medium: 'Medium',
-  substack: 'Substack',
-  reddit: 'Reddit',
-  web: 'Web',
-  other: '기타',
-};
-
-const GRADIENT_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-green-500 to-emerald-600',
-  'from-orange-500 to-red-600',
-  'from-pink-500 to-rose-600',
-];
-
-function getGradient(id: string): string {
-  const index = id.charCodeAt(0) % GRADIENT_COLORS.length;
-  return GRADIENT_COLORS[index];
-}
 
 export const ClipRow = memo(function ClipRow({
   clip,
   isSelected = false,
-  isSelectionMode: _isSelectionMode,
+  isSelectionMode = false,
   onSelect,
-  onToggleSelect: _onToggleSelect,
+  onToggleSelect,
   onToggleFavorite,
+  categoryName,
+  categoryColor,
 }: ClipRowProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
@@ -75,11 +40,20 @@ export const ClipRow = memo(function ClipRow({
   const gradient = getGradient(clip.id);
 
   function handleRowClick() {
+    if (isSelectionMode && onToggleSelect) {
+      onToggleSelect();
+      return;
+    }
     if (onSelect) {
       onSelect(clip.id);
     } else {
       openClipPeek(clip.id);
     }
+  }
+
+  function handleCheckboxClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    onToggleSelect?.();
   }
 
   function handleFavorite(e: React.MouseEvent) {
@@ -110,6 +84,24 @@ export const ClipRow = memo(function ClipRow({
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
+      {/* Selection checkbox */}
+      <div
+        onClick={handleCheckboxClick}
+        className={cn(
+          'flex-shrink-0 transition-opacity',
+          isSelectionMode || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        )}
+      >
+        <div className={cn(
+          'flex h-5 w-5 items-center justify-center rounded border-2 cursor-pointer transition-spring',
+          isSelected
+            ? 'border-primary bg-primary text-white'
+            : 'border-border bg-muted hover:border-primary'
+        )}>
+          {isSelected && <Check className="h-3 w-3" />}
+        </div>
+      </div>
+
       {/* Thumbnail — larger */}
       <div className="relative h-[72px] w-[72px] flex-shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm">
         {clip.image ? (
@@ -152,7 +144,18 @@ export const ClipRow = memo(function ClipRow({
                 )}
               />
               <span className="text-[11px] font-medium text-muted-foreground">
-                {PLATFORM_LABELS[clip.platform] ?? clip.platform}
+                {PLATFORM_LABELS_EN[clip.platform] ?? clip.platform}
+              </span>
+            </div>
+          )}
+          {categoryName && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: categoryColor ?? '#21DBA4' }}
+              />
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {categoryName}
               </span>
             </div>
           )}
@@ -167,6 +170,21 @@ export const ClipRow = memo(function ClipRow({
               나중에
             </span>
           )}
+          <button
+            onClick={handleFavorite}
+            className="flex h-5 w-5 items-center justify-center rounded-full transition-spring hover:bg-yellow-500/10 hover:scale-110"
+            aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+          >
+            <Star
+              size={12}
+              className={cn(
+                'transition-spring',
+                clip.is_favorite
+                  ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_4px_rgb(250,204,21)]'
+                  : 'text-muted-foreground/40 hover:text-yellow-400'
+              )}
+            />
+          </button>
         </div>
       </div>
 
@@ -177,15 +195,15 @@ export const ClipRow = memo(function ClipRow({
             <button
               onClick={handleFavorite}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 hover:scale-110',
-                clip.is_favorite && 'text-red-400 opacity-100'
+                'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-yellow-500/10 hover:text-yellow-400 hover:scale-110',
+                clip.is_favorite && 'text-yellow-400 opacity-100'
               )}
               aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
             >
-              <Heart
+              <Star
                 className={cn(
                   'h-4 w-4 transition-spring',
-                  clip.is_favorite && 'fill-current heart-pulse drop-shadow-[0_0_6px_rgb(248,113,113)]'
+                  clip.is_favorite && 'fill-current drop-shadow-[0_0_6px_rgb(250,204,21)]'
                 )}
               />
             </button>
@@ -238,5 +256,7 @@ export const ClipRow = memo(function ClipRow({
   prev.clip.id === next.clip.id &&
   prev.clip.updated_at === next.clip.updated_at &&
   prev.isSelected === next.isSelected &&
-  prev.isSelectionMode === next.isSelectionMode
+  prev.isSelectionMode === next.isSelectionMode &&
+  prev.categoryName === next.categoryName &&
+  prev.categoryColor === next.categoryColor
 );
