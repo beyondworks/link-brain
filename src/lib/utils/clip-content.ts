@@ -48,6 +48,20 @@ export function extractImagesFromContent(
   return images;
 }
 
+/** Strip metadata artifacts from display content */
+export function cleanDisplayContent(text: string): string {
+  let t = text;
+  // Remove CLIP_GALLERY HTML comments
+  t = t.replace(/<!--\s*CLIP_GALLERY:[^>]*-->/g, '');
+  // Remove standalone "-Author" / "·Author" / "- Author" lines
+  t = t.replace(/^[-·]\s*Author\s*$/gm, '');
+  // Remove lines that are just "Author"
+  t = t.replace(/^\s*Author\s*$/gm, '');
+  // Collapse excessive blank lines
+  t = t.replace(/\n{3,}/g, '\n\n');
+  return t.trim();
+}
+
 /** Collapse whitespace for fuzzy prefix comparison */
 const normalize = (s: string) => s.replace(/\s+/g, '').slice(0, 120);
 

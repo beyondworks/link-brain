@@ -32,11 +32,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       const id = toastEl.getAttribute('data-sonner-toast');
       if (id) toast.dismiss(id);
     };
-    document.addEventListener('pointerdown', onDown);
-    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('pointerup', onUp, true);
     return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('pointerup', onUp, true);
     };
   }, []);
 

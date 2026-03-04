@@ -57,7 +57,7 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import { estimateReadingTime } from '@/lib/utils/reading-time';
-import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections } from '@/lib/utils/clip-content';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent } from '@/lib/utils/clip-content';
 import { MarkdownContent } from '@/components/clips/markdown-content';
 import type { ClipData, ClipContent } from '@/types/database';
 
@@ -323,7 +323,8 @@ function ImageSlideshow({ images }: { images: string[] }) {
 function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: string }) {
   const first = clipContents[0];
   const text = first?.content_markdown ?? first?.raw_markdown;
-  const displayContent = text || (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const rawContent = text || (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const displayContent = cleanDisplayContent(rawContent);
 
   if (!displayContent) {
     return (

@@ -38,7 +38,7 @@ import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutati
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
-import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections } from '@/lib/utils/clip-content';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent } from '@/lib/utils/clip-content';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -459,10 +459,13 @@ function PeekBodyContent({
 
   if (!text && !first?.html_content) return null;
 
-  const displayContent = text
+  const rawContent = text
     ? text
     : (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
+  if (!rawContent) return null;
+
+  const displayContent = cleanDisplayContent(rawContent);
   if (!displayContent) return null;
 
   const isMarkdown = !!text;

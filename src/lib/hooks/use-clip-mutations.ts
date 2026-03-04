@@ -86,6 +86,7 @@ export function useToggleFavorite() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
   });
 }
@@ -227,6 +228,8 @@ export function useDeleteClip() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 }

@@ -330,6 +330,9 @@ export function DashboardClient() {
 
   return (
     <div className="animate-blur-in p-6 lg:p-8">
+      {/* Save progress indicator — sticky at top */}
+      <SaveProgressBar />
+
       {/* Page header */}
       <div className="animate-fade-in-up mb-10">
         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/50">
@@ -438,9 +441,6 @@ export function DashboardClient() {
       {filters.categoryId && (
         <ActiveCategoryBadge categoryId={filters.categoryId} />
       )}
-
-      {/* Save progress indicator */}
-      <SaveProgressBar />
 
       {/* Quick filters */}
       <div className="animate-fade-in-up animation-delay-100 mb-7 flex gap-2">
