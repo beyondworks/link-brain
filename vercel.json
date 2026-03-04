@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/retry-failed-clips",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
