@@ -53,7 +53,7 @@ async function handleGet(
   if (sourceErr || !sourceRaw) return errors.notFound('clip');
 
   const sourceClip = sourceRaw as Pick<ClipData, 'id' | 'user_id' | 'url' | 'category_id'>;
-  if (sourceClip.user_id !== auth.userId) return errors.accessDenied();
+  if (sourceClip.user_id !== auth.publicUserId) return errors.accessDenied();
 
   const sourceDomain = extractDomain(sourceClip.url);
 
@@ -104,7 +104,7 @@ async function handleGet(
       const { data: tagClipsRaw } = await db
         .from('clips')
         .select('id, title, url, image, platform, summary, category_id')
-        .eq('user_id', auth.userId)
+        .eq('user_id', auth.publicUserId)
         .eq('is_archived', false)
         .in('id', sortedClipIds);
 
@@ -142,7 +142,7 @@ async function handleGet(
     const { data: catClipsRaw } = await db
       .from('clips')
       .select('id, title, url, image, platform, summary, category_id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .eq('category_id', sourceClip.category_id)
       .eq('is_archived', false)
       .not('id', 'in', `(${excludeIds.join(',')})`)
@@ -177,7 +177,7 @@ async function handleGet(
     const { data: domainClipsRaw } = await db
       .from('clips')
       .select('id, title, url, image, platform, summary, category_id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .eq('is_archived', false)
       .ilike('url', `%${sourceDomain}%`)
       .not('id', 'in', `(${excludeIds.join(',')})`)

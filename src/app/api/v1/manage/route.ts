@@ -49,7 +49,7 @@ async function handleListCategories(
   const { data, error } = await db
     .from('clips')
     .select('category_id, categories(id, name, color)')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .not('category_id', 'is', null);
 
   if (error) {
@@ -91,7 +91,7 @@ async function handleCreateCategory(
   const { data: existing } = await db
     .from('categories')
     .select('id')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .eq('name', name)
     .single();
 
@@ -102,7 +102,7 @@ async function handleCreateCategory(
   const { data, error } = await db
     .from('categories')
     .insert({
-      user_id: auth.userId,
+      user_id: auth.publicUserId,
       name,
       color: color ?? '#6B7280',
     })
@@ -176,7 +176,7 @@ async function handleTags(req: NextRequest, auth: AuthContext): Promise<NextResp
   const { data: clips, error } = await db
     .from('clips')
     .select('*')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .in('id', matchingClipIds)
     .order('created_at', { ascending: false });
 
@@ -230,7 +230,7 @@ async function handleBulk(req: NextRequest, auth: AuthContext): Promise<NextResp
       .eq('id', clipId)
       .single();
 
-    if (fetchErr || !clip || (clip as { user_id: string }).user_id !== auth.userId) {
+    if (fetchErr || !clip || (clip as { user_id: string }).user_id !== auth.publicUserId) {
       failed++;
       continue;
     }
@@ -248,7 +248,7 @@ async function handleBulk(req: NextRequest, auth: AuthContext): Promise<NextResp
         const { data: catRow } = await db
           .from('categories')
           .select('id')
-          .eq('user_id', auth.userId)
+          .eq('user_id', auth.publicUserId)
           .eq('name', category)
           .single();
         if (!catRow) { failed++; break; }
@@ -321,7 +321,7 @@ async function handleListWebhooks(
   const { data, error } = await db
     .from('webhooks')
     .select('*')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .order('timestamp', { ascending: false });
 
   if (error) {
@@ -353,7 +353,7 @@ async function handleCreateWebhook(
   const { count } = await db
     .from('webhooks')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', auth.userId);
+    .eq('user_id', auth.publicUserId);
 
   if ((count ?? 0) >= maxWebhooks) {
     return sendError(
@@ -395,7 +395,7 @@ async function handleCreateWebhook(
   const { data, error } = await db
     .from('webhooks')
     .insert({
-      user_id: auth.userId,
+      user_id: auth.publicUserId,
       url,
       events,
       secret,
@@ -440,7 +440,7 @@ async function handleDeleteWebhook(
   if (fetchErr || !existing) {
     return sendError(ErrorCodes.WEBHOOK_NOT_FOUND, 'Webhook subscription not found.', 404);
   }
-  if ((existing as Pick<Webhook, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as Pick<Webhook, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const { error } = await db
     .from('webhooks')

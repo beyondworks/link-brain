@@ -39,7 +39,7 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
   const { data: clipsData, error: clipsErr } = await db
     .from('clips')
     .select('id, title, url, platform, summary')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .eq('is_archived', false)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -78,7 +78,7 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
       try {
         const { data: rpcData, error: rpcErr } = await db.rpc('find_related_clips', {
           p_clip_id: clip.id,
-          p_user_id: auth.userId,
+          p_user_id: auth.publicUserId,
           p_limit: 10,
           p_min_similarity: 0.7,
         });

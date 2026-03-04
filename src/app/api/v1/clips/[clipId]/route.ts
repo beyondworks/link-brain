@@ -42,7 +42,7 @@ async function handleGet(
   if (error || !data) return errors.notFound('clip');
 
   const clip = data as ClipData & { clip_contents?: Record<string, unknown> };
-  if (clip.user_id !== auth.userId) return errors.accessDenied();
+  if (clip.user_id !== auth.publicUserId) return errors.accessDenied();
 
   // Fetch collection memberships
   const { data: ccRows } = await db
@@ -101,7 +101,7 @@ async function handleUpdate(
     .single();
 
   if (fetchErr || !existing) return errors.notFound('clip');
-  if ((existing as Pick<ClipData, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as Pick<ClipData, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.title !== undefined) updates.title = body.title;
@@ -115,7 +115,7 @@ async function handleUpdate(
     const { data: catRow } = await db
       .from('categories')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .eq('name', body.category)
       .single();
     updates.category_id = catRow ? (catRow as Pick<Category, 'id'>).id : null;
@@ -190,7 +190,7 @@ async function handleDelete(
     .single();
 
   if (fetchErr || !existing) return errors.notFound('clip');
-  if ((existing as Pick<ClipData, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as Pick<ClipData, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const { error: deleteErr } = await db
     .from('clips')

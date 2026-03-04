@@ -35,7 +35,7 @@ async function handleGetDuplicates(
     const { data, error } = await db
       .from('clips')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .eq('is_archived', false)
       .order('created_at', { ascending: true });
 

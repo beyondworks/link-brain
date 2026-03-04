@@ -56,7 +56,7 @@ async function handleGet(
   auth: AuthContext,
   clipId: string
 ): Promise<NextResponse> {
-  const ownership = await verifyClipOwnership(clipId, auth.userId);
+  const ownership = await verifyClipOwnership(clipId, auth.publicUserId);
   if (!ownership.ok) return ownership.response;
 
   try {
@@ -64,7 +64,7 @@ async function handleGet(
       .from('highlights')
       .select('*')
       .eq('clip_id', clipId)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .order('start_offset', { ascending: true });
 
     if (error) {
@@ -103,7 +103,7 @@ async function handlePost(
   auth: AuthContext,
   clipId: string
 ): Promise<NextResponse> {
-  const ownership = await verifyClipOwnership(clipId, auth.userId);
+  const ownership = await verifyClipOwnership(clipId, auth.publicUserId);
   if (!ownership.ok) return ownership.response;
 
   let body: CreateHighlightBody;
@@ -133,7 +133,7 @@ async function handlePost(
       .from('highlights')
       .insert({
         clip_id: clipId,
-        user_id: auth.userId,
+        user_id: auth.publicUserId,
         text: text.trim(),
         start_offset: startOffset,
         end_offset: endOffset,
@@ -171,7 +171,7 @@ async function handleDelete(
   auth: AuthContext,
   clipId: string
 ): Promise<NextResponse> {
-  const ownership = await verifyClipOwnership(clipId, auth.userId);
+  const ownership = await verifyClipOwnership(clipId, auth.publicUserId);
   if (!ownership.ok) return ownership.response;
 
   const highlightId = req.nextUrl.searchParams.get('highlightId');
@@ -185,7 +185,7 @@ async function handleDelete(
       .delete()
       .eq('id', highlightId)
       .eq('clip_id', clipId)
-      .eq('user_id', auth.userId);
+      .eq('user_id', auth.publicUserId);
 
     if (error) {
       if (

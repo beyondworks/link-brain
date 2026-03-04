@@ -30,7 +30,7 @@ async function handleGet(
     .from('clips')
     .select('id, remind_at')
     .eq('id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (error || !data) return errors.notFound('Clip');
@@ -79,7 +79,7 @@ async function handleSet(
     .from('clips')
     .select('id')
     .eq('id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (fetchError || !existing) return errors.notFound('Clip');
@@ -88,7 +88,7 @@ async function handleSet(
     .from('clips')
     .update({ remind_at: remindAt })
     .eq('id', clipId)
-    .eq('user_id', auth.userId);
+    .eq('user_id', auth.publicUserId);
 
   if (updateError) {
     // remind_at 컬럼이 없는 경우 graceful 처리
@@ -126,7 +126,7 @@ async function handleCancel(
     .from('clips')
     .select('id')
     .eq('id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (fetchError || !existing) return errors.notFound('Clip');
@@ -135,7 +135,7 @@ async function handleCancel(
     .from('clips')
     .update({ remind_at: null })
     .eq('id', clipId)
-    .eq('user_id', auth.userId);
+    .eq('user_id', auth.publicUserId);
 
   if (updateError) {
     console.error('[API v1 Reminder] Cancel error:', updateError);

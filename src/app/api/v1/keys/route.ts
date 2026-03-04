@@ -34,7 +34,7 @@ function toView(record: ApiKey): ApiKeyView {
  * GET /api/v1/keys
  */
 async function handleList(_req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const keys = await listApiKeys(auth.userId);
+  const keys = await listApiKeys(auth.publicUserId);
   return sendSuccess(keys.map(toView));
 }
 
@@ -66,7 +66,7 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
   // 플랜별 키 개수 제한
   const tier = auth.tier === 'pro' || auth.tier === 'master' ? auth.tier : 'free';
   const limit = KEY_LIMITS[tier as keyof typeof KEY_LIMITS] ?? KEY_LIMITS.free;
-  const existing = await listApiKeys(auth.userId);
+  const existing = await listApiKeys(auth.publicUserId);
 
   if (existing.length >= limit) {
     return sendError(
@@ -77,7 +77,7 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
     );
   }
 
-  const result = await createApiKey(auth.userId, name);
+  const result = await createApiKey(auth.publicUserId, name);
   if (!result) {
     return errors.internalError('Failed to create API key.');
   }

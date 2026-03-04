@@ -48,7 +48,7 @@ async function handleSearch(req: NextRequest, auth: AuthContext): Promise<NextRe
       const { data: catRow } = await db
         .from('categories')
         .select('id')
-        .eq('user_id', auth.userId)
+        .eq('user_id', auth.publicUserId)
         .eq('name', category)
         .single();
       categoryId = catRow ? (catRow as Pick<Category, 'id'>).id : undefined;
@@ -62,7 +62,7 @@ async function handleSearch(req: NextRequest, auth: AuthContext): Promise<NextRe
           : '*',
         { count: 'exact' }
       )
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .textSearch('fts', q, { type: 'plain', config: 'simple' })
       .order('created_at', { ascending: false });
 

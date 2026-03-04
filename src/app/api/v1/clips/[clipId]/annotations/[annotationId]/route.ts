@@ -33,7 +33,7 @@ async function handlePatch(
     .single();
 
   if (fetchErr || !existing) return errors.notFound('annotation');
-  if ((existing as { user_id: string }).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as { user_id: string }).user_id !== auth.publicUserId) return errors.accessDenied();
 
   let body: { note_text?: string | null; color?: string };
   try {
@@ -82,7 +82,7 @@ async function handleDelete(
     .single();
 
   if (fetchErr || !existing) return errors.notFound('annotation');
-  if ((existing as { user_id: string }).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as { user_id: string }).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const { error } = await db
     .from('clip_annotations')

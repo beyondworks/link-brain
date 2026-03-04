@@ -49,7 +49,7 @@ async function handleBulkAddToCollection(
       .from('collections')
       .select('id')
       .eq('id', collectionId)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .single();
 
     if (collectionError || !collection) {
@@ -60,7 +60,7 @@ async function handleBulkAddToCollection(
     const { data: ownedClips, error: ownershipError } = await db
       .from('clips')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .in('id', clipIds);
 
     if (ownershipError) {
@@ -124,7 +124,7 @@ async function handleBulkRemoveFromCollection(
       .from('collections')
       .select('id')
       .eq('id', collectionId)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .single();
 
     if (collectionError || !collection) {
@@ -135,7 +135,7 @@ async function handleBulkRemoveFromCollection(
     const { data: ownedClips, error: ownershipError } = await db
       .from('clips')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .in('id', clipIds);
 
     if (ownershipError) {

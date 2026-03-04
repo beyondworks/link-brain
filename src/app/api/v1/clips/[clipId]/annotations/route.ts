@@ -32,13 +32,13 @@ async function handleGet(
     .single();
 
   if (clipErr || !clip) return errors.notFound('clip');
-  if ((clip as { user_id: string }).user_id !== auth.userId) return errors.accessDenied();
+  if ((clip as { user_id: string }).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const { data, error } = await db
     .from('clip_annotations')
     .select('*')
     .eq('clip_id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -78,7 +78,7 @@ async function handlePost(
     .single();
 
   if (clipErr || !clip) return errors.notFound('clip');
-  if ((clip as { user_id: string }).user_id !== auth.userId) return errors.accessDenied();
+  if ((clip as { user_id: string }).user_id !== auth.publicUserId) return errors.accessDenied();
 
   let body: CreateAnnotationBody;
   try {
@@ -97,7 +97,7 @@ async function handlePost(
     .from('clip_annotations')
     .insert({
       clip_id: clipId,
-      user_id: auth.userId,
+      user_id: auth.publicUserId,
       type,
       selected_text: selected_text ?? null,
       note_text: note_text ?? null,

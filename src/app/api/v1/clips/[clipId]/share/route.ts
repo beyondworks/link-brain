@@ -35,7 +35,7 @@ async function handleEnable(
     .from('clips')
     .select('id, share_token, is_public')
     .eq('id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (fetchError || !existing) {
@@ -51,7 +51,7 @@ async function handleEnable(
     .from('clips')
     .update({ is_public: true, share_token: token })
     .eq('id', clipId)
-    .eq('user_id', auth.userId);
+    .eq('user_id', auth.publicUserId);
 
   if (updateError) {
     console.error('[API v1 Share] Enable error:', updateError);
@@ -78,7 +78,7 @@ async function handleDisable(
     .from('clips')
     .select('id')
     .eq('id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (fetchError || !existing) {
@@ -89,7 +89,7 @@ async function handleDisable(
     .from('clips')
     .update({ is_public: false, share_token: null })
     .eq('id', clipId)
-    .eq('user_id', auth.userId);
+    .eq('user_id', auth.publicUserId);
 
   if (updateError) {
     console.error('[API v1 Share] Disable error:', updateError);

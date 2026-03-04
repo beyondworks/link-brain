@@ -12,10 +12,13 @@ import { validateApiKey } from './api-key-auth';
 import { checkRateLimit, rateLimitHeaders, type SubscriptionTier } from './rate-limiter';
 import { errors, sendError, ErrorCodes } from './response';
 import { corsHeaders, handleCorsPreflightResponse } from './cors';
+import { ensurePublicUser } from './ensure-user';
 import type { User, Subscription, ApiKey } from '@/types/database';
 
 export interface AuthContext {
   userId: string;
+  /** public.users.id — use this for FK references to users table */
+  publicUserId: string;
   keyId?: string;
   tier: SubscriptionTier;
   method: 'apiKey' | 'session';
@@ -123,7 +126,8 @@ export function withAuth(
           .single();
 
         keyId = keyRow ? (keyRow as Pick<ApiKey, 'id'>).id : undefined;
-        auth = { userId, keyId, tier, method: 'apiKey' };
+        const publicUserId = await ensurePublicUser(userId);
+        auth = { userId, publicUserId, keyId, tier, method: 'apiKey' };
       } else {
         // 2. Try Bearer token
         const authHeader = req.headers.get('authorization');
@@ -136,7 +140,8 @@ export function withAuth(
             return res;
           }
           const tier = await getUserTier(user.id);
-          auth = { userId: user.id, tier, method: 'session' };
+          const publicUserId = await ensurePublicUser(user.id);
+          auth = { userId: user.id, publicUserId, tier, method: 'session' };
         } else {
           // 3. Try cookie-based session
           const supabase = await createClient();
@@ -147,7 +152,8 @@ export function withAuth(
             return res;
           }
           const tier = await getUserTier(user.id);
-          auth = { userId: user.id, tier, method: 'session' };
+          const publicUserId = await ensurePublicUser(user.id);
+          auth = { userId: user.id, publicUserId, tier, method: 'session' };
         }
       }
     }

@@ -216,7 +216,7 @@ async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<Next
   const { data: clips, error: dbError } = await db
     .from('clips')
     .select('id, title, summary, url, clip_contents(content_markdown, raw_markdown)')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .in('id', clipIds);
 
   if (dbError) {

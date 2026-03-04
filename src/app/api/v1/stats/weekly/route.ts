@@ -92,8 +92,8 @@ async function handleGetWeeklyStats(
     collectionsLast,
   ] = await Promise.all([
     // clips_saved: clips 테이블 created_at 기준
-    countRows('clips', auth.userId, 'created_at', thisWeekIso),
-    countRows('clips', auth.userId, 'created_at', lastWeekIso, lastWeekEndIso),
+    countRows('clips', auth.publicUserId, 'created_at', thisWeekIso),
+    countRows('clips', auth.publicUserId, 'created_at', lastWeekIso, lastWeekEndIso),
 
     // clips_read: clips 테이블 updated_at 기준, is_read=true
     // updated_at이 이번 주이고 is_read=true인 항목
@@ -102,7 +102,7 @@ async function handleGetWeeklyStats(
         const { count, error } = await supabaseAdmin
           .from('clips')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', auth.userId)
+          .eq('user_id', auth.publicUserId)
           .eq('is_read', true)
           .gte('updated_at', thisWeekIso);
         if (error) return 0;
@@ -116,7 +116,7 @@ async function handleGetWeeklyStats(
         const { count, error } = await supabaseAdmin
           .from('clips')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', auth.userId)
+          .eq('user_id', auth.publicUserId)
           .eq('is_read', true)
           .gte('updated_at', lastWeekIso)
           .lt('updated_at', lastWeekEndIso);
@@ -128,8 +128,8 @@ async function handleGetWeeklyStats(
     })(),
 
     // highlights_made: annotations 테이블 created_at 기준
-    countRows('annotations', auth.userId, 'created_at', thisWeekIso),
-    countRows('annotations', auth.userId, 'created_at', lastWeekIso, lastWeekEndIso),
+    countRows('annotations', auth.publicUserId, 'created_at', thisWeekIso),
+    countRows('annotations', auth.publicUserId, 'created_at', lastWeekIso, lastWeekEndIso),
 
     // collections_updated: collections 테이블 updated_at 기준
     (async () => {
@@ -137,7 +137,7 @@ async function handleGetWeeklyStats(
         const { count, error } = await supabaseAdmin
           .from('collections')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', auth.userId)
+          .eq('user_id', auth.publicUserId)
           .gte('updated_at', thisWeekIso);
         if (error) return 0;
         return count ?? 0;
@@ -150,7 +150,7 @@ async function handleGetWeeklyStats(
         const { count, error } = await supabaseAdmin
           .from('collections')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', auth.userId)
+          .eq('user_id', auth.publicUserId)
           .gte('updated_at', lastWeekIso)
           .lt('updated_at', lastWeekEndIso);
         if (error) return 0;

@@ -45,7 +45,7 @@ async function handleBulkAddTags(req: NextRequest, auth: AuthContext): Promise<N
     const { data: ownedClips, error: ownershipError } = await db
       .from('clips')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .in('id', clipIds);
 
     if (ownershipError) {
@@ -110,7 +110,7 @@ async function handleBulkRemoveTags(req: NextRequest, auth: AuthContext): Promis
     const { data: ownedClips, error: ownershipError } = await db
       .from('clips')
       .select('id')
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .in('id', clipIds);
 
     if (ownershipError) {

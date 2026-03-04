@@ -217,7 +217,7 @@ async function handleImport(req: NextRequest, auth: AuthContext): Promise<NextRe
   const { data: existing } = (await db
     .from('clips')
     .select('url')
-    .eq('user_id', auth.userId)) as { data: { url: string }[] | null };
+    .eq('user_id', auth.publicUserId)) as { data: { url: string }[] | null };
 
   const existingUrls = new Set((existing ?? []).map((r) => r.url));
 
@@ -242,7 +242,7 @@ async function handleImport(req: NextRequest, auth: AuthContext): Promise<NextRe
     existingUrls.add(url);
 
     toInsert.push({
-      user_id: auth.userId,
+      user_id: auth.publicUserId,
       url,
       title: row.title?.trim() || null,
       description: row.description?.trim() || null,

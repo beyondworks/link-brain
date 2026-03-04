@@ -25,7 +25,7 @@ async function handleList(_req: NextRequest, auth: AuthContext): Promise<NextRes
   const { data, error } = await db
     .from('collections')
     .select('*')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -67,7 +67,7 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
   const { data, error } = await db
     .from('collections')
     .insert({
-      user_id: auth.userId,
+      user_id: auth.publicUserId,
       name,
       color: color ?? '#6B7280',
       is_public: isPublic ?? false,
@@ -116,7 +116,7 @@ async function handleUpdate(req: NextRequest, auth: AuthContext): Promise<NextRe
     return sendError(ErrorCodes.COLLECTION_NOT_FOUND, 'Collection not found.', 404);
   }
   const existingCol = existing as Collection;
-  if (existingCol.user_id !== auth.userId) return errors.accessDenied();
+  if (existingCol.user_id !== auth.publicUserId) return errors.accessDenied();
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.name !== undefined) updates.name = body.name;
@@ -170,7 +170,7 @@ async function handleDelete(req: NextRequest, auth: AuthContext): Promise<NextRe
   if (fetchErr || !existing) {
     return sendError(ErrorCodes.COLLECTION_NOT_FOUND, 'Collection not found.', 404);
   }
-  if ((existing as Pick<Collection, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((existing as Pick<Collection, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   // Count clips affected before deletion
   const { count: clipsAffected } = await db

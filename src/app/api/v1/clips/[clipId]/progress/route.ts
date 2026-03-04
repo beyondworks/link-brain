@@ -29,13 +29,13 @@ async function handleGet(
     .single();
 
   if (clipErr || !clip) return errors.notFound('clip');
-  if ((clip as Pick<ClipData, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((clip as Pick<ClipData, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const { data, error } = await db
     .from('reading_progress')
     .select('*')
     .eq('clip_id', clipId)
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .single();
 
   if (error && error.code !== 'PGRST116') {
@@ -90,7 +90,7 @@ async function handlePatch(
     .single();
 
   if (clipErr || !clip) return errors.notFound('clip');
-  if ((clip as Pick<ClipData, 'user_id'>).user_id !== auth.userId) return errors.accessDenied();
+  if ((clip as Pick<ClipData, 'user_id'>).user_id !== auth.publicUserId) return errors.accessDenied();
 
   const now = new Date().toISOString();
   const pct = typeof scroll_percentage === 'number' ? scroll_percentage : undefined;
@@ -98,7 +98,7 @@ async function handlePatch(
 
   const upsertData: Partial<ReadingProgress> & { clip_id: string; user_id: string } = {
     clip_id: clipId,
-    user_id: auth.userId,
+    user_id: auth.publicUserId,
     last_read_at: now,
     ...(pct !== undefined && { scroll_percentage: pct }),
     ...(typeof time_spent_seconds === 'number' && { time_spent_seconds }),

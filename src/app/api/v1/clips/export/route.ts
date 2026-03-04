@@ -72,7 +72,7 @@ async function handleExport(req: NextRequest, auth: AuthContext): Promise<NextRe
   const { data, error } = await db
     .from('clips')
     .select('id, url, title, description, platform, tags, is_favorite, is_archived, created_at, summary')
-    .eq('user_id', auth.userId)
+    .eq('user_id', auth.publicUserId)
     .order('created_at', { ascending: false });
 
   if (error) {

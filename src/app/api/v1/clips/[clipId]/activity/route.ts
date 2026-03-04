@@ -63,7 +63,7 @@ async function handleGet(
   auth: AuthContext,
   clipId: string
 ): Promise<NextResponse> {
-  const ownership = await verifyClipOwnership(clipId, auth.userId);
+  const ownership = await verifyClipOwnership(clipId, auth.publicUserId);
   if (!ownership.ok) return ownership.response;
 
   try {
@@ -71,7 +71,7 @@ async function handleGet(
       .from('clip_activity')
       .select('*')
       .eq('clip_id', clipId)
-      .eq('user_id', auth.userId)
+      .eq('user_id', auth.publicUserId)
       .order('created_at', { ascending: false })
       .limit(50);
 

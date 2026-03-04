@@ -55,7 +55,7 @@ async function handleCreate(
 
   const { row, error: ownershipError } = await getCollectionWithOwnership(
     collectionId,
-    auth.userId
+    auth.publicUserId
   );
 
   if (ownershipError === 'not_found') {
@@ -117,7 +117,7 @@ async function handleDelete(
 
   const { row, error: ownershipError } = await getCollectionWithOwnership(
     collectionId,
-    auth.userId
+    auth.publicUserId
   );
 
   if (ownershipError === 'not_found') {

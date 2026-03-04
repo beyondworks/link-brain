@@ -13,7 +13,7 @@ async function handleGetCredits(
   _req: NextRequest,
   auth: AuthContext
 ): Promise<NextResponse> {
-  const balance = await getCreditBalance(auth.userId);
+  const balance = await getCreditBalance(auth.publicUserId);
   return sendSuccess(balance);
 }
 

@@ -22,7 +22,7 @@ export interface InsightsData {
 }
 
 async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const userId = auth.userId;
+  const userId = auth.publicUserId;
 
   try {
     // Run independent count queries in parallel

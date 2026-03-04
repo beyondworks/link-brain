@@ -22,7 +22,7 @@ async function handleDelete(
     return errors.invalidRequest('Missing keyId parameter.');
   }
 
-  const success = await revokeApiKey(auth.userId, keyId);
+  const success = await revokeApiKey(auth.publicUserId, keyId);
   if (!success) {
     return errors.notFound('API key');
   }
