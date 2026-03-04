@@ -54,7 +54,7 @@ function NotificationItem({
         <p className={cn('text-sm font-medium', !notification.isRead ? 'text-foreground' : 'text-muted-foreground')}>
           {notification.title}
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+        <p className="mt-0.5 break-all text-xs text-muted-foreground line-clamp-1">{notification.message}</p>
         <p className="mt-1 text-[10px] text-muted-foreground/60">{formatRelativeTime(notification.createdAt)}</p>
       </div>
       {!notification.isRead && (
@@ -107,7 +107,7 @@ export function NotificationCenter() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-80 rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
+          className="w-80 overflow-hidden rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
           role="dialog"
           aria-label="알림 목록"
         >
