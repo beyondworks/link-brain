@@ -1,6 +1,6 @@
 # Session Handover
 
-## 날짜: 2026-03-04 (세션 15 — /simplify 코드 정리)
+## 날짜: 2026-03-04 (세션 16 — 미커밋 정리 + 문서화)
 
 ---
 
@@ -8,78 +8,54 @@
 
 | 해시 | 설명 |
 |------|------|
+| `0da8340` | docs: CLAUDE.md에 중복 방지 규칙 + 오버레이 가이드 추가 |
+| `58828e9` | refactor: 코드 정리 — batch upsert, 이중 호출 제거, regex 최적화 |
+| `ea899d6` | feat: fetcher 개선 + UI 업데이트 + 중복 제거 + DB 마이그레이션 |
+| `3674cbd` | refactor: auth identity 분리 — publicUserId 전환 |
+| `4a925f7` | docs: session 15 handover — /simplify 코드 정리 |
 | `2567b4a` | docs: session 14 handover — Threads OAuth 연동 완성 |
 | `5c07039` | feat: Threads OAuth 연동 + 미디어 추출 개선 |
 | `1b752c2` | fix: DB 마이그레이션 적용 + as any 정리 + omni_search 구문 수정 |
-| `a56619b` | fix: [object Object] 토스트 + 설정 네비 + console.log 정리 + 훅 통합 |
-| `f917cb1` | docs: MEMORY.md + SESSION_HANDOVER.md 세션 11 업데이트 |
 | ... | (이전 세션 커밋) |
 
 **브랜치**: `feat/threads-oauth` → GitHub push 완료
 
 ---
 
-## 세션 15 완료 작업
+## 세션 16 완료 작업
 
-### 1. /simplify 코드 리뷰 + 정리
+### 1. 미커밋 45파일 → 3커밋으로 정리 (세션 15 말미)
 
-미커밋 44파일 변경분(+1457/-548)에 대해 3개 리뷰 에이전트 병렬 실행 (Code Reuse, Quality, Efficiency) 후 수정.
+세션 13~15에 걸쳐 쌓인 미커밋 45파일을 논리적 단위 3개로 분리 커밋:
 
-#### 코드 재사용 — 중복 제거 (~240줄)
+| 커밋 | 파일 수 | 내용 |
+|------|---------|------|
+| `3674cbd` | 28개 | Auth identity 분리 — API routes `auth.userId` → `auth.publicUserId` 전환 |
+| `ea899d6` | 19개 | Fetcher 개선, UI 중복 제거, DB 마이그레이션 008, 신규 파일 5개 |
+| `58828e9` | 3개 | 코드 정리 — batch upsert, 이중 호출 제거, regex 최적화 |
 
-- **`src/lib/utils/clip-content.ts`** (신규) — `extractYouTubeVideoId`, `extractImagesFromContent`, `splitContentSections` 공유 유틸 추출
-- **`clip-detail-client.tsx`** — 로컬 PLATFORM_COLORS, PLATFORM_ICONS, extractYouTubeVideoId, extractImagesFromContent, splitContentSections (normalize, stripJinaFooter 포함) 삭제 → 공유 모듈 import
-- **`clip-peek-panel.tsx`** — 동일 중복 삭제 → 공유 모듈 import
-- **`clip-card.tsx`** — 로컬 PLATFORM_COLORS/LABELS/GRADIENT_COLORS/getGradient 삭제 → `constants.ts` import
-- **`clip-row.tsx`** — 동일 중복 삭제 → `constants.ts` import
-- **`analyze/route.ts`** — 로컬 PLATFORM_LABELS 삭제 → `PLATFORM_LABELS_EN` import, 인라인 auth-gate 체크 → `hasAuthGate()` import
+### 2. 학습 문서화
 
-#### 품질 수정
+- **CLAUDE.md**: 중복 방지 규칙 (플랫폼 상수, 클립 유틸, auth 게이트, DB batch) + 오버레이/그라데이션 가이드 추가
+- **~/.claude/rules/workflow.md**: 리팩터링/정리 섹션 + 커밋 전략 (대량 변경) 섹션 추가
+- **~/.claude/rules/principles.md**: 컨텍스트 압축 후 파일 존재 확인 규칙 추가
 
-- **`clip-peek-panel.tsx`** — CollapsibleSection 그라데이션 오버레이에 `pointer-events-none` 추가 (하단 텍스트 클릭 불가 버그 수정)
+### 3. 잔여 디렉토리 정리
 
-#### 효율성 수정
-
-- **`clip-service.ts`** — autoTagClip N+1 INSERT → batch upsert + re-query (N개 쿼리 → 2개)
-- **`utils.ts`** — fetchOgMeta `<title>` 정규식 2회 실행 → 1회로 수정
-- **`use-dashboard-preferences.ts`** — loadFromStorage useEffect 이중 호출 제거 (useState 초기화로 이미 처리)
-
-#### 일관성
-
-- **`constants.ts`** — PLATFORM_COLORS, PLATFORM_ICONS, PLATFORM_LABELS_EN, GRADIENT_COLORS, getGradient 중앙 집중화
-- 플랫폼 색상 통일: twitter `bg-sky-400` → `bg-sky-500`, web `bg-gray-400` → `bg-gray-500`
-
-### 2. 타입 검증
-
-- `npx tsc --noEmit` 통과 (`.next` 캐시 관련 TS2300 제외, 실제 소스 에러 0개)
-
----
-
-## 신규 파일 (미커밋)
-
-| 파일 | 용도 |
-|------|------|
-| `src/lib/utils/clip-content.ts` | 클립 콘텐츠 공유 유틸 (YouTube ID, 이미지 추출, 섹션 분할) |
+- `src/hooks/mutations/` 삭제 (use-annotations.ts 잔여물 — 이미 `src/lib/hooks/`에 통합 완료)
 
 ---
 
 ## 미커밋 변경사항
 
-세션 13~15에서 미커밋 상태로 남아있는 파일 45개:
-- API routes 26개: `auth.userId` → `auth.publicUserId` 전환
-- Fetcher 개선: orchestrator, utils, web/youtube/naver fetcher
-- UI: clip-card, clip-list, clip-row, clip-peek-panel, clip-detail-client, sidebar-categories, add-clip-dialog
-- Config: constants.ts (플랫폼 맵 중앙 집중화)
-- DB: `008_platform_check_update.sql`
-- 서비스: clip-service.ts (autoTagClip batch upsert)
-- 신규: `clip-content.ts`, `ensure-user.ts`, `markdown-content.tsx`, `alert-dialog.tsx`, `full_migration.sql`
+없음 — 작업 트리 깨끗한 상태.
 
 ---
 
 ## 미완료 사항
 
 ### P0 — 프로덕션 필수
-- [ ] 미커밋 45파일 커밋 (auth identity 분리 + fetcher 개선 + UI + simplify 정리)
+- [x] ~~미커밋 45파일 커밋~~ (완료)
 - [ ] `008_platform_check_update.sql` DB 적용 (`supabase db push`)
 - [ ] `009_oauth_connections.sql` DB 적용 (`supabase db push`)
 - [ ] 환경변수 Vercel 등록: `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET`, `OAUTH_ENCRYPTION_KEY`
@@ -101,24 +77,22 @@
 
 ## 에러/학습
 
-### CollapsibleSection 오버레이 클릭 차단
-- **원인**: 그라데이션 오버레이 div가 하단 콘텐츠 위에 겹쳐 클릭 이벤트 차단
-- **해결**: `pointer-events-none` 추가
+### 대량 미커밋 파일 커밋 전략
+- **상황**: 45파일이 세션 3개에 걸쳐 미커밋 누적
+- **해결**: 논리적 단위 3그룹 (auth / features / cleanup)으로 분리
+- **규칙**: 1파일은 2커밋에 나눌 수 없음, 새 export를 import하는 파일은 export 파일과 동일 커밋에
 
-### N+1 INSERT 패턴
-- **원인**: autoTagClip에서 각 미존재 태그마다 개별 INSERT
-- **해결**: 미존재 이름 수집 → batch upsert → re-query로 ID 획득 (N+1 → 2 쿼리)
-
-### 플랫폼 색상 불일치
-- **원인**: 5개+ 파일에서 로컬 PLATFORM_COLORS 정의, 값이 미세하게 다름 (sky-400 vs sky-500)
-- **해결**: `constants.ts`에 단일 정의, 모든 소비자가 import
+### 컨텍스트 압축 후 파일 유실
+- **상황**: `/simplify`에서 생성한 `clip-content.ts`가 compaction 후 소실
+- **해결**: 파일 존재 확인 후 재생성
+- **규칙**: compaction 후 이전 Write/Edit 결과 유실 가능 → 작업 재개 시 파일 존재 여부 확인 필수
 
 ---
 
 ## 다음 세션 시작 시
 
-1. **미커밋 45파일 커밋** — `git diff --name-only`로 확인 후 적절한 메시지로 커밋 (예: `refactor: simplify code + centralize constants + batch tag upsert`)
-2. **DB 마이그레이션** — `supabase db push` (008 + 009)
-3. **환경변수 설정** — Vercel에 OAuth 관련 3개 등록
-4. **Meta Developer Console** — 앱 등록 + Redirect URI 설정
-5. **통합 테스트** — 브라우저에서 Threads 연결 → 클립 저장 → 캐러셀 이미지 추출 확인
+1. **DB 마이그레이션** — `supabase db push` (008 + 009)
+2. **환경변수 설정** — Vercel에 OAuth 관련 3개 등록
+3. **Meta Developer Console** — 앱 등록 + Redirect URI 설정
+4. **통합 테스트** — 브라우저에서 Threads 연결 → 클립 저장 → 캐러셀 이미지 추출 확인
+5. **Vercel 배포** — 모든 설정 완료 후 프로덕션 배포
