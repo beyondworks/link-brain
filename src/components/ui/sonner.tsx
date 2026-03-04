@@ -14,19 +14,30 @@ import { toast, Toaster as Sonner, type ToasterProps } from "sonner"
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
-  // Click/touch anywhere on a toast to dismiss it
+  // Tap/click anywhere on a toast to dismiss it (distinguish from drag/swipe)
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    let startX = 0;
+    let startY = 0;
+    const onDown = (e: PointerEvent) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    };
+    const onUp = (e: PointerEvent) => {
+      // Ignore drags (> 8px movement)
+      if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) return;
       const target = e.target as HTMLElement;
-      // Don't dismiss if clicking a button or link inside the toast
       if (target.closest('button, a')) return;
       const toastEl = target.closest('[data-sonner-toast]');
       if (!toastEl) return;
       const id = toastEl.getAttribute('data-sonner-toast');
       if (id) toast.dismiss(id);
     };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('pointerup', onUp);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('pointerup', onUp);
+    };
   }, []);
 
   return (

@@ -52,6 +52,7 @@ const MODE_OPTIONS: { mode: ClipPeekMode; icon: React.ElementType; label: string
 function ImageSlideshow({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0);
   const [errored, setErrored] = useState<Set<number>>(new Set());
+  const [loaded, setLoaded] = useState(false);
 
   const validImages = images.filter((_, i) => !errored.has(i));
   if (validImages.length === 0) return null;
@@ -60,7 +61,10 @@ function ImageSlideshow({ images }: { images: string[] }) {
   const actualSrc = validImages[displayIdx];
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border/60 shadow-card">
+    <div className={cn(
+      "relative overflow-hidden rounded-xl border border-border/60 shadow-card transition-opacity duration-300",
+      loaded ? "opacity-100" : "opacity-0 h-0"
+    )}>
       <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -69,6 +73,7 @@ function ImageSlideshow({ images }: { images: string[] }) {
           alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
           className="h-full w-full object-cover transition-opacity duration-300"
           referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
           onError={() => {
             const originalIdx = images.indexOf(actualSrc);
             if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));

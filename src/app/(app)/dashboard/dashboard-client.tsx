@@ -9,6 +9,7 @@ import { ClipList } from '@/components/clips/clip-list';
 import { ClipCard } from '@/components/clips/clip-card';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
+import { SaveProgressBar } from '@/components/clips/save-progress-bar';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
 import { useClips } from '@/lib/hooks/use-clips';
@@ -437,6 +438,9 @@ export function DashboardClient() {
       {filters.categoryId && (
         <ActiveCategoryBadge categoryId={filters.categoryId} />
       )}
+
+      {/* Save progress indicator */}
+      <SaveProgressBar />
 
       {/* Quick filters */}
       <div className="animate-fade-in-up animation-delay-100 mb-7 flex gap-2">

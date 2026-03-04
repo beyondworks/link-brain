@@ -30,6 +30,8 @@ interface UIState {
   omniSearchOpen: boolean;
   peekClipId: string | null;
   clipPeekMode: ClipPeekMode;
+  pendingSaveCount: number;
+  completedSaveCount: number;
 }
 
 interface UIActions {
@@ -56,6 +58,10 @@ interface UIActions {
   openClipPeek: (clipId: string) => void;
   closeClipPeek: () => void;
   setClipPeekMode: (mode: ClipPeekMode) => void;
+  incrementPendingSave: () => void;
+  completePendingSave: () => void;
+  failPendingSave: () => void;
+  resetSaveProgress: () => void;
 }
 
 const DEFAULT_FILTERS: UIFilters = {
@@ -87,6 +93,8 @@ export const useUIStore = create<UIState & UIActions>()(
       omniSearchOpen: false,
       peekClipId: null,
       clipPeekMode: 'side',
+      pendingSaveCount: 0,
+      completedSaveCount: 0,
 
       // Actions
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -156,6 +164,23 @@ export const useUIStore = create<UIState & UIActions>()(
       openClipPeek: (clipId) => set({ peekClipId: clipId }),
       closeClipPeek: () => set({ peekClipId: null }),
       setClipPeekMode: (mode) => set({ clipPeekMode: mode }),
+
+      incrementPendingSave: () =>
+        set((s) => ({ pendingSaveCount: s.pendingSaveCount + 1 })),
+
+      completePendingSave: () =>
+        set((s) => ({
+          pendingSaveCount: Math.max(0, s.pendingSaveCount - 1),
+          completedSaveCount: s.completedSaveCount + 1,
+        })),
+
+      failPendingSave: () =>
+        set((s) => ({
+          pendingSaveCount: Math.max(0, s.pendingSaveCount - 1),
+        })),
+
+      resetSaveProgress: () =>
+        set({ pendingSaveCount: 0, completedSaveCount: 0 }),
     }),
     {
       name: 'linkbrain-ui',
