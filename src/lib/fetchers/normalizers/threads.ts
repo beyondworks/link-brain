@@ -213,6 +213,56 @@ const parseTaggedComment = (comment: string): { handle: string; text: string } =
     };
 };
 
+/**
+ * Detect and split comments from body text when no Comments(N) marker exists.
+ * Uses pattern: `@?username · timestamp` where username differs from authorHandle.
+ * Safety: requires at least 2 comment signatures; cancels if body < 50 chars.
+ */
+export function detectAndSplitComments(
+    text: string,
+    authorHandle: string
+): { body: string; commentsRaw: string } {
+    const author = authorHandle.replace(/^@/, '').trim().toLowerCase();
+    const paragraphs = text.split(/\n{2,}/);
+
+    // Pattern: "username · time" or "@username · time" (Jina common format)
+    // Time patterns: "2025-12-03", "2d", "3h", "1w", "12월 3일", "Dec 3"
+    const commentSigRegex = /^@?([a-zA-Z0-9_.]+)\s*·\s*(\d{4}-\d{2}-\d{2}|\d+[dhmsw]|[\d]+월\s*[\d]+일|[A-Z][a-z]{2}\s+\d{1,2})/;
+
+    let firstCommentIdx = -1;
+    let sigCount = 0;
+
+    for (let i = 0; i < paragraphs.length; i++) {
+        const line = paragraphs[i].trim();
+        const match = line.match(commentSigRegex);
+        if (!match) continue;
+
+        const handle = match[1].toLowerCase();
+        if (author && handle === author) continue; // author's own line — not a comment
+
+        sigCount++;
+        if (firstCommentIdx === -1) firstCommentIdx = i;
+    }
+
+    // Safety: need at least 2 comment signatures
+    if (sigCount < 2 || firstCommentIdx === -1) {
+        return { body: text, commentsRaw: '' };
+    }
+
+    const bodyParagraphs = paragraphs.slice(0, firstCommentIdx);
+    const commentParagraphs = paragraphs.slice(firstCommentIdx);
+
+    const body = bodyParagraphs.join('\n\n').trim();
+    const commentsRaw = commentParagraphs.join('\n\n').trim();
+
+    // Safety: if body is too short after split, cancel
+    if (body.length < 50) {
+        return { body: text, commentsRaw: '' };
+    }
+
+    return { body, commentsRaw };
+}
+
 export function normalizeThreads(raw: string, options: NormalizeThreadsOptions = {}): string {
     if (!raw) return '';
 
@@ -227,9 +277,20 @@ export function normalizeThreads(raw: string, options: NormalizeThreadsOptions =
     text = removeMetadata(text);
     text = deduplicateParagraphs(text);
 
-    const parts = text.split(/Comments?\s*\(\d+\)/i);
-    const bodyRaw = parts[0] || '';
-    const commentsRaw = parts[1] || '';
+    // Try marker-based split first, then pattern-based detection
+    const hasMarker = /Comments?\s*\(\d+\)/i.test(text);
+    let bodyRaw: string;
+    let commentsRaw: string;
+
+    if (hasMarker) {
+        const parts = text.split(/Comments?\s*\(\d+\)/i);
+        bodyRaw = parts[0] || '';
+        commentsRaw = parts[1] || '';
+    } else {
+        const detected = detectAndSplitComments(text, authorHandle);
+        bodyRaw = detected.body;
+        commentsRaw = detected.commentsRaw;
+    }
 
     const bodyLines = bodyRaw
         .split('\n')

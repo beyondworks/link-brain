@@ -2,19 +2,16 @@
  * Threads Fetcher — Platform-specific fetcher for Threads posts
  *
  * Handles:
- * 1. Puppeteer extraction (author handle, author-only chain, embedded links)
- * 2. Jina Reader supplement for comments (preserves Puppeteer body)
- * 3. Threads normalization with bug fixes:
- *    - B1: cleanLine() no longer strips external hyperlinks
- *    - B2: Jina supplement appends comments instead of replacing body
- *    - Paragraph separation between author's sub-thread posts
+ * 1. OAuth API extraction (own posts, when token available)
+ * 2. Jina Reader as primary extractor (other users' posts)
+ * 3. HTML fallback for carousel image extraction
+ * 4. Threads normalization with comment detection
  */
 
-import { extractWithPuppeteer } from './puppeteer-extractor';
 import { normalizeThreads } from './normalizers/threads';
 import { validateUrl } from './url-validator';
 import { ENABLE_THREADS_AUTHOR_ONLY_CHAIN } from './feature-flags';
-import { fetchWithTimeout, extractImagesFromMarkdown, splitThreadsSections, buildThreadsSections, selectBetterText } from './utils';
+import { fetchWithTimeout, extractImagesFromMarkdown, extractImagesFromHtml } from './utils';
 import { extractWithThreadsAPI } from '@/lib/oauth/threads-api';
 import type { FetchedUrlContent, PlatformFetcher, PlatformFetcherOptions } from './types';
 
@@ -38,6 +35,15 @@ const applyThreadsNormalization = (content: FetchedUrlContent): FetchedUrlConten
 // JINA READER (lightweight, Threads-specific)
 // ============================================================================
 
+interface JinaData {
+    title?: string;
+    description?: string;
+    content?: string;
+    html?: string;
+    url?: string;
+    images?: Array<string | { src?: string; url?: string; alt?: string }>;
+}
+
 const extractWithJina = async (url: string, authorHandle: string = ''): Promise<FetchedUrlContent> => {
     try {
         const jinaUrl = `https://r.jina.ai/${url}`;
@@ -52,21 +58,31 @@ const extractWithJina = async (url: string, authorHandle: string = ''): Promise<
             return { rawText: '', images: [] };
         }
 
-        const data = await response.json() as { data?: { content?: string }; content?: string };
-        const rawContent = data.data?.content || data.content || '';
+        const json = await response.json() as { data?: JinaData; content?: string };
+        const structured = (json.data ?? json) as JinaData;
+        const rawContent = structured.content || '';
 
         if (!rawContent || rawContent.length < 20) {
             return { rawText: '', images: [] };
         }
 
+        // Extract images from markdown content
         const images = extractImagesFromMarkdown(rawContent);
+
+        // Also extract from Jina structured image data
+        if (structured.images && Array.isArray(structured.images)) {
+            for (const img of structured.images) {
+                const imgUrl = typeof img === 'string' ? img : (img.src || img.url || '');
+                if (imgUrl && !images.includes(imgUrl)) images.push(imgUrl);
+            }
+        }
 
         const cleaned = normalizeThreads(rawContent, {
             authorHandle,
             authorOnlyChain: ENABLE_THREADS_AUTHOR_ONLY_CHAIN
         });
 
-        return { rawText: cleaned, images };
+        return { rawText: cleaned, images, title: structured.title };
     } catch (error) {
         console.error('[Threads Fetcher/Jina] Error:', error);
         return { rawText: '', images: [] };
@@ -92,6 +108,31 @@ const extractAuthorFromThreadsUrl = (url: string): string => {
 };
 
 // ============================================================================
+// HTML IMAGE FALLBACK
+// ============================================================================
+
+/**
+ * When Jina returns 0-1 images, fetch HTML directly and extract scontent CDN URLs.
+ * This recovers carousel images that OG tags miss.
+ */
+const extractThreadsImagesFromHtml = async (url: string): Promise<string[]> => {
+    try {
+        const res = await fetchWithTimeout(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                'Accept': 'text/html',
+            },
+        }, 8000);
+        if (!res.ok) return [];
+
+        const html = await res.text();
+        return extractImagesFromHtml(html);
+    } catch {
+        return [];
+    }
+};
+
+// ============================================================================
 // MAIN FETCHER
 // ============================================================================
 
@@ -103,7 +144,6 @@ export class ThreadsFetcher implements PlatformFetcher {
             return { rawText: '', images: [] };
         }
 
-        // Extract author from URL as baseline metadata
         const urlAuthor = extractAuthorFromThreadsUrl(url);
 
         // ── OAuth API path (when token available) ──
@@ -111,45 +151,68 @@ export class ThreadsFetcher implements PlatformFetcher {
             try {
                 const apiResult = await extractWithThreadsAPI(url, options.oauthToken);
                 if (apiResult && apiResult.rawText) {
-                    // Ensure author metadata
                     if (!apiResult.authorHandle && urlAuthor) {
                         apiResult.authorHandle = `@${urlAuthor}`;
                         apiResult.author = apiResult.author || urlAuthor;
                     }
                     return apiResult;
                 }
-                // API returned null (post not found / not owned) — fall through to Jina
             } catch (apiErr) {
                 console.warn('[Threads Fetcher] API extraction failed, falling back:', apiErr);
             }
         }
 
+        // ── Jina Reader path (primary for non-owned posts) ──
         try {
-            // Step 1: Puppeteer extraction (primary)
-            const puppeteerResult = await extractWithPuppeteer(url);
-
-            // Ensure author metadata from URL is always present
-            if (!puppeteerResult.authorHandle && urlAuthor) {
-                puppeteerResult.authorHandle = `@${urlAuthor}`;
-                puppeteerResult.author = puppeteerResult.author || urlAuthor;
+            let jinaUrl = url;
+            if (url.includes('threads.com')) {
+                jinaUrl = url.replace('threads.com', 'threads.net');
             }
 
-            // Step 2: Check if result is usable
-            const textLower = (puppeteerResult.rawText || '').toLowerCase();
-            const hasLoginGate = textLower.includes('log in') || textLower.includes('sign up') ||
-                textLower.includes('로그인') || textLower.includes('가입');
+            const jinaResult = await extractWithJina(jinaUrl, urlAuthor);
 
-            const isWeak = !puppeteerResult.rawText ||
-                puppeteerResult.rawText.length < 200 ||
-                hasLoginGate;
-
-            if (!isWeak) {
-                return this.handleStrongPuppeteerResult(url, puppeteerResult);
+            if (!jinaResult.rawText || jinaResult.rawText.length < 50) {
+                console.warn('[Threads Fetcher] Jina returned insufficient content');
+                return {
+                    rawText: '',
+                    images: [],
+                    author: urlAuthor,
+                    authorHandle: urlAuthor ? `@${urlAuthor}` : undefined,
+                };
             }
 
-            console.warn(`[Threads Fetcher] Weak Puppeteer: ${puppeteerResult.rawText.length} chars, loginGate: ${hasLoginGate}`);
-            return this.handleWeakPuppeteerResult(url, puppeteerResult);
+            // Discard unrelated content (Jina sometimes returns trending/feed)
+            const jinaTextLower = jinaResult.rawText.toLowerCase();
+            const authorLower = urlAuthor.toLowerCase();
+            if (authorLower &&
+                !jinaTextLower.includes(authorLower) &&
+                (jinaTextLower.includes('trending') || jinaTextLower.includes('for you'))) {
+                console.warn('[Threads Fetcher] Jina returned unrelated content, discarding');
+                return {
+                    rawText: '',
+                    images: [],
+                    author: urlAuthor,
+                    authorHandle: urlAuthor ? `@${urlAuthor}` : undefined,
+                };
+            }
 
+            // Image enhancement: if Jina got <= 1 image, try HTML extraction
+            if (jinaResult.images.length <= 1) {
+                const htmlImages = await extractThreadsImagesFromHtml(jinaUrl);
+                if (htmlImages.length > jinaResult.images.length) {
+                    jinaResult.images = htmlImages;
+                }
+            }
+
+            // Ensure author metadata
+            if (!jinaResult.authorHandle && urlAuthor) {
+                jinaResult.authorHandle = `@${urlAuthor}`;
+            }
+            if (!jinaResult.author && urlAuthor) {
+                jinaResult.author = urlAuthor;
+            }
+
+            return applyThreadsNormalization(jinaResult);
         } catch (error) {
             console.error('[Threads Fetcher] Error:', error);
             return {
@@ -159,124 +222,5 @@ export class ThreadsFetcher implements PlatformFetcher {
                 authorHandle: urlAuthor ? `@${urlAuthor}` : undefined,
             };
         }
-    }
-
-    /**
-     * Puppeteer succeeded — check if we need Jina to supplement comments
-     * BUG FIX B2: Jina now appends comments instead of replacing body
-     */
-    private async handleStrongPuppeteerResult(
-        url: string,
-        puppeteerResult: FetchedUrlContent
-    ): Promise<FetchedUrlContent> {
-        const hasComments = puppeteerResult.rawText.includes('Comments(') ||
-            puppeteerResult.rawText.includes('[[[COMMENTS_SECTION]]]');
-
-        if (hasComments) {
-            return applyThreadsNormalization(puppeteerResult);
-        }
-
-        let jinaUrl = url;
-        if (url.includes('threads.com')) {
-            jinaUrl = url.replace('threads.com', 'threads.net');
-        }
-        const authorHandle = puppeteerResult.authorHandle || '';
-        const jinaSupplement = await extractWithJina(jinaUrl, authorHandle);
-
-        const jinaHasComments = jinaSupplement.rawText &&
-            (jinaSupplement.rawText.includes('Comments(') ||
-             jinaSupplement.rawText.includes('[[[COMMENTS_SECTION]]]') ||
-             jinaSupplement.rawText.length > puppeteerResult.rawText.length + 100);
-
-        if (jinaHasComments && jinaSupplement.rawText) {
-            const normalizedPuppeteer = applyThreadsNormalization(puppeteerResult);
-            const puppeteerSections = splitThreadsSections(normalizedPuppeteer.rawText);
-            const jinaSections = splitThreadsSections(jinaSupplement.rawText);
-
-            const mergedBody = puppeteerSections.body || jinaSections.body;
-            const mergedComments = jinaSections.comments.length > puppeteerSections.comments.length
-                ? jinaSections.comments
-                : puppeteerSections.comments;
-
-            const mergedText = buildThreadsSections(mergedBody, mergedComments);
-
-            return {
-                ...normalizedPuppeteer,
-                rawText: mergedText,
-                rawTextOriginal: puppeteerResult.rawText,
-                embeddedLinks: puppeteerResult.embeddedLinks
-            };
-        }
-
-        return applyThreadsNormalization(puppeteerResult);
-    }
-
-    /**
-     * Puppeteer was weak — use Jina as primary with Puppeteer metadata
-     */
-    private async handleWeakPuppeteerResult(
-        url: string,
-        puppeteerResult: FetchedUrlContent
-    ): Promise<FetchedUrlContent> {
-        let jinaUrl = url;
-        if (url.includes('threads.com')) {
-            jinaUrl = url.replace('threads.com', 'threads.net');
-        }
-
-        const authorHandle = puppeteerResult.authorHandle || '';
-        const jinaResult = await extractWithJina(jinaUrl, authorHandle);
-
-        if (jinaResult.rawText && jinaResult.rawText.length > 50) {
-            const jinaTextLower = jinaResult.rawText.toLowerCase();
-            const authorLower = authorHandle.toLowerCase();
-
-            const hasUnrelatedContent = authorLower &&
-                !jinaTextLower.includes(authorLower) &&
-                (jinaTextLower.includes('fifa') || jinaTextLower.includes('world cup') ||
-                 jinaTextLower.includes('champions') || jinaTextLower.includes('trending') ||
-                 jinaTextLower.includes('for you'));
-
-            if (hasUnrelatedContent) {
-                console.warn('[Threads Fetcher] Jina returned unrelated content, discarding');
-                return applyThreadsNormalization({
-                    ...puppeteerResult,
-                    rawText: '',
-                });
-            }
-
-            if (ENABLE_THREADS_AUTHOR_ONLY_CHAIN) {
-                const normalizedPuppeteer = applyThreadsNormalization({
-                    ...puppeteerResult,
-                    authorHandle: authorHandle || puppeteerResult.authorHandle
-                });
-
-                const puppeteerSections = splitThreadsSections(normalizedPuppeteer.rawText);
-                const jinaSections = splitThreadsSections(jinaResult.rawText);
-                const mergedBody = selectBetterText(puppeteerSections.body, jinaSections.body);
-                const mergedText = buildThreadsSections(mergedBody, puppeteerSections.comments);
-
-                return {
-                    ...normalizedPuppeteer,
-                    rawText: mergedText,
-                    rawTextOriginal: jinaResult.rawText || normalizedPuppeteer.rawTextOriginal,
-                    embeddedLinks: puppeteerResult.embeddedLinks || jinaResult.embeddedLinks
-                };
-            }
-
-            const merged: FetchedUrlContent = {
-                rawText: jinaResult.rawText,
-                htmlContent: jinaResult.htmlContent || puppeteerResult.htmlContent,
-                images: puppeteerResult.images.length > 0 ? puppeteerResult.images : jinaResult.images,
-                author: puppeteerResult.author || jinaResult.author,
-                authorAvatar: puppeteerResult.authorAvatar || jinaResult.authorAvatar,
-                authorHandle: puppeteerResult.authorHandle || jinaResult.authorHandle,
-                finalUrl: jinaUrl,
-                embeddedLinks: puppeteerResult.embeddedLinks
-            };
-            return applyThreadsNormalization(merged);
-        }
-
-        console.warn('[Threads Fetcher] Both Puppeteer and Jina failed');
-        return applyThreadsNormalization(puppeteerResult);
     }
 }

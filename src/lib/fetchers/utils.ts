@@ -205,3 +205,58 @@ export const fetchOgImage = async (url: string): Promise<string | null> => {
     const meta = await fetchOgMeta(url);
     return meta.image;
 };
+
+/**
+ * Extract image URLs from raw HTML, targeting scontent CDN URLs.
+ * Checks JSON-LD scripts and raw scontent patterns.
+ * Excludes profile pictures (s150x150 etc.) and deduplicates.
+ */
+export const extractImagesFromHtml = (html: string): string[] => {
+    const images = new Set<string>();
+
+    // 1. JSON-LD <script> blocks — look for "image" fields
+    const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    let jsonLdMatch;
+    while ((jsonLdMatch = jsonLdRegex.exec(html)) !== null) {
+        try {
+            const parsed = JSON.parse(jsonLdMatch[1]) as Record<string, unknown>;
+            const extractFromObj = (obj: unknown): void => {
+                if (!obj || typeof obj !== 'object') return;
+                if (Array.isArray(obj)) {
+                    for (const item of obj) extractFromObj(item);
+                    return;
+                }
+                const record = obj as Record<string, unknown>;
+                for (const [key, val] of Object.entries(record)) {
+                    if ((key === 'image' || key === 'contentUrl' || key === 'thumbnailUrl') && typeof val === 'string') {
+                        if (val.includes('scontent') && val.includes('cdninstagram.com')) {
+                            images.add(val);
+                        }
+                    } else if (typeof val === 'object') {
+                        extractFromObj(val);
+                    }
+                }
+            };
+            extractFromObj(parsed);
+        } catch {
+            // malformed JSON-LD, skip
+        }
+    }
+
+    // 2. Raw scontent CDN URLs in HTML (src attributes, meta content, inline JSON)
+    const scontentRegex = /https?:\/\/scontent[a-z0-9-]*\.cdninstagram\.com\/[^\s"'<>)]+/gi;
+    let scontentMatch;
+    while ((scontentMatch = scontentRegex.exec(html)) !== null) {
+        images.add(scontentMatch[0]);
+    }
+
+    // 3. Filter out profile pictures (small thumbnails like s150x150, p150x150)
+    const profilePicPattern = /[/]s\d{2,3}x\d{2,3}[/]|[/]p\d{2,3}x\d{2,3}[/]/;
+    const filtered: string[] = [];
+    for (const url of images) {
+        if (profilePicPattern.test(url)) continue;
+        filtered.push(url);
+    }
+
+    return filtered;
+};
