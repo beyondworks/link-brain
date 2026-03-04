@@ -5,8 +5,6 @@
  * Fetches raw HTML, parses with JSDOM, extracts with Readability.
  */
 
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
 import { validateUrl } from './url-validator';
 import { fetchWithTimeout, extractImagesFromHtml } from './utils';
 import type { FetchedUrlContent } from './types';
@@ -39,6 +37,10 @@ export async function extractWithReadability(url: string): Promise<FetchedUrlCon
     if (!html || html.length < 100) {
       return { rawText: '', images: [] };
     }
+
+    // Dynamic import to avoid ESM require() error on Vercel
+    const { JSDOM } = await import('jsdom');
+    const { Readability } = await import('@mozilla/readability');
 
     const dom = new JSDOM(html, { url });
     const reader = new Readability(dom.window.document);
