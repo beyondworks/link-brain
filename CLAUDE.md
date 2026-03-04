@@ -88,6 +88,11 @@ Pretendard Variable. text-xs(12) / text-sm(14) / text-base(16) / text-lg(18) / t
 - **Auth 게이트 감지**: `hasAuthGate()`는 `@/lib/fetchers/utils.ts`에서 import. 인라인 재구현 금지
 - **DB batch 패턴**: 반복문 안에서 개별 INSERT 금지 → batch upsert + re-query 패턴 사용 (예: `autoTagClip`)
 
+### Fetcher/Normalizer 규칙
+- **정규화 1회 원칙**: `normalizeThreads()`는 파이프라인에서 정확히 1회만 호출 (`applyThreadsNormalization`에서만). extractor 내부에서 중복 호출 금지
+- **썸네일 필터**: `isLowQualityThumb()` 사용 — `s`/`p`-prefix + `t51.2885-19` 경로 모두 필터링. 경로 구분자 `[/]` 필수
+- **Radix ScrollArea 제한**: flex column 내 스크롤 영역에 ScrollArea 사용 금지 → `<div className="min-h-0 flex-1 overflow-y-auto">` 사용
+
 ### 오버레이/그라데이션
 - 콘텐츠 위에 겹치는 그라데이션 div는 반드시 `pointer-events-none` 추가 (CollapsibleSection 등)
 

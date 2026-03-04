@@ -1,72 +1,67 @@
 # Session Handover
 
-## 날짜: 2026-03-04 (세션 16 — 미커밋 정리 + 문서화)
+## 날짜: 2026-03-04 (세션 17 — TDD 4건 수정 + 학습 문서화)
 
 ---
 
-## 전체 커밋 히스토리
+## 커밋 히스토리 (최근)
 
 | 해시 | 설명 |
 |------|------|
-| `0da8340` | docs: CLAUDE.md에 중복 방지 규칙 + 오버레이 가이드 추가 |
-| `58828e9` | refactor: 코드 정리 — batch upsert, 이중 호출 제거, regex 최적화 |
-| `ea899d6` | feat: fetcher 개선 + UI 업데이트 + 중복 제거 + DB 마이그레이션 |
-| `3674cbd` | refactor: auth identity 분리 — publicUserId 전환 |
-| `4a925f7` | docs: session 15 handover — /simplify 코드 정리 |
-| `2567b4a` | docs: session 14 handover — Threads OAuth 연동 완성 |
-| `5c07039` | feat: Threads OAuth 연동 + 미디어 추출 개선 |
-| `1b752c2` | fix: DB 마이그레이션 적용 + as any 정리 + omni_search 구문 수정 |
-| ... | (이전 세션 커밋) |
+| `a1ac268` | fix: TDD 4건 — 이중 정규화, 알림 겹침, 쓰레기 이미지, 썸네일 해상도 |
+| `ad30180` | fix: UI 6건 개선 — 인사말 이름, 사이드바 인디케이터, 알림 오버플로우, 토스트, 썸네일, 하이퍼링크 |
+| `af9747d` | fix: next/image 도메인 fallback + 댓글 시그니처 감지 + 마크다운 이미지 정리 |
+| `719b11b` | fix: 이미지 로딩 + 댓글 분리 개선 |
+| `28259f7` | feat: Threads fetcher 품질 개선 — Jina primary + 댓글 감지 + 캐러셀 이미지 |
 
-**브랜치**: `feat/threads-oauth` → GitHub push 완료
+**브랜치**: `main` → GitHub push 완료
 
 ---
 
-## 세션 16 완료 작업
+## 세션 17 완료 작업
 
-### 1. 미커밋 45파일 → 3커밋으로 정리 (세션 15 말미)
+### 1. TDD 4건 수정 (`a1ac268`, 7파일)
 
-세션 13~15에 걸쳐 쌓인 미커밋 45파일을 논리적 단위 3개로 분리 커밋:
+| 이슈 | 원인 | 수정 |
+|------|------|------|
+| 콘텐츠/서브콘텐츠 편차 | extractWithJina + applyThreadsNormalization 이중 정규화 | Jina에서 raw 반환, 정규화 1회만 |
+| 알림 "지우기" 겹침 | Radix ScrollArea `size-full` flex 비호환 | plain `div overflow-y-auto` 교체 |
+| 쓰레기 이미지 | 썸네일 필터 p-prefix 미감지 | `isLowQualityThumb` 확장 |
+| 썸네일 해상도 | 동일 (저해상도 선택) | 위와 동일 |
 
-| 커밋 | 파일 수 | 내용 |
-|------|---------|------|
-| `3674cbd` | 28개 | Auth identity 분리 — API routes `auth.userId` → `auth.publicUserId` 전환 |
-| `ea899d6` | 19개 | Fetcher 개선, UI 중복 제거, DB 마이그레이션 008, 신규 파일 5개 |
-| `58828e9` | 3개 | 코드 정리 — batch upsert, 이중 호출 제거, regex 최적화 |
+추가: `detectAndSplitComments` author 시그니처 → Strategy 2 스킵
 
-### 2. 학습 문서화
+### 2. 테스트 34개 추가 (3파일)
+- `threads.test.ts` (9): 이중 정규화, 댓글 감지, idempotency
+- `clip-content.test.ts` (13): splitContentSections, extractImagesFromContent
+- `image-filter.test.ts` (12): HTML 이미지 추출, 썸네일 패턴
 
-- **CLAUDE.md**: 중복 방지 규칙 (플랫폼 상수, 클립 유틸, auth 게이트, DB batch) + 오버레이/그라데이션 가이드 추가
-- **~/.claude/rules/workflow.md**: 리팩터링/정리 섹션 + 커밋 전략 (대량 변경) 섹션 추가
-- **~/.claude/rules/principles.md**: 컨텍스트 압축 후 파일 존재 확인 규칙 추가
+### 3. UI 6건 수정 (`ad30180`)
+인사말 이름, 사이드바 인디케이터, 알림 오버플로우, 토스트 dismiss, 썸네일, 하이퍼링크
 
-### 3. 잔여 디렉토리 정리
-
-- `src/hooks/mutations/` 삭제 (use-annotations.ts 잔여물 — 이미 `src/lib/hooks/`에 통합 완료)
+### 4. 학습 문서화
+- **MEMORY.md**: 200줄 이내 재구성, 토픽 파일 3개 분리
+  - `file-map.md`: 파일 위치 인덱스
+  - `fetcher-patterns.md`: Threads fetcher 파이프라인, CDN URL 패턴, 댓글 감지
+  - `debugging-learnings.md`: 7가지 버그 패턴 + 해결법
+- **CLAUDE.md**: Fetcher/Normalizer 규칙 3개 추가 (정규화 1회, 썸네일 필터, ScrollArea 제한)
+- **rules/principles.md**: 반복 UI 버그 구조 점검, 이중 변환 방지 규칙
+- **rules/workflow.md**: TDD 학습 섹션 (테스트 URL 오탐, cascade 검증, E2E 확인)
 
 ---
 
-## 미커밋 변경사항
-
-없음 — 작업 트리 깨끗한 상태.
-
----
-
-## 미완료 사항
+## 미완료
 
 ### P0 — 프로덕션 필수
-- [x] ~~미커밋 45파일 커밋~~ (완료)
-- [ ] `008_platform_check_update.sql` DB 적용 (`supabase db push`)
-- [ ] `009_oauth_connections.sql` DB 적용 (`supabase db push`)
+- [ ] `008_platform_check_update.sql` + `009_oauth_connections.sql` DB 적용
 - [ ] 환경변수 Vercel 등록: `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET`, `OAUTH_ENCRYPTION_KEY`
-- [ ] Meta Developer Console: Redirect URI 등록 (`https://linkbrain.cloud/api/v1/oauth/callback`)
-- [ ] Vercel 배포
+- [ ] Meta Developer Console: Redirect URI 등록
+- [ ] Vercel 배포 + 프로덕션 검증
 
-### P1 — 기능 완성
-- [ ] pgvector 임베딩 + 지식 그래프 RPC
-- [ ] 실시간 알림 (Supabase Realtime → push)
+### P1 — 기능/테스트
+- [ ] `use-dashboard-stats.test.ts` mock chain 수정 (기존 실패 2건)
+- [ ] E2E 클립 저장 검증 (Threads URL → 이미지 3장 + 댓글 미포함)
 - [ ] 웹훅 실제 HTTP 발송
-- [ ] 결제 UI (LemonSqueezy 체크아웃)
 - [ ] `supabase gen types typescript` → `as any` 30개 제거
 
 ### P2 — 품질
@@ -77,22 +72,23 @@
 
 ## 에러/학습
 
-### 대량 미커밋 파일 커밋 전략
-- **상황**: 45파일이 세션 3개에 걸쳐 미커밋 누적
-- **해결**: 논리적 단위 3그룹 (auth / features / cleanup)으로 분리
-- **규칙**: 1파일은 2커밋에 나눌 수 없음, 새 export를 import하는 파일은 export 파일과 동일 커밋에
+### 잘한 점
+1. **TDD 규율**: 34개 테스트 RED 확인 → GREEN 구현 순서 준수
+2. **근본 원인 도달**: 알림 겹침 4번째 시도에서 "ScrollArea 자체" 식별
+3. **이중 변환 발견**: grep으로 `normalizeThreads` 호출 2곳 식별
+4. **Strategy cascade 설계**: author 플래그를 Strategy 2에 전달
 
-### 컨텍스트 압축 후 파일 유실
-- **상황**: `/simplify`에서 생성한 `clip-content.ts`가 compaction 후 소실
-- **해결**: 파일 존재 확인 후 재생성
-- **규칙**: compaction 후 이전 Write/Edit 결과 유실 가능 → 작업 재개 시 파일 존재 여부 확인 필수
+### 실수/교훈
+1. **증상 치료 반복**: 알림 겹침을 CSS 속성(break-all, line-clamp)으로 3회 시도 → 구조 문제였음
+2. **테스트 URL 오탐**: `t51.2885-19`가 다른 패턴 먼저 매칭 → 테스트 무의미
+3. **정규화 호출 산재**: extractor + caller 양쪽에서 호출 → 파이프라인 원칙 위반
 
 ---
 
 ## 다음 세션 시작 시
 
-1. **DB 마이그레이션** — `supabase db push` (008 + 009)
-2. **환경변수 설정** — Vercel에 OAuth 관련 3개 등록
-3. **Meta Developer Console** — 앱 등록 + Redirect URI 설정
-4. **통합 테스트** — 브라우저에서 Threads 연결 → 클립 저장 → 캐러셀 이미지 추출 확인
-5. **Vercel 배포** — 모든 설정 완료 후 프로덕션 배포
+1. `MEMORY.md` + `SESSION_HANDOVER.md` 읽기
+2. DB 마이그레이션: `supabase db push` (008 + 009)
+3. `use-dashboard-stats.test.ts` mock chain 수정
+4. E2E: Threads URL 클리핑 → 이미지/콘텐츠/댓글 분리 확인
+5. Vercel 환경변수 + 배포
