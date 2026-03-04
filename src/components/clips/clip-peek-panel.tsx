@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarkdownContent } from '@/components/clips/markdown-content';
 import {
   Star,
@@ -38,7 +39,7 @@ import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutati
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
-import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent } from '@/lib/utils/clip-content';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -66,13 +67,14 @@ function ImageSlideshow({ images }: { images: string[] }) {
       loaded ? "opacity-100" : "opacity-0"
     )}>
       <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           key={actualSrc}
           src={actualSrc}
           alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
-          className="h-full w-full object-cover transition-opacity duration-300"
-          referrerPolicy="no-referrer"
+          fill
+          unoptimized={!isProxiableImageUrl(actualSrc)}
+          className="object-cover transition-opacity duration-300"
+          sizes="(max-width: 560px) 100vw, 560px"
           onLoad={() => setLoaded(true)}
           onError={() => {
             const originalIdx = images.indexOf(actualSrc);

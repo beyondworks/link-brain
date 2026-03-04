@@ -6,6 +6,16 @@
  */
 import type { ClipContent } from '@/types/database';
 
+/** Check if image URL can be proxied through Next.js image optimization */
+export function isProxiableImageUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return /\.supabase\.co$|^i\.ytimg\.com$|^img\.youtube\.com$|\.googleusercontent\.com$|\.cdninstagram\.com$|^pbs\.twimg\.com$|\.redd\.it$|^miro\.medium\.com$|^i\.pinimg\.com$|^opengraph\.githubassets\.com$|^media\.licdn\.com$|\.pstatic\.net$/.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Extract YouTube video ID from various URL formats */
 export function extractYouTubeVideoId(url: string): string | null {
   const patterns = [
@@ -53,6 +63,8 @@ export function cleanDisplayContent(text: string): string {
   let t = text;
   // Remove CLIP_GALLERY HTML comments
   t = t.replace(/<!--\s*CLIP_GALLERY:[^>]*-->/g, '');
+  // Remove markdown images (shown in image slideshow above)
+  t = t.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
   // Remove standalone "-Author" / "·Author" / "- Author" lines
   t = t.replace(/^[-·]\s*Author\s*$/gm, '');
   // Remove lines that are just "Author"
@@ -114,22 +126,43 @@ export function splitContentSections(text: string): { body: string; subContent: 
     if (body && sub) return { body, subContent: sub };
   }
 
-  // 5. Trailing short reaction paragraphs (display-time comment heuristic)
+  // 5–6. Paragraph-based heuristics
+  const paras = text.split(/\n{2,}/);
+
+  // 5. Social media comment signatures (e.g., "username · 2d", "handle · 2025-12-03")
+  if (paras.length >= 3) {
+    const sigRe = /^@?[a-zA-Z0-9_][\w.]{0,29}\s+[·•]\s+\S/;
+    let firstCommentIdx = -1;
+    let sigCount = 0;
+    for (let i = 0; i < paras.length; i++) {
+      const firstLine = paras[i].trim().split('\n')[0];
+      if (sigRe.test(firstLine)) {
+        sigCount++;
+        if (firstCommentIdx === -1) firstCommentIdx = i;
+      }
+    }
+    if (sigCount >= 2 && firstCommentIdx > 0) {
+      const bodyPart = paras.slice(0, firstCommentIdx).join('\n\n').trim();
+      const commentPart = paras.slice(firstCommentIdx).map((p) => p.trim()).filter(Boolean).join('\n\n---\n\n');
+      if (bodyPart && commentPart) return { body: stripJinaFooter(bodyPart), subContent: commentPart };
+    }
+  }
+
+  // 6. Trailing short reaction paragraphs (display-time comment heuristic)
   // If the last substantive paragraph (≥60 chars) is followed by 2+ short paragraphs (<60 chars),
   // split them as comments. This catches social media replies not caught by normalizer markers.
-  const paragraphs = text.split(/\n{2,}/);
-  if (paragraphs.length >= 3) {
+  if (paras.length >= 3) {
     let lastSubstantiveIdx = -1;
-    for (let i = 0; i < paragraphs.length; i++) {
-      if (paragraphs[i].trim().length >= 60) {
+    for (let i = 0; i < paras.length; i++) {
+      if (paras[i].trim().length >= 60) {
         lastSubstantiveIdx = i;
       }
     }
-    if (lastSubstantiveIdx >= 0 && lastSubstantiveIdx < paragraphs.length - 1) {
-      const trailing = paragraphs.slice(lastSubstantiveIdx + 1);
+    if (lastSubstantiveIdx >= 0 && lastSubstantiveIdx < paras.length - 1) {
+      const trailing = paras.slice(lastSubstantiveIdx + 1);
       const allShort = trailing.every((p) => p.trim().length < 60);
       if (allShort && trailing.length >= 2) {
-        const body = stripJinaFooter(paragraphs.slice(0, lastSubstantiveIdx + 1).join('\n\n'));
+        const body = stripJinaFooter(paras.slice(0, lastSubstantiveIdx + 1).join('\n\n'));
         const sub = trailing.map((p) => p.trim()).filter(Boolean).join('\n\n---\n\n');
         if (body && sub) return { body, subContent: sub };
       }

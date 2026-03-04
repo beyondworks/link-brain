@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
+import { isProxiableImageUrl } from '@/lib/utils/clip-content';
 import type { ClipData } from '@/types/database';
 
 interface ClipCardProps {
@@ -98,6 +99,7 @@ export const ClipCard = memo(function ClipCard({
             src={clip.image}
             alt={clip.title ?? ''}
             fill
+            unoptimized={!isProxiableImageUrl(clip.image)}
             className="img-zoom object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />

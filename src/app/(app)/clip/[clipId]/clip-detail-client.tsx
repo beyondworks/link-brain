@@ -37,6 +37,7 @@ import {
   FileText,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { shareClip } from '@/lib/utils/share';
@@ -57,7 +58,7 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import { estimateReadingTime } from '@/lib/utils/reading-time';
-import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent } from '@/lib/utils/clip-content';
+import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
 import { MarkdownContent } from '@/components/clips/markdown-content';
 import type { ClipData, ClipContent } from '@/types/database';
 
@@ -263,17 +264,18 @@ function ImageSlideshow({ images }: { images: string[] }) {
   return (
     <div className="mb-5 animate-fade-in-up animation-delay-250">
       <div className="relative overflow-hidden rounded-2xl border border-border/60 shadow-card">
-        <div className="relative w-full" style={{ aspectRatio: validImages.length === 1 ? undefined : '16/10' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
+          <Image
             key={actualSrc}
             src={actualSrc}
             alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
+            fill
+            unoptimized={!isProxiableImageUrl(actualSrc)}
             className={cn(
-              'w-full transition-opacity duration-300',
-              validImages.length === 1 ? 'object-contain max-h-[600px]' : 'h-full object-cover',
+              'transition-opacity duration-300',
+              validImages.length === 1 ? 'object-contain' : 'object-cover',
             )}
-            referrerPolicy="no-referrer"
+            sizes="(max-width: 768px) 100vw, 768px"
             onError={() => {
               const originalIdx = images.indexOf(actualSrc);
               if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
