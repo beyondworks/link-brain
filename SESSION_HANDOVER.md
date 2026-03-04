@@ -1,6 +1,6 @@
 # Session Handover
 
-## 날짜: 2026-03-04 (세션 14 — Threads OAuth 연동 완성)
+## 날짜: 2026-03-04 (세션 15 — /simplify 코드 정리)
 
 ---
 
@@ -8,99 +8,78 @@
 
 | 해시 | 설명 |
 |------|------|
+| `2567b4a` | docs: session 14 handover — Threads OAuth 연동 완성 |
 | `5c07039` | feat: Threads OAuth 연동 + 미디어 추출 개선 |
 | `1b752c2` | fix: DB 마이그레이션 적용 + as any 정리 + omni_search 구문 수정 |
 | `a56619b` | fix: [object Object] 토스트 + 설정 네비 + console.log 정리 + 훅 통합 |
 | `f917cb1` | docs: MEMORY.md + SESSION_HANDOVER.md 세션 11 업데이트 |
 | ... | (이전 세션 커밋) |
 
-**브랜치**: `feat/threads-oauth` → GitHub push 완료 (`https://github.com/beyondworks/link-brain.git`)
+**브랜치**: `feat/threads-oauth` → GitHub push 완료
 
 ---
 
-## 세션 14 완료 작업
+## 세션 15 완료 작업
 
-### 1. Threads OAuth 전체 구현 (5단계 플랜 완수)
+### 1. /simplify 코드 리뷰 + 정리
 
-#### 1-1. DB 마이그레이션
-- **`009_oauth_connections.sql`** — `oauth_connections` 테이블 생성, RLS 적용, UNIQUE(user_id, provider)
-- 컬럼: id, user_id, provider, provider_user_id, provider_username, access_token(암호화), token_expires_at, scopes, connected_at, updated_at
+미커밋 44파일 변경분(+1457/-548)에 대해 3개 리뷰 에이전트 병렬 실행 (Code Reuse, Quality, Efficiency) 후 수정.
 
-#### 1-2. OAuth API 라우트 (3개)
-- **`authorize/route.ts`** — `GET /api/v1/oauth/authorize?provider=threads` → Threads OAuth URL 생성 + state 쿠키 (5분 TTL)
-- **`callback/route.ts`** — code → short-lived → long-lived 토큰 교환 → 프로필 조회 → 암호화 저장 → 설정 페이지 redirect
-- **`connections/route.ts`** — GET (연결 목록), DELETE (연결 해제)
+#### 코드 재사용 — 중복 제거 (~240줄)
 
-#### 1-3. 토큰 매니저
-- **`token-manager.ts`** — AES-256-GCM 암호화/복호화, 만료 7일 전 자동 갱신, upsert 저장
-- `btoa` loop 인코딩 (spread stack overflow 방지)
+- **`src/lib/utils/clip-content.ts`** (신규) — `extractYouTubeVideoId`, `extractImagesFromContent`, `splitContentSections` 공유 유틸 추출
+- **`clip-detail-client.tsx`** — 로컬 PLATFORM_COLORS, PLATFORM_ICONS, extractYouTubeVideoId, extractImagesFromContent, splitContentSections (normalize, stripJinaFooter 포함) 삭제 → 공유 모듈 import
+- **`clip-peek-panel.tsx`** — 동일 중복 삭제 → 공유 모듈 import
+- **`clip-card.tsx`** — 로컬 PLATFORM_COLORS/LABELS/GRADIENT_COLORS/getGradient 삭제 → `constants.ts` import
+- **`clip-row.tsx`** — 동일 중복 삭제 → `constants.ts` import
+- **`analyze/route.ts`** — 로컬 PLATFORM_LABELS 삭제 → `PLATFORM_LABELS_EN` import, 인라인 auth-gate 체크 → `hasAuthGate()` import
 
-#### 1-4. Threads API 클라이언트
-- **`threads-api.ts`** — `getThreadsProfile()`, `getMyThreads()`, `getThreadMedia()`, `getCarouselChildren()`
-- 본인 게시물 최근 50개에서 permalink 매칭 → 캐러셀/동영상 미디어 추출
+#### 품질 수정
 
-#### 1-5. Threads Fetcher 개선
-- **`threads-fetcher.ts`** — OAuth 토큰 있으면 API 우선 추출 (캐러셀 전체 이미지, 동영상 URL), 실패 시 Jina fallback
-- **`orchestrator.ts`** — `fetchUrlContent(url, options?)` 시그니처 확장
-- **`types.ts`** — `PlatformFetcherOptions.oauthToken` 추가
-- **`clips/route.ts`** — 클립 생성 시 사용자 Threads 토큰 조회 → fetcher에 전달
+- **`clip-peek-panel.tsx`** — CollapsibleSection 그라데이션 오버레이에 `pointer-events-none` 추가 (하단 텍스트 클릭 불가 버그 수정)
 
-#### 1-6. Settings UI
-- **`connected-accounts.tsx`** — 연결된 계정 섹션 (연결/해제 UI)
-- **`use-oauth-connections.ts`** — TanStack Query 훅 (목록 조회 + 해제 mutation)
-- **`settings-client.tsx`** — ConnectedAccounts 섹션 추가
+#### 효율성 수정
 
-#### 1-7. E2E 테스트
-- **`e2e/oauth-threads.spec.ts`** — 14개 테스트 (13 pass, 1 skip), Playwright 설정 추가
+- **`clip-service.ts`** — autoTagClip N+1 INSERT → batch upsert + re-query (N개 쿼리 → 2개)
+- **`utils.ts`** — fetchOgMeta `<title>` 정규식 2회 실행 → 1회로 수정
+- **`use-dashboard-preferences.ts`** — loadFromStorage useEffect 이중 호출 제거 (useState 초기화로 이미 처리)
 
-### 2. 아키텍트 검증 + 수정 (4건)
-- callback: 사용자 거부 시 oauth_state 쿠키 클리어 추가
-- callback: shortLived.user_id ↔ profile.id 크로스 체크 추가
-- token-manager: btoa spread → loop 인코딩 변경
-- connections: VALID_PROVIDERS를 authorize와 동기화 (`['threads']`만)
+#### 일관성
 
-### 3. Git 브랜치 + Push
-- `feat/threads-oauth` 브랜치 생성
-- `https://github.com/beyondworks/link-brain.git` remote 추가 + push 완료
+- **`constants.ts`** — PLATFORM_COLORS, PLATFORM_ICONS, PLATFORM_LABELS_EN, GRADIENT_COLORS, getGradient 중앙 집중화
+- 플랫폼 색상 통일: twitter `bg-sky-400` → `bg-sky-500`, web `bg-gray-400` → `bg-gray-500`
 
-### 4. Dev 서버 안정화
-- `.next` 캐시 충돌 해결 (빌드+dev 동시 실행으로 인한 corruption)
-- `.next` 삭제 후 dev 서버 재시작 → 정상 확인 (200 OK)
+### 2. 타입 검증
+
+- `npx tsc --noEmit` 통과 (`.next` 캐시 관련 TS2300 제외, 실제 소스 에러 0개)
 
 ---
 
-## 신규 파일 (커밋 완료)
+## 신규 파일 (미커밋)
 
 | 파일 | 용도 |
 |------|------|
-| `supabase/migrations/009_oauth_connections.sql` | oauth_connections 테이블 + RLS |
-| `src/app/api/v1/oauth/authorize/route.ts` | OAuth 인증 시작 |
-| `src/app/api/v1/oauth/callback/route.ts` | 콜백 처리 + 토큰 저장 |
-| `src/app/api/v1/oauth/connections/route.ts` | 연결 목록/해제 |
-| `src/lib/oauth/token-manager.ts` | 토큰 조회/갱신/암호화 |
-| `src/lib/oauth/threads-api.ts` | Threads Graph API 클라이언트 |
-| `src/lib/hooks/use-oauth-connections.ts` | TanStack Query 훅 |
-| `src/components/settings/connected-accounts.tsx` | 연결된 계정 UI |
-| `e2e/oauth-threads.spec.ts` | E2E 테스트 (14개) |
-| `playwright.config.ts` | Playwright 설정 |
+| `src/lib/utils/clip-content.ts` | 클립 콘텐츠 공유 유틸 (YouTube ID, 이미지 추출, 섹션 분할) |
 
 ---
 
 ## 미커밋 변경사항
 
-세션 13에서 미커밋 상태로 남아있는 파일 44개 (세션 14에서 커밋하지 않음):
+세션 13~15에서 미커밋 상태로 남아있는 파일 45개:
 - API routes 26개: `auth.userId` → `auth.publicUserId` 전환
 - Fetcher 개선: orchestrator, utils, web/youtube/naver fetcher
-- UI: clip-card, clip-list, clip-row, clip-peek-panel, sidebar-categories 등
-- DB: `008_platform_check_update.sql` (threads/naver/pinterest platform)
-- 신규: `ensure-user.ts`, `markdown-content.tsx`, `alert-dialog.tsx`, `full_migration.sql`
+- UI: clip-card, clip-list, clip-row, clip-peek-panel, clip-detail-client, sidebar-categories, add-clip-dialog
+- Config: constants.ts (플랫폼 맵 중앙 집중화)
+- DB: `008_platform_check_update.sql`
+- 서비스: clip-service.ts (autoTagClip batch upsert)
+- 신규: `clip-content.ts`, `ensure-user.ts`, `markdown-content.tsx`, `alert-dialog.tsx`, `full_migration.sql`
 
 ---
 
 ## 미완료 사항
 
 ### P0 — 프로덕션 필수
-- [ ] 세션 13 미커밋 44파일 커밋 (auth identity 분리 + fetcher 개선 + UI)
+- [ ] 미커밋 45파일 커밋 (auth identity 분리 + fetcher 개선 + UI + simplify 정리)
 - [ ] `008_platform_check_update.sql` DB 적용 (`supabase db push`)
 - [ ] `009_oauth_connections.sql` DB 적용 (`supabase db push`)
 - [ ] 환경변수 Vercel 등록: `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET`, `OAUTH_ENCRYPTION_KEY`
@@ -122,24 +101,23 @@
 
 ## 에러/학습
 
-### `.next` 캐시 충돌
-- **원인**: `npm run build`와 dev 서버 동시 실행 → `.next` 디렉토리 corruption → Internal Server Error
-- **해결**: `.next` 삭제 후 dev 서버 재시작
-- **교훈**: 빌드와 dev 서버는 절대 동시 실행 금지
+### CollapsibleSection 오버레이 클릭 차단
+- **원인**: 그라데이션 오버레이 div가 하단 콘텐츠 위에 겹쳐 클릭 이벤트 차단
+- **해결**: `pointer-events-none` 추가
 
-### btoa spread stack overflow
-- `btoa(String.fromCharCode(...combined))` — 큰 Uint8Array에서 stack overflow
-- **해결**: for 루프로 binary 문자열 생성 후 btoa
+### N+1 INSERT 패턴
+- **원인**: autoTagClip에서 각 미존재 태그마다 개별 INSERT
+- **해결**: 미존재 이름 수집 → batch upsert → re-query로 ID 획득 (N+1 → 2 쿼리)
 
-### macOS 파일 잠금
-- VSCode TypeScript server가 `.next` 파일을 잡고 있어 `rm -rf` hang
-- **해결**: VSCode 외부 터미널에서 삭제 실행
+### 플랫폼 색상 불일치
+- **원인**: 5개+ 파일에서 로컬 PLATFORM_COLORS 정의, 값이 미세하게 다름 (sky-400 vs sky-500)
+- **해결**: `constants.ts`에 단일 정의, 모든 소비자가 import
 
 ---
 
 ## 다음 세션 시작 시
 
-1. **세션 13 미커밋 파일 커밋** — `git diff --name-only`로 확인 후 적절한 메시지로 커밋
+1. **미커밋 45파일 커밋** — `git diff --name-only`로 확인 후 적절한 메시지로 커밋 (예: `refactor: simplify code + centralize constants + batch tag upsert`)
 2. **DB 마이그레이션** — `supabase db push` (008 + 009)
 3. **환경변수 설정** — Vercel에 OAuth 관련 3개 등록
 4. **Meta Developer Console** — 앱 등록 + Redirect URI 설정
