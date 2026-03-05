@@ -115,6 +115,8 @@ export const createClipSchema = z.object({
   url: z.string().url('Invalid URL format'),
   title: z.string().optional(),
   summary: z.string().optional(),
+  image: z.string().optional(),
+  author: z.string().optional(),
   category: z.string().optional(),
   keywords: z.array(z.string()).optional(),
   notes: z.string().optional(),

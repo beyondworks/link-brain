@@ -359,10 +359,20 @@ export const resolveDbPlatform = (
 // ─── Content preparation helpers ──────────────────────────────────────────────
 
 // Skip likely profile pictures and low-res thumbnails (Instagram/Threads CDN patterns)
-const isLowQualityThumb = (u: string) =>
-  /[/]s\d{2,3}x\d{2,3}[/]/.test(u) ||
-  /[/]p\d{2,3}x\d{2,3}[/]/.test(u) ||
-  /t51\.2885-19/.test(u);
+// Ref: Linkbrain v1 filterClipImages() — s150x150, p150x150, profile pics, avatars
+const isLowQualityThumb = (u: string) => {
+  const lower = u.toLowerCase();
+  // Size-based patterns (s150x150, p50x50, etc.)
+  if (/[/]s\d{2,3}x\d{2,3}[/]/.test(u)) return true;
+  if (/[/]p\d{2,3}x\d{2,3}[/]/.test(u)) return true;
+  // Profile picture path (Instagram/Threads CDN)
+  if (/t51\.2885-19/.test(u)) return true;
+  // Keyword-based (v1 BLOCKED_KEYWORDS)
+  if (lower.includes('profile') || lower.includes('avatar')) return true;
+  // Format-based
+  if (lower.endsWith('.svg') || lower.endsWith('.ico') || lower.endsWith('.gif')) return true;
+  return false;
+};
 
 /** Prepare images, content, and thumbnail from raw input */
 function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | null, language: string) {
@@ -378,6 +388,16 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
       if (!clipImages.includes(thumb)) clipImages.unshift(thumb);
     }
   }
+  // Filter out profile pictures and low-quality thumbnails before gallery (v1 filterClipImages logic)
+  clipImages = clipImages.filter((u) => !isLowQualityThumb(u));
+  // Deduplicate by URL path (ignore query params)
+  const seenPaths = new Set<string>();
+  clipImages = clipImages.filter((u) => {
+    const path = u.split('?')[0];
+    if (seenPaths.has(path)) return false;
+    seenPaths.add(path);
+    return true;
+  });
   clipImages = clipImages.slice(0, MAX_IMAGES);
 
   const title = metadata?.title ?? fallbackTitle(url, rawMarkdown);

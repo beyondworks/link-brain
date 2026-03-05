@@ -108,8 +108,8 @@ function removeMetadata(text: string): string {
     t = t.replace(/Thread\s*[-=]{3,}.*$/gm, '');
     t = t.replace(/Thread\s*[-=]{3,}\s*[\d.]+K?\s*views?/gi, '');
     t = t.replace(/\[Thread\s*[-=]{3,}[^\]]*\]/gi, '');
-    t = t.replace(/^Author$/gm, '');
-    t = t.replace(/^-Author$/gm, '');
+    t = t.replace(/^·?-?Author$/gm, '');
+    t = t.replace(/^Pinned$/gm, '');
     t = t.replace(/^Report a problem.*$/gm, '');
     t = t.replace(/^Related threads.*$/gm, '');
     t = t.replace(/^Log in to see.*$/gm, '');

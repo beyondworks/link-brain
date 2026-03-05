@@ -249,8 +249,8 @@ export const ClipCard = memo(function ClipCard({
           </div>
         </div>
 
-        {/* Processing status overlay */}
-        {clip.processing_status && clip.processing_status !== 'ready' && (
+        {/* Processing status overlay — only when clip has no title (no pre-analyzed data) */}
+        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
             {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
               <div className="flex flex-col items-center gap-1.5">

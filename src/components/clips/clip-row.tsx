@@ -122,7 +122,7 @@ export const ClipRow = memo(function ClipRow({
             {firstLetter}
           </div>
         )}
-        {clip.processing_status && clip.processing_status !== 'ready' && (
+        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (
           <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px]">
             {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
               <Loader2 className="h-5 w-5 animate-spin text-white" />
