@@ -133,6 +133,14 @@ export function useClips(options: UseClipsOptions = {}) {
     enabled: enabled && !!authUser && !!user,
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+    // Poll every 3s when any clip is still being processed
+    refetchInterval: (query) => {
+      const pages = query.state.data?.pages ?? [];
+      const hasPending = pages.some(p =>
+        p.data.some(c => c.processing_status === 'pending' || c.processing_status === 'processing')
+      );
+      return hasPending ? 3_000 : false;
+    },
   });
 }
 
@@ -155,6 +163,14 @@ export function useClip(clipId: string | null) {
     },
     enabled: !!clipId && !!user,
     staleTime: 60_000,
+    // Poll every 3s while clip is still being processed
+    refetchInterval: (query) => {
+      const clip = query.state.data;
+      if (!clip) return false;
+      return clip.processing_status === 'pending' || clip.processing_status === 'processing'
+        ? 3_000
+        : false;
+    },
   });
 }
 

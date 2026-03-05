@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useUIStore } from '@/stores/ui-store';
 import { useRealtimeInvalidation } from '@/lib/hooks/use-realtime-invalidation';
 import { useGlobalShortcuts } from '@/lib/hooks/use-global-shortcuts';
@@ -36,11 +37,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading } = useSupabase();
+  const { user: publicUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
   const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
 
   // Single Realtime channel for cache invalidation
-  useRealtimeInvalidation(user?.id ?? null);
+  // Must use publicUser.id (clips.user_id), NOT auth UID (user.id)
+  useRealtimeInvalidation(publicUser?.id ?? null);
 
   // Global keyboard shortcuts
   useGlobalShortcuts();

@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'opengraph.githubassets.com' },
       { protocol: 'https', hostname: 'media.licdn.com' },
       { protocol: 'https', hostname: '*.pstatic.net' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
   trailingSlash: !!process.env.CAPACITOR_BUILD,

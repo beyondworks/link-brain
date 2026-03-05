@@ -30,7 +30,10 @@ interface AnalyzeResult {
   summary: string;
   platform: string;
   image: string | null;
+  images: string[];
   author: string;
+  authorHandle: string;
+  authorAvatar: string;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -93,6 +96,10 @@ export function AddClipDialog() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
+  // Auto-analyze preview state
+  const [previewData, setPreviewData] = useState<AnalyzeResult | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
   // Duplicate detection state
   const [isDuplicateChecking, setIsDuplicateChecking] = useState(false);
   const [duplicateClip, setDuplicateClip] = useState<DuplicateClip | null>(null);
@@ -135,6 +142,42 @@ export function AddClipDialog() {
     return () => clearTimeout(timer);
   }, [url, authUser]);
 
+  // Auto-analyze: fetch preview when a valid URL is entered
+  useEffect(() => {
+    setPreviewData(null);
+
+    if (!url || url.trim().length < 8 || !isValidUrl(url.trim())) {
+      setIsPreviewLoading(false);
+      return;
+    }
+
+    setIsPreviewLoading(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url.trim() }),
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          const data = (await res.json()) as AnalyzeResult;
+          setPreviewData(data);
+        }
+      } catch {
+        // Preview is optional — silently ignore
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    }, 800);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [url]);
+
   const isOpen = activeModal === 'addClip';
 
   function handleOpenChange(open: boolean) {
@@ -154,6 +197,8 @@ export function AddClipDialog() {
       setSelectedCategoryId(null);
       setSelectedTags([]);
       setTagInput('');
+      setPreviewData(null);
+      setIsPreviewLoading(false);
       setDuplicateClip(null);
       setAllowDuplicate(false);
       setIsDuplicateChecking(false);
@@ -182,6 +227,16 @@ export function AddClipDialog() {
       return;
     }
     setUrlError('');
+
+    // Use cached preview data if available (auto-analyze already completed)
+    if (previewData) {
+      setTitle(previewData.title ?? trimmed);
+      setSummary(previewData.summary ?? '');
+      setPlatform(previewData.platform ?? 'web');
+      setStep(2);
+      return;
+    }
+
     setIsAnalyzing(true);
 
     try {
@@ -198,6 +253,7 @@ export function AddClipDialog() {
       }
 
       const data = (await res.json()) as AnalyzeResult;
+      setPreviewData(data);
       setTitle(data.title ?? trimmed);
       setSummary(data.summary ?? '');
       setPlatform(data.platform ?? 'web');
@@ -224,10 +280,13 @@ export function AddClipDialog() {
     url: string;
     title?: string;
     summary?: string;
+    image?: string;
+    author?: string;
     category?: string;
     keywords?: string[];
   }) {
     const label = payload.title || payload.url;
+    const hasPreview = !!(payload.title || payload.image);
     const store = useUIStore.getState();
     store.incrementPendingSave();
 
@@ -253,7 +312,7 @@ export function AddClipDialog() {
         queryClient.invalidateQueries({ queryKey: ['categories'] });
         addNotification({
           type: 'clip_saved',
-          title: '저장됨 — 콘텐츠 분석 중...',
+          title: hasPreview ? '저장되었습니다' : '저장됨 — 콘텐츠 분석 중...',
           message: label,
         });
       })
@@ -264,7 +323,7 @@ export function AddClipDialog() {
       });
   }
 
-  /** Quick save — skip analyze, save directly in background */
+  /** Quick save — use pre-analyzed data if available */
   function handleQuickSave() {
     const trimmed = url.trim();
     if (!trimmed) {
@@ -276,7 +335,15 @@ export function AddClipDialog() {
       return;
     }
 
-    fireBackgroundSave({ url: trimmed });
+    fireBackgroundSave({
+      url: trimmed,
+      ...(previewData ? {
+        title: previewData.title,
+        summary: previewData.summary,
+        image: previewData.image ?? undefined,
+        author: previewData.author || undefined,
+      } : {}),
+    });
     handleClose();
   }
 
@@ -288,6 +355,8 @@ export function AddClipDialog() {
       url: url.trim(),
       title,
       summary,
+      image: previewData?.image ?? undefined,
+      author: previewData?.author || undefined,
       ...(selectedCategory ? { category: selectedCategory.name } : {}),
       ...(selectedTags.length > 0 ? { keywords: selectedTags } : {}),
     });
@@ -302,6 +371,8 @@ export function AddClipDialog() {
     setSelectedCategoryId(null);
     setSelectedTags([]);
     setTagInput('');
+    setPreviewData(null);
+    setIsPreviewLoading(false);
     setDuplicateClip(null);
     setAllowDuplicate(false);
     urlInputRef.current?.focus();
@@ -451,6 +522,40 @@ export function AddClipDialog() {
                 </div>
               )}
             </div>
+
+            {/* Auto-analyze preview */}
+            {isPreviewLoading && (
+              <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-surface px-3 py-2.5 animate-pop-in">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">미리보기 로드 중...</span>
+              </div>
+            )}
+            {previewData && !isPreviewLoading && (
+              <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface p-3 animate-pop-in">
+                {previewData.image && (
+                  <img
+                    src={previewData.image}
+                    alt=""
+                    className="h-14 w-14 rounded-lg object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{previewData.title}</p>
+                  {previewData.summary && (
+                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                      {previewData.summary}
+                    </p>
+                  )}
+                  <Badge
+                    variant="secondary"
+                    className="mt-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                  >
+                    {PLATFORM_LABELS[previewData.platform] ?? previewData.platform}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-end">
               <Button
                 variant="outline"

@@ -10,7 +10,7 @@ import type { ClipContent } from '@/types/database';
 export function isProxiableImageUrl(url: string): boolean {
   try {
     const { hostname } = new URL(url);
-    return /\.supabase\.co$|^i\.ytimg\.com$|^img\.youtube\.com$|\.googleusercontent\.com$|\.cdninstagram\.com$|^pbs\.twimg\.com$|\.redd\.it$|^miro\.medium\.com$|^i\.pinimg\.com$|^opengraph\.githubassets\.com$|^media\.licdn\.com$|\.pstatic\.net$/.test(hostname);
+    return /\.supabase\.co$|^i\.ytimg\.com$|^img\.youtube\.com$|\.googleusercontent\.com$|\.cdninstagram\.com$|^pbs\.twimg\.com$|\.redd\.it$|^miro\.medium\.com$|^i\.pinimg\.com$|^opengraph\.githubassets\.com$|^media\.licdn\.com$|\.pstatic\.net$|^images\.unsplash\.com$/.test(hostname);
   } catch {
     return false;
   }

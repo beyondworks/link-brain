@@ -322,7 +322,7 @@ function ImageSlideshow({ images }: { images: string[] }) {
 
 
 /* ─── Real content renderer ──────────────────────────────────────────── */
-function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: string }) {
+function RealContent({ clipContents, url, platform }: { clipContents: ClipContent[]; url: string; platform?: string }) {
   const first = clipContents[0];
   const text = first?.content_markdown ?? first?.raw_markdown;
   const rawContent = text || (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -347,6 +347,7 @@ function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: 
 
   const isMarkdown = !!text;
   const { body, subContent } = splitContentSections(displayContent);
+  const isThreads = platform === 'threads';
 
   return (
     <div className="mb-5 space-y-4">
@@ -355,7 +356,7 @@ function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: 
         <div className="mb-4 flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <FileText size={12} className="text-muted-foreground" />
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Content</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{isThreads ? '메인 스레드' : 'Content'}</h3>
           </div>
           <div className="h-px flex-1 bg-border/50" />
         </div>
@@ -366,13 +367,13 @@ function RealContent({ clipContents, url }: { clipContents: ClipContent[]; url: 
         )}
       </div>
 
-      {/* Sub-Contents section */}
-      {subContent && (
+      {/* Sub-Contents section — Threads only */}
+      {isThreads && subContent && (
         <div className="rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-400">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <MessageSquare size={12} className="text-muted-foreground" />
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Sub-Contents</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">서브 스레드</h3>
             </div>
             <div className="h-px flex-1 bg-border/50" />
           </div>
@@ -825,7 +826,7 @@ export function ClipDetailClient({ clipId }: Props) {
           onDeleteHighlight={(id) => deleteHighlight.mutate(id)}
           disabled={isSeed}
         >
-          <RealContent clipContents={clipContents} url={clip.url} />
+          <RealContent clipContents={clipContents} url={clip.url} platform={clip.platform ?? undefined} />
         </TextHighlighter>
       )}
 

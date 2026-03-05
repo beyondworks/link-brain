@@ -108,8 +108,8 @@ function removeMetadata(text: string): string {
     t = t.replace(/Thread\s*[-=]{3,}.*$/gm, '');
     t = t.replace(/Thread\s*[-=]{3,}\s*[\d.]+K?\s*views?/gi, '');
     t = t.replace(/\[Thread\s*[-=]{3,}[^\]]*\]/gi, '');
-    t = t.replace(/^Author$/gm, '');
-    t = t.replace(/^-Author$/gm, '');
+    t = t.replace(/^·?-?Author$/gm, '');
+    t = t.replace(/^Pinned$/gm, '');
     t = t.replace(/^Report a problem.*$/gm, '');
     t = t.replace(/^Related threads.*$/gm, '');
     t = t.replace(/^Log in to see.*$/gm, '');
@@ -251,8 +251,36 @@ export function detectAndSplitComments(
     }
 
     if (sigCount >= 2 && firstCommentIdx !== -1) {
-        const body = paragraphs.slice(0, firstCommentIdx).join('\n\n').trim();
-        const commentsRaw = paragraphs.slice(firstCommentIdx).join('\n\n').trim();
+        // Separate author follow-ups from comments after the split point
+        const bodyParas = paragraphs.slice(0, firstCommentIdx);
+        const authorFollowUps: string[] = [];
+        const commentParas: string[] = [];
+        let currentOwner: 'author' | 'comment' = 'comment';
+
+        for (let i = firstCommentIdx; i < paragraphs.length; i++) {
+            const line = paragraphs[i].trim();
+            const match = line.match(commentSigRegex);
+            if (match) {
+                const handle = match[1].toLowerCase();
+                if (author && handle === author) {
+                    currentOwner = 'author';
+                    authorFollowUps.push(paragraphs[i]);
+                } else {
+                    currentOwner = 'comment';
+                    commentParas.push(paragraphs[i]);
+                }
+            } else {
+                // No signature — belongs to whoever spoke last
+                if (currentOwner === 'author') {
+                    authorFollowUps.push(paragraphs[i]);
+                } else {
+                    commentParas.push(paragraphs[i]);
+                }
+            }
+        }
+
+        const body = [...bodyParas, ...authorFollowUps].join('\n\n').trim();
+        const commentsRaw = commentParas.join('\n\n').trim();
         if (body.length >= 50) {
             return { body, commentsRaw };
         }

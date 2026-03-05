@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateChatCompletion } from '@/lib/ai/openai';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
+import { fetchTopicImage } from '@/lib/services/unsplash-service';
 import type { Category, Tag } from '@/types/database';
 
 // Raw client bypasses the Database generic for tables whose Insert types
@@ -359,10 +360,20 @@ export const resolveDbPlatform = (
 // ─── Content preparation helpers ──────────────────────────────────────────────
 
 // Skip likely profile pictures and low-res thumbnails (Instagram/Threads CDN patterns)
-const isLowQualityThumb = (u: string) =>
-  /[/]s\d{2,3}x\d{2,3}[/]/.test(u) ||
-  /[/]p\d{2,3}x\d{2,3}[/]/.test(u) ||
-  /t51\.2885-19/.test(u);
+// Ref: Linkbrain v1 filterClipImages() — s150x150, p150x150, profile pics, avatars
+const isLowQualityThumb = (u: string) => {
+  const lower = u.toLowerCase();
+  // Size-based patterns in path (/s150x150/) or query params (_s150x150_)
+  if (/[/_]s\d{2,3}x\d{2,3}[/_]/.test(u)) return true;
+  if (/[/_]p\d{2,3}x\d{2,3}[/_]/.test(u)) return true;
+  // Profile picture path (Instagram/Threads CDN)
+  if (/t51\.2885-19/.test(u)) return true;
+  // Keyword-based (v1 BLOCKED_KEYWORDS)
+  if (lower.includes('profile') || lower.includes('avatar')) return true;
+  // Format-based
+  if (lower.endsWith('.svg') || lower.endsWith('.ico') || lower.endsWith('.gif')) return true;
+  return false;
+};
 
 /** Prepare images, content, and thumbnail from raw input */
 function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | null, language: string) {
@@ -378,6 +389,16 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
       if (!clipImages.includes(thumb)) clipImages.unshift(thumb);
     }
   }
+  // Filter out profile pictures and low-quality thumbnails before gallery (v1 filterClipImages logic)
+  clipImages = clipImages.filter((u) => !isLowQualityThumb(u));
+  // Deduplicate by URL path (ignore query params)
+  const seenPaths = new Set<string>();
+  clipImages = clipImages.filter((u) => {
+    const path = u.split('?')[0];
+    if (seenPaths.has(path)) return false;
+    seenPaths.add(path);
+    return true;
+  });
   clipImages = clipImages.slice(0, MAX_IMAGES);
 
   const title = metadata?.title ?? fallbackTitle(url, rawMarkdown);
@@ -421,9 +442,8 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
       ? contentHtml.substring(0, MAX_CONTENT_LENGTH)
       : contentHtml;
 
-  const thumbnailImage = (clipImages.length > 1
-    ? clipImages.find((u) => !isLowQualityThumb(u)) ?? clipImages[0]
-    : clipImages[0]) ?? null;
+  // After filtering, first image is the best candidate for thumbnail
+  const thumbnailImage = clipImages[0] ?? null;
 
   return { title, summary, keywords, categoryName, thumbnailImage, truncRaw, truncDisplay, truncHtml };
 }
@@ -480,6 +500,12 @@ export const enrichClipContent = async (
     language
   );
 
+  // Unsplash fallback: if no content image, fetch a topic-related photo
+  let thumbnailImage: string | null = prepared.thumbnailImage;
+  if (!thumbnailImage && prepared.keywords.length > 0) {
+    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  }
+
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
 
   // UPDATE existing clip row with enriched data
@@ -488,7 +514,7 @@ export const enrichClipContent = async (
     .update({
       title: prepared.title,
       summary: prepared.summary,
-      image: prepared.thumbnailImage,
+      image: thumbnailImage,
       category_id: categoryId,
       author: input.author ?? null,
       author_handle: input.authorHandle ?? null,
@@ -567,6 +593,13 @@ export const processNewClip = async (
   }
 
   const prepared = prepareClipContent(input, metadata, language);
+
+  // Unsplash fallback: if no content image, fetch a topic-related photo
+  let thumbnailImage: string | null = prepared.thumbnailImage;
+  if (!thumbnailImage && prepared.keywords.length > 0) {
+    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  }
+
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
   const platform = resolveDbPlatform(input.platform, sourceType);
 
@@ -577,7 +610,7 @@ export const processNewClip = async (
       url,
       title: prepared.title,
       summary: prepared.summary,
-      image: prepared.thumbnailImage,
+      image: thumbnailImage,
       platform,
       author: author ?? null,
       author_handle: authorHandle ?? null,

@@ -173,15 +173,16 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
     const detectedPlatform = detectPlatform(url);
     const platform = resolveDbPlatform(detectedPlatform, detectedPlatform);
 
-    // 2. Instant save — minimal clip row with processing_status = 'pending'
+    // 2. Instant save — use pre-analyzed data if available, otherwise pending
     const { data: clipRow, error: insertError } = await db
       .from('clips')
       .insert({
         user_id: auth.publicUserId,
         url,
-        title: null,
-        summary: null,
-        image: null,
+        title: body.title || null,
+        summary: body.summary || null,
+        image: body.image || null,
+        author: body.author || null,
         platform,
         is_favorite: false,
         is_read_later: false,
