@@ -363,9 +363,9 @@ export const resolveDbPlatform = (
 // Ref: Linkbrain v1 filterClipImages() — s150x150, p150x150, profile pics, avatars
 const isLowQualityThumb = (u: string) => {
   const lower = u.toLowerCase();
-  // Size-based patterns (s150x150, p50x50, etc.)
-  if (/[/]s\d{2,3}x\d{2,3}[/]/.test(u)) return true;
-  if (/[/]p\d{2,3}x\d{2,3}[/]/.test(u)) return true;
+  // Size-based patterns in path (/s150x150/) or query params (_s150x150_)
+  if (/[/_]s\d{2,3}x\d{2,3}[/_]/.test(u)) return true;
+  if (/[/_]p\d{2,3}x\d{2,3}[/_]/.test(u)) return true;
   // Profile picture path (Instagram/Threads CDN)
   if (/t51\.2885-19/.test(u)) return true;
   // Keyword-based (v1 BLOCKED_KEYWORDS)
