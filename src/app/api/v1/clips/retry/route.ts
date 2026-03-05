@@ -40,8 +40,13 @@ async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextRes
 
   const typedClip = clip as { id: string; url: string; platform: string; user_id: string; processing_status: string };
 
-  if (typedClip.processing_status !== 'failed' && typedClip.processing_status !== 'pending') {
-    return sendError(ErrorCodes.INVALID_REQUEST, 'Clip is not in a retryable state', 400);
+  if (typedClip.processing_status === 'processing') {
+    return sendError(ErrorCodes.INVALID_REQUEST, 'Clip is already being processed', 400);
+  }
+
+  // If clip was already processed (ready), delete existing content for fresh reprocessing
+  if (typedClip.processing_status === 'ready') {
+    await db.from('clip_contents').delete().eq('clip_id', clipId);
   }
 
   // Reset to pending

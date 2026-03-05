@@ -86,6 +86,11 @@ export const ClipCard = memo(function ClipCard({
     shareClip({ title: clip.title ?? clip.url, url: clip.url });
   }
 
+  function handleReprocess(e: React.MouseEvent) {
+    e.stopPropagation();
+    retryClip.mutate({ clipId: clip.id });
+  }
+
   return (
     <Card
       onClick={handleCardClick}
@@ -245,6 +250,18 @@ export const ClipCard = memo(function ClipCard({
                 </button>
               </TooltipTrigger>
               <TooltipContent><p>공유</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleReprocess}
+                  className="animate-fade-in-up animation-delay-500 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  aria-label="재처리"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>재처리</p></TooltipContent>
             </Tooltip>
           </div>
         </div>

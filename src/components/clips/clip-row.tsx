@@ -2,10 +2,11 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
+import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
@@ -36,6 +37,7 @@ export const ClipRow = memo(function ClipRow({
 }: ClipRowProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
+  const retryClip = useRetryClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
@@ -264,6 +266,18 @@ export const ClipRow = memo(function ClipRow({
             </button>
           </TooltipTrigger>
           <TooltipContent><p>공유</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={(e) => { e.stopPropagation(); retryClip.mutate({ clipId: clip.id }); }}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
+              aria-label="재처리"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>재처리</p></TooltipContent>
         </Tooltip>
       </div>
     </div>

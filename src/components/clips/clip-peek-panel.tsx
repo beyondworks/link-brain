@@ -22,6 +22,7 @@ import {
   ChevronUp,
   FileText,
   MessageSquare,
+  RotateCcw,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -36,6 +37,7 @@ import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
+import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
@@ -136,6 +138,7 @@ function PeekContent({
 }) {
   const toggleFavorite = useToggleFavorite();
   const archiveClip = useToggleArchive();
+  const retryClip = useRetryClip();
   const clipPeekMode = useUIStore((s) => s.clipPeekMode);
   const setClipPeekMode = useUIStore((s) => s.setClipPeekMode);
 
@@ -212,6 +215,15 @@ function PeekContent({
                   size={15}
                   className={clip.is_archived ? 'text-primary' : 'text-muted-foreground'}
                 />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg transition-spring hover:bg-muted"
+                onClick={() => retryClip.mutate({ clipId: clip.id })}
+                aria-label="재처리"
+              >
+                <RotateCcw size={15} className="text-muted-foreground" />
               </Button>
             </>
           )}
