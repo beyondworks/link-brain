@@ -371,7 +371,7 @@ function PeekContent({
           )}
 
           {/* Body content from clip_contents */}
-          <PeekBodyContent clipContents={clipContents} />
+          <PeekBodyContent clipContents={clipContents} platform={clip.platform ?? undefined} />
 
           {/* Full detail link */}
           <div className="mt-5 flex items-center gap-3">
@@ -465,8 +465,10 @@ function CollapsibleSection({
 /* ─── Body content (collapsible, with body/comments split) ─────── */
 function PeekBodyContent({
   clipContents,
+  platform,
 }: {
   clipContents?: ClipContent[];
+  platform?: string;
 }) {
   const first = clipContents?.[0];
   const text = first?.content_markdown ?? first?.raw_markdown;
@@ -483,20 +485,21 @@ function PeekBodyContent({
   if (!displayContent) return null;
 
   const { body, subContent } = splitContentSections(displayContent);
+  const isThreads = platform === 'threads';
 
   return (
     <div className="mt-5 space-y-5">
       <CollapsibleSection
         icon={FileText}
-        title="Content"
+        title={isThreads ? '메인 스레드' : 'Content'}
         content={body}
         isMarkdown
         maxHeight={300}
       />
-      {subContent && (
+      {isThreads && subContent && (
         <CollapsibleSection
           icon={MessageSquare}
-          title="Sub-Contents"
+          title="서브 스레드"
           content={subContent}
           isMarkdown
           maxHeight={200}
