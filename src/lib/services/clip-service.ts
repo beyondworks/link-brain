@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateChatCompletion } from '@/lib/ai/openai';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
+import { fetchTopicImage } from '@/lib/services/unsplash-service';
 import type { Category, Tag } from '@/types/database';
 
 // Raw client bypasses the Database generic for tables whose Insert types
@@ -441,9 +442,8 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
       ? contentHtml.substring(0, MAX_CONTENT_LENGTH)
       : contentHtml;
 
-  const thumbnailImage = (clipImages.length > 1
-    ? clipImages.find((u) => !isLowQualityThumb(u)) ?? clipImages[0]
-    : clipImages[0]) ?? null;
+  // After filtering, first image is the best candidate for thumbnail
+  const thumbnailImage = clipImages[0] ?? null;
 
   return { title, summary, keywords, categoryName, thumbnailImage, truncRaw, truncDisplay, truncHtml };
 }
@@ -500,6 +500,12 @@ export const enrichClipContent = async (
     language
   );
 
+  // Unsplash fallback: if no content image, fetch a topic-related photo
+  let thumbnailImage: string | null = prepared.thumbnailImage;
+  if (!thumbnailImage && prepared.keywords.length > 0) {
+    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  }
+
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
 
   // UPDATE existing clip row with enriched data
@@ -508,7 +514,7 @@ export const enrichClipContent = async (
     .update({
       title: prepared.title,
       summary: prepared.summary,
-      image: prepared.thumbnailImage,
+      image: thumbnailImage,
       category_id: categoryId,
       author: input.author ?? null,
       author_handle: input.authorHandle ?? null,
@@ -587,6 +593,13 @@ export const processNewClip = async (
   }
 
   const prepared = prepareClipContent(input, metadata, language);
+
+  // Unsplash fallback: if no content image, fetch a topic-related photo
+  let thumbnailImage: string | null = prepared.thumbnailImage;
+  if (!thumbnailImage && prepared.keywords.length > 0) {
+    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  }
+
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
   const platform = resolveDbPlatform(input.platform, sourceType);
 
@@ -597,7 +610,7 @@ export const processNewClip = async (
       url,
       title: prepared.title,
       summary: prepared.summary,
-      image: prepared.thumbnailImage,
+      image: thumbnailImage,
       platform,
       author: author ?? null,
       author_handle: authorHandle ?? null,
