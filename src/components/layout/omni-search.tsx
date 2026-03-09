@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/command';
 import { useUIStore } from '@/stores/ui-store';
 import { supabase } from '@/lib/supabase/client';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { exportClips } from '@/lib/utils/export';
 
 const RECENT_SEARCHES_KEY = 'linkbrain-recent-searches';
@@ -65,7 +65,7 @@ interface SearchResult {
 
 export function OmniSearch() {
   const { omniSearchOpen, setOmniSearchOpen, openModal } = useUIStore();
-  const { user } = useSupabase();
+  const { user } = useCurrentUser();
   const router = useRouter();
 
   const [query, setQuery] = useState('');

@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
 import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin, Bell, Clock } from 'lucide-react';
-import { Sparkline } from '@/components/charts/sparkline';
+
 import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
 import { ClipCard } from '@/components/clips/clip-card';
@@ -17,6 +17,7 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { WeeklyReport } from '@/components/dashboard/weekly-report';
@@ -180,15 +181,11 @@ function StatCard({
   value,
   label,
   loading,
-  sparklineData,
-  sparklineColor,
 }: {
   icon: React.ElementType;
   value: string;
   label: string;
   loading: boolean;
-  sparklineData?: number[];
-  sparklineColor?: string;
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
@@ -201,17 +198,6 @@ function StatCard({
         <p className="mb-1 text-3xl font-black tracking-tight text-foreground">{value}</p>
       )}
       <p className="text-sm text-muted-foreground">{label}</p>
-      {!loading && sparklineData && sparklineData.length > 0 && (
-        <div className="mt-3">
-          <Sparkline
-            data={sparklineData}
-            color={sparklineColor}
-            height={32}
-            width={80}
-            className="opacity-70"
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -242,6 +228,7 @@ function CompactStat({
 
 export function DashboardClient() {
   const { user: authUser } = useSupabase();
+  const { user: publicUser } = useCurrentUser();
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
   const filters = useUIStore((s) => s.filters);
   const { widgets, dashboardView, setDashboardView } = useDashboardPreferences();
@@ -258,26 +245,6 @@ export function DashboardClient() {
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: credits, isLoading: creditsLoading } = useCredits();
-
-  // Generate seeded 7-day sparkline data derived from actual stats so it stays
-  // consistent across re-renders and correlates with real values.
-  const sparklineData = useMemo(() => {
-    const seed = stats?.totalClips ?? 0;
-    // Simple LCG seeded with totalClips for deterministic output
-    function lcg(s: number, index: number): number {
-      return ((s * 1664525 + 1013904223 + index * 6364136) & 0x7fffffff) / 0x7fffffff;
-    }
-
-    const base = (s: number, scale: number) =>
-      Array.from({ length: 7 }, (_, i) => Math.round(lcg(s + i, i) * scale));
-
-    return {
-      totalClips: base(seed, Math.max(1, seed)),
-      thisMonth: base(seed + 1, Math.max(1, stats?.thisMonthClips ?? 5)),
-      favorites: base(seed + 2, Math.max(1, stats?.favoriteCount ?? 3)),
-      credits: [] as number[], // credits fluctuate, skip sparkline
-    };
-  }, [stats]);
 
   function formatCredits(): string {
     if (creditsLoading || !credits) return '—';
@@ -384,7 +351,7 @@ export function DashboardClient() {
         </div>
       </div>
 
-      {/* Stats — detail: full cards with sparklines, summary: compact inline */}
+      {/* Stats — detail: full cards, summary: compact inline */}
       {widgets.stats && dashboardView === 'detail' && (
         <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard
@@ -392,24 +359,18 @@ export function DashboardClient() {
             value={statsLoading ? '—' : String(stats?.totalClips ?? 0)}
             label="총 클립 수"
             loading={statsLoading}
-            sparklineData={sparklineData.totalClips}
-            sparklineColor="#21DBA4"
           />
           <StatCard
             icon={TrendingUp}
             value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)}
             label="이번 달 저장"
             loading={statsLoading}
-            sparklineData={sparklineData.thisMonth}
-            sparklineColor="#3b82f6"
           />
           <StatCard
             icon={Star}
             value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)}
             label="즐겨찾기"
             loading={statsLoading}
-            sparklineData={sparklineData.favorites}
-            sparklineColor="#f59e0b"
           />
           <StatCard
             icon={Gauge}
@@ -435,10 +396,10 @@ export function DashboardClient() {
       {widgets.weeklyReport && dashboardView === 'detail' && <WeeklyReport />}
 
       {/* Continue Reading + Recent Activity — detail only */}
-      {authUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
+      {publicUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
         <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {widgets.continueReading && <ContinueReading userId={authUser.id} />}
-          {widgets.recentActivity && <RecentActivity userId={authUser.id} />}
+          {widgets.continueReading && <ContinueReading userId={publicUser.id} />}
+          {widgets.recentActivity && <RecentActivity userId={publicUser.id} />}
         </div>
       )}
 

@@ -43,6 +43,7 @@ import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { shareClip } from '@/lib/utils/share';
 import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
+import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
 import { ClipNotes } from '@/components/clips/clip-notes';
 import { TextHighlighter } from '@/components/clips/text-highlighter';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
@@ -261,27 +262,43 @@ function ImageSlideshow({ images }: { images: string[] }) {
   const displayIdx = Math.min(current, validImages.length - 1);
   const actualSrc = validImages[displayIdx];
 
+  const isSingle = validImages.length === 1;
+
   return (
     <div className="mb-5 animate-fade-in-up animation-delay-250">
       <div className="relative overflow-hidden rounded-2xl border border-border/60 shadow-card">
-        <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
+        {isSingle ? (
           <Image
             key={actualSrc}
             src={actualSrc}
-            alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
-            fill
-            unoptimized={!isProxiableImageUrl(actualSrc)}
-            className={cn(
-              'transition-opacity duration-300',
-              validImages.length === 1 ? 'object-contain' : 'object-cover',
-            )}
+            alt="이미지 1/1"
+            width={0}
+            height={0}
             sizes="(max-width: 768px) 100vw, 768px"
+            unoptimized={!isProxiableImageUrl(actualSrc)}
+            className="h-auto w-full max-h-[500px] object-contain transition-opacity duration-300"
             onError={() => {
               const originalIdx = images.indexOf(actualSrc);
               if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
             }}
           />
-        </div>
+        ) : (
+          <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
+            <Image
+              key={actualSrc}
+              src={actualSrc}
+              alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
+              fill
+              unoptimized={!isProxiableImageUrl(actualSrc)}
+              className="object-contain transition-opacity duration-300"
+              sizes="(max-width: 768px) 100vw, 768px"
+              onError={() => {
+                const originalIdx = images.indexOf(actualSrc);
+                if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
+              }}
+            />
+          </div>
+        )}
         {validImages.length > 1 && (
           <>
             <button
@@ -488,7 +505,8 @@ export function ClipDetailClient({ clipId }: Props) {
   }, [isSeed, update]);
 
   const clip = seedClip ?? apiClip;
-  const clipContents = !isSeed && apiClip ? apiClip.clip_contents : undefined;
+  const rawCC = !isSeed && apiClip ? apiClip.clip_contents : undefined;
+  const clipContents = rawCC ? (Array.isArray(rawCC) ? rawCC : [rawCC]) : undefined;
 
   // 읽기 시간: clip.read_time 우선, 없으면 콘텐츠 텍스트로 추정
   const estimatedReadMinutes = useMemo(() => {
@@ -742,16 +760,17 @@ export function ClipDetailClient({ clipId }: Props) {
       {isSeed && <TagList clipId={clipId} />}
       {!isSeed && <ClipTagEditor clipId={clipId} />}
 
-      {/* Collection assignment */}
+      {/* Category & Collection assignment */}
       {!isSeed && (
-        <div className="mb-5 animate-fade-in-up animation-delay-200">
+        <div className="isolate relative z-[60] mb-5 flex flex-wrap items-center gap-2 animate-fade-in-up animation-delay-200">
+          <ClipCategorySelector clipId={clipId} currentCategoryId={clip.category_id} />
           <ClipCollectionAssigner clipId={clipId} />
         </div>
       )}
 
       {/* 공유 링크 */}
       {!isSeed && (
-        <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-5 shadow-card animate-fade-in-up animation-delay-200">
+        <div className="relative z-0 mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-5 shadow-card animate-fade-in-up animation-delay-200">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
               {isPublic ? (

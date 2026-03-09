@@ -94,7 +94,7 @@ export function ClipCollectionAssigner({ clipId }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[var(--z-dropdown)] mt-1.5 w-52 rounded-xl border border-border/60 bg-card shadow-elevated overflow-hidden">
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-52 rounded-xl border border-border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--popover)' }}>
           <div className="py-1">
             {collections.map((col) => {
               const already = assignedIds.includes(col.id);
@@ -117,6 +117,10 @@ export function ClipCollectionAssigner({ clipId }: Props) {
                       'shrink-0 transition-opacity',
                       already ? 'opacity-100 text-primary' : 'opacity-0'
                     )}
+                  />
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: col.color ?? '#21DBA4' }}
                   />
                   <span className="truncate">{col.name}</span>
                 </button>

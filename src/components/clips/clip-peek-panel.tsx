@@ -42,6 +42,8 @@ import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
+import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
+import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -329,6 +331,14 @@ function PeekContent({
             )}
           </div>
 
+          {/* Category & Collection selector */}
+          {!isSeed && (
+            <div className="isolate relative z-[60] mt-4 flex flex-wrap items-center gap-2">
+              <ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id} />
+              <ClipCollectionAssigner clipId={clip.id} />
+            </div>
+          )}
+
           {/* YouTube embed or Image slideshow */}
           {(() => {
             if (platform === 'youtube') {
@@ -377,6 +387,7 @@ function PeekContent({
           <div className="mt-5 flex items-center gap-3">
             <Link
               href={`/clip/${clip.id}`}
+              onClick={onClose}
               className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-spring hover:border-primary/40 hover:glow-brand-sm hover-lift"
             >
               <Eye size={14} className="text-primary" />

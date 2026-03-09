@@ -7,6 +7,7 @@ import { generateChatCompletion } from '@/lib/ai/openai';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
 import { fetchTopicImage } from '@/lib/services/unsplash-service';
+import { cleanInstagramContent } from '@/lib/fetchers/instagram-fetcher';
 import type { Category, Tag } from '@/types/database';
 
 // Raw client bypasses the Database generic for tables whose Insert types
@@ -322,8 +323,6 @@ export { generateEmbedding } from '@/lib/ai/embeddings';
 
 const MAX_CONTENT_LENGTH = 100_000;
 const MAX_IMAGES = 10;
-const ENABLE_YT_DETAILED_SUMMARY_PREPEND =
-  process.env.ENABLE_YT_DETAILED_SUMMARY_PREPEND === 'true';
 
 export interface ProcessNewClipResult {
   clipId: string;
@@ -378,7 +377,10 @@ const isLowQualityThumb = (u: string) => {
 /** Prepare images, content, and thumbnail from raw input */
 function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | null, language: string) {
   const { url, sourceType, rawText, htmlContent, images } = input;
-  const rawMarkdown = rawText ?? '';
+  // Instagram: apply content cleaning as safety net (removes UI noise, comments, metadata)
+  const rawMarkdown = sourceType === 'instagram' && rawText
+    ? cleanInstagramContent(rawText)
+    : (rawText ?? '');
   const contentHtml = htmlContent ?? '';
 
   let clipImages = [...(images ?? [])];
@@ -411,18 +413,15 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
   if (sourceType === 'web' && !displayMarkdown.trim()) {
     displayMarkdown = summary;
   }
-  if (
-    sourceType === 'youtube' &&
-    ENABLE_YT_DETAILED_SUMMARY_PREPEND &&
-    detailedSummary
-  ) {
-    const summaryTitle =
-      language === 'KR' ? '### 영상 상세 요약' : '### Detailed Video Summary';
-    const sourceTitle =
-      language === 'KR' ? '### 추출 원문' : '### Extracted Source';
-    displayMarkdown = [summaryTitle, detailedSummary, '---', sourceTitle, rawMarkdown || summary]
-      .filter(Boolean)
-      .join('\n\n');
+  if (sourceType === 'youtube') {
+    // YouTube: AI 타임스탬프 챕터 요약을 display content로 사용
+    if (detailedSummary) {
+      const summaryTitle =
+        language === 'KR' ? '### 영상 챕터 요약' : '### Video Chapter Summary';
+      displayMarkdown = [summaryTitle, detailedSummary].join('\n\n');
+    } else if (summary) {
+      displayMarkdown = summary;
+    }
   }
 
   if (clipImages.length > 1) {

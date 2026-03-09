@@ -41,7 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FolderOpen, Globe, Lock, MoreHorizontal, Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Plus, FolderOpen, MoreHorizontal, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { Collection } from '@/types/database';
@@ -108,8 +108,8 @@ function SortableCollectionCard({ col, index, onEdit, onDelete }: SortableCollec
             background: `linear-gradient(90deg, ${col.color ?? '#21DBA4'}, transparent)`,
           }}
         />
-        <div className="flex items-start justify-between mb-3">
-          <div className="relative mt-0.5 flex-shrink-0">
+        <div className="mb-3">
+          <div className="relative mt-0.5 inline-block">
             <div
               className="h-3 w-3 rounded-full"
               style={{ backgroundColor: col.color ?? '#21DBA4' }}
@@ -119,11 +119,6 @@ function SortableCollectionCard({ col, index, onEdit, onDelete }: SortableCollec
               style={{ backgroundColor: col.color ?? '#21DBA4' }}
             />
           </div>
-          {col.is_public ? (
-            <Globe size={13} className="text-muted-foreground" />
-          ) : (
-            <Lock size={13} className="text-muted-foreground" />
-          )}
         </div>
         <h3 className="font-semibold text-foreground transition-spring group-hover:text-primary">
           {col.name}
@@ -195,6 +190,7 @@ export function CollectionsClient() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createDescription, setCreateDescription] = useState('');
+  const [createColor, setCreateColor] = useState('#21DBA4');
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -208,11 +204,10 @@ export function CollectionsClient() {
   const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
+    mutationFn: async (params: { userId: string; name: string; description: string | null; color: string }) => {
       const { error } = await supabase
         .from('collections')
-        .insert({ user_id: user.id, name: createName, description: createDescription || null } as never);
+        .insert({ user_id: params.userId, name: params.name, description: params.description, color: params.color } as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -220,9 +215,13 @@ export function CollectionsClient() {
       setCreateOpen(false);
       setCreateName('');
       setCreateDescription('');
+      setCreateColor('#21DBA4');
       toast.success('컬렉션이 생성되었습니다');
     },
-    onError: () => toast.error('컬렉션 생성 실패'),
+    onError: (err) => {
+      console.error('[collections] create failed:', err);
+      toast.error(`컬렉션 생성 실패: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+    },
   });
 
   // Batch position update mutation (best-effort — silently ignores missing column)
@@ -334,8 +333,24 @@ export function CollectionsClient() {
           <DialogContent className="border-gradient bg-glass-heavy rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold">새 컬렉션 만들기</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">컬렉션 이름과 설명을 입력하세요.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 pt-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!user) {
+                  toast.error('로그인이 필요합니다');
+                  return;
+                }
+                createMutation.mutate({
+                  userId: user.id,
+                  name: createName.trim(),
+                  description: createDescription.trim() || null,
+                  color: createColor,
+                });
+              }}
+              className="space-y-4 pt-2"
+            >
               <Input
                 placeholder="컬렉션 이름"
                 value={createName}
@@ -348,14 +363,32 @@ export function CollectionsClient() {
                 onChange={(e) => setCreateDescription(e.target.value)}
                 className="rounded-xl focus-visible:ring-primary/30"
               />
+              <div>
+                <p className="mb-2 text-sm text-muted-foreground">색상</p>
+                <div className="flex flex-wrap gap-2">
+                  {COLOR_PRESETS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="h-7 w-7 rounded-full transition-transform hover:scale-110 focus:outline-none"
+                      style={{
+                        backgroundColor: color,
+                        boxShadow: createColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none',
+                      }}
+                      onClick={() => setCreateColor(color)}
+                      aria-label={`색상 ${color} 선택`}
+                    />
+                  ))}
+                </div>
+              </div>
               <Button
+                type="submit"
                 className="w-full bg-gradient-brand glow-brand rounded-xl font-semibold shadow-none transition-spring"
-                onClick={() => createMutation.mutate()}
                 disabled={!createName.trim() || createMutation.isPending}
               >
                 {createMutation.isPending ? '생성 중...' : '만들기'}
               </Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

@@ -13,8 +13,62 @@ export interface YouTubeVideoData {
     thumbnailUrl: string;
     hasTranscript: boolean;
     transcript?: string;
+    /** Transcript with [MM:SS] timestamps at ~2min intervals */
+    timestampedTranscript?: string;
     duration?: string;
 }
+
+// ─── Timestamp helpers ──────────────────────────────────────────────────────
+
+interface TranscriptEvent {
+    tStartMs: number;
+    text: string;
+}
+
+const formatTimestamp = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
+
+/**
+ * Group transcript events into time-chunked segments with timestamps.
+ * Targets ~15 chunks max; minimum 1-minute chunks.
+ */
+const buildTimestampedTranscript = (events: TranscriptEvent[]): string => {
+    if (events.length === 0) return '';
+
+    const totalDurationMs = events[events.length - 1].tStartMs;
+    const TARGET_CHUNKS = 15;
+    const MIN_CHUNK_MS = 60_000;
+    const chunkDurationMs = Math.max(MIN_CHUNK_MS, Math.ceil(totalDurationMs / TARGET_CHUNKS));
+
+    const chunks: Array<{ startMs: number; text: string }> = [];
+    let currentTexts: string[] = [];
+    let chunkStartMs = 0;
+
+    for (const event of events) {
+        if (event.tStartMs - chunkStartMs >= chunkDurationMs && currentTexts.length > 0) {
+            chunks.push({ startMs: chunkStartMs, text: currentTexts.join('').trim() });
+            currentTexts = [];
+            chunkStartMs = event.tStartMs;
+        }
+        currentTexts.push(event.text);
+    }
+    if (currentTexts.length > 0) {
+        chunks.push({ startMs: chunkStartMs, text: currentTexts.join('').trim() });
+    }
+
+    return chunks
+        .filter(c => c.text.length > 0)
+        .map(c => `[${formatTimestamp(c.startMs)}] ${c.text}`)
+        .join('\n\n');
+};
 
 /**
  * Extract YouTube video ID from URL
@@ -76,9 +130,10 @@ const fetchVideoMetadata = async (videoId: string, apiKey: string): Promise<Part
 };
 
 /**
- * Fetch transcript from YouTube video page via captionTracks
+ * Fetch transcript from YouTube video page via captionTracks.
+ * Returns both plain text and timestamped transcript for chapter summaries.
  */
-const fetchTranscript = async (videoId: string): Promise<string | null> => {
+const fetchTranscript = async (videoId: string): Promise<{ plain: string; timestamped: string } | null> => {
     try {
         const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
         const res = await fetch(pageUrl, {
@@ -108,15 +163,23 @@ const fetchTranscript = async (videoId: string): Promise<string | null> => {
         if (!captionRes.ok) return null;
 
         const captionData = await captionRes.json() as {
-            events?: Array<{ segs?: Array<{ utf8: string }> }>;
+            events?: Array<{ tStartMs?: number; segs?: Array<{ utf8: string }> }>;
         };
 
-        const texts = (captionData.events ?? [])
-            .flatMap(e => e.segs ?? [])
-            .map(s => s.utf8)
-            .filter(Boolean);
+        const events: TranscriptEvent[] = (captionData.events ?? [])
+            .filter(e => e.segs?.length)
+            .map(e => ({
+                tStartMs: e.tStartMs ?? 0,
+                text: (e.segs ?? []).map(s => s.utf8).filter(Boolean).join(''),
+            }))
+            .filter(e => e.text.length > 0);
 
-        return texts.join('').replace(/\n{3,}/g, '\n\n').trim() || null;
+        const plain = events.map(e => e.text).join('').replace(/\n{3,}/g, '\n\n').trim();
+        if (!plain) return null;
+
+        const timestamped = buildTimestampedTranscript(events);
+
+        return { plain, timestamped };
     } catch (err) {
         console.warn('[YouTube Extractor] Transcript fetch failed:', err);
         return null;
@@ -173,7 +236,8 @@ export const extractYouTubeContent = async (url: string): Promise<YouTubeVideoDa
         thumbnailUrl: metadata.thumbnailUrl || '',
         duration: metadata.duration,
         hasTranscript: !!transcript,
-        transcript: transcript ?? undefined,
+        transcript: transcript?.plain ?? undefined,
+        timestampedTranscript: transcript?.timestamped ?? undefined,
     };
 };
 
@@ -191,7 +255,9 @@ export const buildYouTubeRichText = (data: YouTubeVideoData): string => {
         parts.push(`Channel: ${data.channelTitle}`);
     }
 
-    if (data.hasTranscript && data.transcript) {
+    if (data.hasTranscript && data.timestampedTranscript) {
+        parts.push(`\nTranscript:\n${data.timestampedTranscript}`);
+    } else if (data.hasTranscript && data.transcript) {
         parts.push(`\nTranscript:\n${data.transcript}`);
     } else if (data.description) {
         parts.push(`\nDescription:\n${data.description}`);
