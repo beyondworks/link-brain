@@ -44,6 +44,7 @@ import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
 import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
+import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -276,6 +277,7 @@ function PeekContent({
                 <>
                   {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
                   <ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} />
+                  <ClipCollectionAssigner clipId={clip.id} />
                 </>
               )}
               {isSeed && categoryName && (
