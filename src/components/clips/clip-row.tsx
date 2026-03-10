@@ -82,7 +82,7 @@ export const ClipRow = memo(function ClipRow({
     <div
       onClick={handleRowClick}
       className={cn(
-        'card-interactive group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 transition-spring last:border-b-0 hover:bg-card/60',
+        'group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60',
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
@@ -110,7 +110,7 @@ export const ClipRow = memo(function ClipRow({
             src={clip.image}
             alt={clip.title ?? ''}
             fill
-            className="img-zoom object-cover"
+            className="object-cover"
             sizes="72px"
           />
         ) : (

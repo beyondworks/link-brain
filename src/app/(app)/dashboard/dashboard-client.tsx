@@ -312,7 +312,7 @@ export function DashboardClient() {
         </p>
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold tracking-tight">
+            <h1 className="truncate text-xl font-bold tracking-tight sm:text-3xl">
               <span className="text-foreground">{getGreeting()},&nbsp;</span>
               <span className="text-gradient-shimmer">
                 {authUser?.user_metadata?.display_name
