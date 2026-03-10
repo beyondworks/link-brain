@@ -18,6 +18,7 @@ import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
+import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
@@ -354,6 +355,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Keyboard shortcuts help dialog */}
         <KeyboardShortcutsDialog />
+
+        {/* Add clip dialog — available on all pages */}
+        <AddClipDialog />
 
         {/* Page content */}
         <PullToRefreshWrapper>{children}</PullToRefreshWrapper>

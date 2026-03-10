@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
 import { ClipCard } from '@/components/clips/clip-card';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
-import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { SaveProgressBar } from '@/components/clips/save-progress-bar';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
@@ -541,7 +540,6 @@ export function DashboardClient() {
         )}
       </div>
 
-      <AddClipDialog />
       <WelcomeDialog />
     </div>
   );
