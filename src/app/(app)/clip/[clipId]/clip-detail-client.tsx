@@ -836,7 +836,7 @@ export function ClipDetailClient({ clipId }: Props) {
       {!isSeed && (
         <ClipNotes
           clipId={clipId}
-          initialNotes={(clip as ClipData & { notes?: string | null }).notes}
+          initialNotes={clip.notes}
         />
       )}
 

@@ -81,6 +81,7 @@ export interface ClipData {
   likes_count: number;
   remind_at: string | null;
   processing_status: ClipProcessingStatus;
+  notes: string | null;
   processing_error: string | null;
   retry_count: number;
   processed_at: string | null;

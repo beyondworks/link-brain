@@ -45,6 +45,7 @@ import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/const
 import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
 import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
+import { ClipNotes } from '@/components/clips/clip-notes';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -382,6 +383,11 @@ function PeekContent({
 
           {/* Body content from clip_contents */}
           <PeekBodyContent clipContents={clipContents} platform={clip.platform ?? undefined} />
+
+          {/* Personal notes */}
+          {!isSeed && (
+            <ClipNotes clipId={clip.id} initialNotes={clip.notes} />
+          )}
 
           {/* Full detail link */}
           <div className="mt-5 flex items-center gap-3">
