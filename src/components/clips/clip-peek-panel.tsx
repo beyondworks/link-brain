@@ -262,23 +262,23 @@ function PeekContent({
         )}>
           {/* Platform + Category badge */}
           {(platformLabel || categoryName || !isSeed) && (
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {platformLabel && (
                 <>
-                  <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
+                  <span className={cn('inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]', platformColor)}>
                     {platformIcon}
                   </span>
-                  <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted-foreground">{platformLabel}</span>
                 </>
               )}
               {clip.author_handle && (
-                <span className="text-xs text-muted-foreground/60">· {clip.author_handle}</span>
+                <span className="shrink-0 max-w-[120px] truncate text-xs text-muted-foreground/60">· {clip.author_handle}</span>
               )}
               {!isSeed && (
                 <>
-                  {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
-                  <ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} />
-                  <ClipCollectionAssigner clipId={clip.id} />
+                  {platformLabel && <span className="shrink-0 text-xs text-muted-foreground/40">·</span>}
+                  <span className="shrink-0"><ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} /></span>
+                  <span className="shrink-0"><ClipCollectionAssigner clipId={clip.id} /></span>
                 </>
               )}
               {isSeed && categoryName && (

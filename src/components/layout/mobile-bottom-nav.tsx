@@ -20,8 +20,8 @@ function MobileBottomNavComponent() {
 
   return (
     <nav
-      className="bg-glass-heavy fixed bottom-0 left-0 right-0 z-sticky flex h-16 items-center border-t border-border/50 backdrop-blur-xl lg:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="bg-glass-heavy fixed bottom-0 left-0 right-0 z-sticky flex items-center border-t border-border/50 backdrop-blur-xl lg:hidden"
+      style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* First two items */}
       {NAV_ITEMS.slice(0, 2).map((item) => {

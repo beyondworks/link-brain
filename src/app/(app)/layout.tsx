@@ -104,11 +104,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
           isSidebarCollapsed ? 'w-16' : 'w-64',
         ].join(' ')}
       >
-        {/* Sidebar header */}
-        <div className={[
-          'flex h-16 items-center border-b border-border/50',
-          isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
-        ].join(' ')}>
+        {/* Sidebar header — safe area padding for iOS notch/Dynamic Island */}
+        <div
+          className={[
+            'flex items-center border-b border-border/50',
+            isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
+          ].join(' ')}
+          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
           <Link
             href="/dashboard"
             className="group flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground"
@@ -310,7 +313,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header aria-label="앱 헤더" className="flex h-16 items-center border-b border-border/50 bg-glass px-4 lg:hidden">
+        <header
+          aria-label="앱 헤더"
+          className="flex items-center border-b border-border/50 bg-glass px-4 lg:hidden"
+          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
           <Button
             variant="ghost"
             size="icon"

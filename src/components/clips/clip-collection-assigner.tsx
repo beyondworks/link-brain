@@ -81,7 +81,7 @@ export function ClipCollectionAssigner({ clipId }: Props) {
         aria-label="컬렉션에 추가"
       >
         <FolderPlus size={12} />
-        컬렉션에 추가
+        컬렉션+
         {assignedCount > 0 && (
           <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary leading-none">
             {assignedCount}

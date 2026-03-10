@@ -69,7 +69,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       suppressHydrationWarning
       className={inter.variable}
     >
-      <body className="font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
+      <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link
