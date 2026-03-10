@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Plus, Globe, Settings } from 'lucide-react';
@@ -18,6 +18,18 @@ function MobileBottomNavComponent() {
   const pathname = usePathname();
   const { openModal } = useUIStore();
 
+  // Scroll #main-content to top when clicking the already-active tab
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent, isActive: boolean) => {
+      if (isActive) {
+        e.preventDefault();
+        const main = document.querySelector('#main-content');
+        if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+    [],
+  );
+
   return (
     <nav
       className="bg-glass-heavy fixed bottom-0 left-0 right-0 z-sticky flex items-center border-t border-border/50 backdrop-blur-xl lg:hidden"
@@ -33,6 +45,7 @@ function MobileBottomNavComponent() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={(e) => handleNavClick(e, isActive)}
             aria-label={item.label}
             aria-current={isActive ? 'page' : undefined}
             className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-spring"
@@ -88,6 +101,7 @@ function MobileBottomNavComponent() {
           <Link
             key={item.href}
             href={item.href}
+            onClick={(e) => handleNavClick(e, isActive)}
             aria-label={item.label}
             aria-current={isActive ? 'page' : undefined}
             className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-spring"
