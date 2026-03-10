@@ -559,6 +559,12 @@ export function ClipPeekPanel() {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [handleEsc, clipPeekMode]);
 
+  const swipeHandlers = useSwipeDismiss({
+    direction: 'right',
+    onDismiss: closeClipPeek,
+    isEnabled: clipPeekMode === 'side' && isOpen,
+  });
+
   if (!isOpen) return null;
 
   const content =
@@ -569,11 +575,6 @@ export function ClipPeekPanel() {
     ) : null;
 
   /* ─── Side mode: Sheet from right ────────────────────────── */
-  const swipeHandlers = useSwipeDismiss({
-    direction: 'right',
-    onDismiss: closeClipPeek,
-    isEnabled: clipPeekMode === 'side' && isOpen,
-  });
 
   if (clipPeekMode === 'side') {
     return (
