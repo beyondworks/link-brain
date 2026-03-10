@@ -387,6 +387,7 @@ function PeekContent({
           <div className="mt-5 flex items-center gap-3">
             <Link
               href={`/clip/${clip.id}`}
+              onClick={onClose}
               className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-spring hover:border-primary/40 hover:glow-brand-sm hover-lift"
             >
               <Eye size={14} className="text-primary" />
