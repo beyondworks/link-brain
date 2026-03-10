@@ -1,0 +1,34 @@
+{
+  "name": "linkbrain-mcp",
+  "version": "2.0.0",
+  "description": "MCP server for Linkbrain v2 - Second Brain API integration with Claude",
+  "homepage": "https://linkbrain.cloud",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linkbrain/linkbrain-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/linkbrain/linkbrain-mcp/issues"
+  },
+  "keywords": ["mcp", "linkbrain", "second-brain", "claude", "ai"],
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "linkbrain-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "linkbrain": {
+      "command": "node",
+      "args": ["/Users/yoogeon/Desktop/Appbuild/Link-brain/mcp-server/dist/index.js"],
+      "env": {
+        "LINKBRAIN_API_KEY": "lb_your_api_key_here",
+        "LINKBRAIN_API_URL": "https://linkbrain.cloud"
+      }
+    }
+  }
+}
