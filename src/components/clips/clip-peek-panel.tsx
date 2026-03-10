@@ -274,13 +274,6 @@ function PeekContent({
               {clip.author_handle && (
                 <span className="shrink-0 max-w-[120px] truncate text-xs text-muted-foreground/60">· {clip.author_handle}</span>
               )}
-              {!isSeed && (
-                <>
-                  {platformLabel && <span className="shrink-0 text-xs text-muted-foreground/40">·</span>}
-                  <span className="shrink-0"><ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} /></span>
-                  <span className="shrink-0"><ClipCollectionAssigner clipId={clip.id} /></span>
-                </>
-              )}
               {isSeed && categoryName && (
                 <>
                   {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
@@ -291,6 +284,14 @@ function PeekContent({
                   <span className="text-xs font-semibold text-muted-foreground">{categoryName}</span>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Category & Collection — separate row with z-index for dropdown visibility */}
+          {!isSeed && (
+            <div className="relative z-[60] mb-3 flex items-center gap-2">
+              <ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} />
+              <ClipCollectionAssigner clipId={clip.id} />
             </div>
           )}
 
