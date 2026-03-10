@@ -57,7 +57,7 @@ export function ClipCategorySelector({ clipId, currentCategoryId }: Props) {
   }
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative z-[60] inline-block">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -90,7 +90,7 @@ export function ClipCategorySelector({ clipId, currentCategoryId }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[60] mt-1.5 w-52 rounded-xl border border-border shadow-lg overflow-hidden" style={{ backgroundColor: 'var(--popover)' }}>
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-52 rounded-xl border border-border bg-popover shadow-lg overflow-hidden">
           <div className="py-1">
             <button
               type="button"

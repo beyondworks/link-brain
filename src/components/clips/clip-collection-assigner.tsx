@@ -68,7 +68,7 @@ export function ClipCollectionAssigner({ clipId }: Props) {
   const assignedCount = assignedIds.length;
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <div ref={containerRef} className="relative z-[60] inline-block">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -94,7 +94,7 @@ export function ClipCollectionAssigner({ clipId }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[var(--z-dropdown)] mt-1.5 w-52 rounded-xl border border-border/60 bg-card shadow-elevated overflow-hidden">
+        <div className="absolute left-0 top-full z-[60] mt-1.5 w-52 rounded-xl border border-border/60 bg-popover shadow-elevated overflow-hidden">
           <div className="py-1">
             {collections.map((col) => {
               const already = assignedIds.includes(col.id);
