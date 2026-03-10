@@ -75,6 +75,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <TooltipProvider>
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[101] bg-background pointer-events-none lg:hidden"
+        style={{ height: 'env(safe-area-inset-top, 0px)' }}
+        aria-hidden="true"
+      />
       {/* Skip navigation link */}
       <a
         href="#main-content"
