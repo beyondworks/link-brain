@@ -312,10 +312,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Mobile header */}
+        {/* Mobile header — fixed to extend behind notch/Dynamic Island */}
         <header
           aria-label="앱 헤더"
-          className="flex items-center border-b border-border/50 bg-glass px-4 lg:hidden"
+          className="fixed top-0 left-0 right-0 z-sticky flex items-center border-b border-border/50 bg-glass px-4 lg:hidden"
           style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <Button
@@ -334,6 +334,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
             Link<span className="text-gradient-brand">Brain</span>
           </Link>
         </header>
+
+        {/* Mobile header spacer — compensate for fixed mobile header */}
+        <div
+          className="shrink-0 lg:hidden"
+          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))' }}
+        />
 
         {/* Desktop header */}
         <div className="hidden lg:block">

@@ -231,6 +231,7 @@
   }
 
   html {
+    @apply bg-background;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
