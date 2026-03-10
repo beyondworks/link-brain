@@ -1,12 +1,20 @@
 /**
- * POST /api/v1/ai - AI 콘텐츠 생성 (스트리밍)
- * Body: { clipIds: string[], type: ContentStudioType, tone: string, length: string }
+ * POST /api/v1/ai - AI 액션 라우터
+ *
+ * action=generate (default) — 스트리밍 콘텐츠 생성
+ *   Body: { action?: 'generate', clipIds, type, tone, length }
+ * action=analyze — 클립 세트 구조 분석 (JSON 응답)
+ *   Body: { action: 'analyze', url?, clipIds? }
+ * action=ask — 클립 컨텍스트 기반 Q&A (JSON 응답)
+ *   Body: { action: 'ask', message, clipIds?, language? }
+ * action=insights — 읽기 패턴 인사이트 리포트 (JSON 응답)
+ *   Body: { action: 'insights', period?, days?, language? }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
-import { errors, sendError, ErrorCodes } from '@/lib/api/response';
+import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database Insert 타입 비호환 우회
 const db = supabaseAdmin as any;
@@ -190,6 +198,277 @@ async function* streamOpenAI(systemPrompt: string, userPrompt: string): AsyncGen
   }
 }
 
+// ─── OpenAI 비스트리밍 헬퍼 ─────────────────────────────────────────────────
+
+async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      stream: false,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 429) {
+      throw Object.assign(new Error('OpenAI 크레딧 부족 또는 요청 한도 초과'), { status: 402 });
+    }
+    const errText = await res.text();
+    throw new Error(`OpenAI API 오류 (${res.status}): ${errText}`);
+  }
+
+  const json = await res.json() as { choices: Array<{ message: { content: string } }> };
+  return json.choices[0]?.message?.content ?? '';
+}
+
+// ─── Analyze 핸들러 ──────────────────────────────────────────────────────────
+
+async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch {
+    return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
+  }
+
+  const obj = rawBody as Record<string, unknown>;
+  const url = typeof obj.url === 'string' ? obj.url : null;
+  const clipIds = Array.isArray(obj.clipIds) ? (obj.clipIds as string[]) : [];
+
+  // Fetch clips if clipIds provided
+  let sourceMaterial = '';
+  if (clipIds.length > 0) {
+    const { data: clips, error: dbErr } = await db
+      .from('clips')
+      .select('id, title, summary, url, clip_contents(content_markdown, raw_markdown)')
+      .eq('user_id', auth.publicUserId)
+      .in('id', clipIds);
+
+    if (dbErr) {
+      console.error('[API v1 AI Analyze] DB error:', dbErr);
+      return errors.internalError();
+    }
+
+    const clipRows = (clips as ClipRow[]) ?? [];
+    sourceMaterial = clipRows.map((clip, idx) => {
+      const content = clip.clip_contents?.content_markdown ?? clip.clip_contents?.raw_markdown ?? '';
+      const body = content ? `\n내용:\n${content.substring(0, 2000)}` : clip.summary ? `\n요약: ${clip.summary}` : '';
+      return `[소스 ${idx + 1}] ${clip.title ?? clip.url}${body}`;
+    }).join('\n\n---\n\n');
+  } else if (url) {
+    sourceMaterial = `URL: ${url}`;
+  } else {
+    return sendError(ErrorCodes.INVALID_REQUEST, 'url 또는 clipIds가 필요합니다.', 400);
+  }
+
+  try {
+    const systemPrompt =
+      '당신은 콘텐츠 분석 전문가입니다. 주어진 소스 자료를 분석하여 다음 JSON 형식으로 응답하세요:\n' +
+      '{\n' +
+      '  "title": "분석 제목",\n' +
+      '  "summary": "핵심 요약 (2-3문장)",\n' +
+      '  "keywords": ["키워드1", "키워드2", ...],\n' +
+      '  "category": "주제 카테고리",\n' +
+      '  "sentiment": "positive|neutral|negative",\n' +
+      '  "keyPoints": ["핵심 포인트1", "핵심 포인트2", ...],\n' +
+      '  "readingTime": "예상 읽기 시간 (분)"\n' +
+      '}\n' +
+      '반드시 유효한 JSON만 응답하세요.';
+
+    const content = await callOpenAI(systemPrompt, `[소스 자료]\n\n${sourceMaterial}`);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = { raw: content };
+    }
+
+    return sendSuccess({ action: 'analyze', result: parsed });
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 402) return sendError(ErrorCodes.INSUFFICIENT_CREDITS, 'OpenAI 크레딧 부족', 402, undefined);
+    console.error('[API v1 AI Analyze] Error:', err);
+    return errors.internalError();
+  }
+}
+
+// ─── Ask 핸들러 ──────────────────────────────────────────────────────────────
+
+async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch {
+    return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
+  }
+
+  const obj = rawBody as Record<string, unknown>;
+  const message = typeof obj.message === 'string' ? obj.message.trim() : '';
+  if (!message) return sendError(ErrorCodes.INVALID_REQUEST, '"message" 필드가 필요합니다.', 400);
+
+  const clipIds = Array.isArray(obj.clipIds) ? (obj.clipIds as string[]) : [];
+  const language = obj.language === 'en' ? 'en' : 'ko';
+
+  let context = '';
+  if (clipIds.length > 0) {
+    const { data: clips, error: dbErr } = await db
+      .from('clips')
+      .select('id, title, summary, url, clip_contents(content_markdown, raw_markdown)')
+      .eq('user_id', auth.publicUserId)
+      .in('id', clipIds.slice(0, 20));
+
+    if (!dbErr && clips) {
+      context = (clips as ClipRow[]).map((clip, idx) => {
+        const content = clip.clip_contents?.content_markdown ?? clip.clip_contents?.raw_markdown ?? '';
+        const body = content ? `\n내용:\n${content.substring(0, 1500)}` : clip.summary ? `\n요약: ${clip.summary}` : '';
+        return `[클립 ${idx + 1}] ${clip.title ?? clip.url}${body}`;
+      }).join('\n\n---\n\n');
+    }
+  }
+
+  try {
+    const lang = language === 'en' ? 'English' : '한국어';
+    const systemPrompt = context
+      ? `당신은 Linkbrain 세컨드 브레인 어시스턴트입니다. 사용자의 저장된 클립을 바탕으로 질문에 답변하세요. ${lang}로 답변하세요.\n\n[사용자 클립]\n${context}`
+      : `당신은 Linkbrain 세컨드 브레인 어시스턴트입니다. 사용자의 질문에 도움이 되는 답변을 제공하세요. ${lang}로 답변하세요.`;
+
+    const answer = await callOpenAI(systemPrompt, message);
+    return sendSuccess({ action: 'ask', message, answer, clipsUsed: clipIds.length });
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 402) return sendError(ErrorCodes.INSUFFICIENT_CREDITS, 'OpenAI 크레딧 부족', 402, undefined);
+    console.error('[API v1 AI Ask] Error:', err);
+    return errors.internalError();
+  }
+}
+
+// ─── Insights 핸들러 ─────────────────────────────────────────────────────────
+
+async function handleInsights(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch {
+    return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
+  }
+
+  const obj = rawBody as Record<string, unknown>;
+  const period = typeof obj.period === 'string' ? obj.period : 'week';
+  const days = typeof obj.days === 'number' ? Math.min(Math.max(obj.days, 1), 365) : null;
+  const language = obj.language === 'en' ? 'en' : 'ko';
+
+  // Calculate date range
+  const now = new Date();
+  let fromDate: Date;
+  if (period === 'custom' && days) {
+    fromDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  } else if (period === 'month') {
+    fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  } else if (period === 'quarter') {
+    fromDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  } else {
+    fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+
+  const { data: clips, error: dbErr } = await db
+    .from('clips')
+    .select('id, title, summary, platform, category_id, created_at, categories(name)')
+    .eq('user_id', auth.publicUserId)
+    .gte('created_at', fromDate.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (dbErr) {
+    console.error('[API v1 AI Insights] DB error:', dbErr);
+    return errors.internalError();
+  }
+
+  const clipRows = (clips as Array<Record<string, unknown>>) ?? [];
+  const totalClips = clipRows.length;
+
+  if (totalClips === 0) {
+    return sendSuccess({
+      action: 'insights',
+      period,
+      totalClips: 0,
+      summary: language === 'en'
+        ? 'No clips saved in this period.'
+        : '해당 기간에 저장된 클립이 없습니다.',
+      platformBreakdown: {},
+      topCategories: [],
+      aiAnalysis: null,
+    });
+  }
+
+  // Compute basic stats
+  const platformCount: Record<string, number> = {};
+  const categoryCount: Record<string, number> = {};
+
+  for (const clip of clipRows) {
+    const platform = typeof clip.platform === 'string' ? clip.platform : 'web';
+    platformCount[platform] = (platformCount[platform] ?? 0) + 1;
+
+    const catName = (clip.categories as { name?: string } | null)?.name;
+    if (catName) categoryCount[catName] = (categoryCount[catName] ?? 0) + 1;
+  }
+
+  const topCategories = Object.entries(categoryCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  // Build summary text for AI
+  const statsSummary =
+    `기간: ${period === 'custom' ? `${days}일` : period}\n` +
+    `총 클립: ${totalClips}개\n` +
+    `플랫폼 분포: ${Object.entries(platformCount).map(([k, v]) => `${k}(${v})`).join(', ')}\n` +
+    `상위 카테고리: ${topCategories.map((c) => `${c.name}(${c.count})`).join(', ')}\n` +
+    `클립 목록 (최근 10개):\n` +
+    clipRows.slice(0, 10).map((c, i) => `${i + 1}. ${c.title ?? '제목 없음'}`).join('\n');
+
+  try {
+    const lang = language === 'en' ? 'English' : '한국어';
+    const systemPrompt =
+      `당신은 독서/학습 패턴 분석 전문가입니다. 사용자의 클립 저장 데이터를 분석하여 인사이트를 제공하세요. ${lang}로 답변하세요.\n\n` +
+      `다음 JSON 형식으로 응답하세요:\n` +
+      `{\n` +
+      `  "summary": "전체 요약",\n` +
+      `  "trends": ["트렌드1", "트렌드2"],\n` +
+      `  "recommendations": ["추천사항1", "추천사항2"],\n` +
+      `  "topicFocus": "주된 관심 주제"\n` +
+      `}\n` +
+      `반드시 유효한 JSON만 응답하세요.`;
+
+    const aiContent = await callOpenAI(systemPrompt, statsSummary);
+
+    let aiAnalysis: unknown;
+    try {
+      aiAnalysis = JSON.parse(aiContent);
+    } catch {
+      aiAnalysis = { raw: aiContent };
+    }
+
+    return sendSuccess({
+      action: 'insights',
+      period,
+      totalClips,
+      platformBreakdown: platformCount,
+      topCategories,
+      aiAnalysis,
+    });
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 402) return sendError(ErrorCodes.INSUFFICIENT_CREDITS, 'OpenAI 크레딧 부족', 402, undefined);
+    console.error('[API v1 AI Insights] Error:', err);
+    return errors.internalError();
+  }
+}
+
 // ─── 핸들러 ───────────────────────────────────────────────────────────────────
 
 async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
@@ -298,8 +577,27 @@ async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<Next
 
 const routeHandler = withAuth(
   async (req, auth) => {
-    if (req.method === 'POST') return handleGenerate(req, auth);
-    return errors.methodNotAllowed(['POST']);
+    if (req.method !== 'POST') return errors.methodNotAllowed(['POST']);
+
+    // Peek at action without consuming the body (clone for generate which reads body again)
+    let action = 'generate';
+    let clonedReq = req;
+    try {
+      const cloneForPeek = req.clone();
+      const peekBody = await cloneForPeek.json() as Record<string, unknown>;
+      if (typeof peekBody.action === 'string') action = peekBody.action;
+      // Re-clone original for downstream handlers
+      clonedReq = req.clone() as NextRequest;
+    } catch {
+      // body not JSON or empty — fall through to generate which handles its own error
+    }
+
+    switch (action) {
+      case 'analyze': return handleAnalyze(clonedReq, auth);
+      case 'ask':     return handleAsk(clonedReq, auth);
+      case 'insights': return handleInsights(clonedReq, auth);
+      default:        return handleGenerate(req, auth);
+    }
   },
   { allowedMethods: ['POST'], isAiEndpoint: true }
 );
