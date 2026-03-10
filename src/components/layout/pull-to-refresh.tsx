@@ -37,7 +37,7 @@ export function PullToRefreshWrapper({ children, className }: PullToRefreshWrapp
       ref={containerRef}
       id="main-content"
       aria-label="메인 콘텐츠"
-      className={cn('relative flex-1 overflow-y-auto', className)}
+      className={cn('relative flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0', className)}
     >
       {/* Pull indicator */}
       {showIndicator && (

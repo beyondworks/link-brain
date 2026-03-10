@@ -333,29 +333,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header
-          aria-label="앱 헤더"
-          className="flex shrink-0 items-center border-b border-border/50 bg-background px-4 lg:hidden"
-          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="사이드바 열기"
-            className="rounded-xl"
-          >
-            <Menu size={20} aria-hidden="true" />
-          </Button>
-          <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
-              L
-            </span>
-            Link<span className="text-gradient-brand">Brain</span>
-          </Link>
-        </header>
-
         {/* Desktop header */}
         <div className="hidden lg:block">
           <AppHeader />
@@ -373,8 +350,32 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Add clip dialog — available on all pages */}
         <AddClipDialog />
 
-        {/* Page content */}
-        <PullToRefreshWrapper>{children}</PullToRefreshWrapper>
+        {/* Page content — mobile header is sticky inside scroll container */}
+        <PullToRefreshWrapper>
+          {/* Mobile sticky header */}
+          <header
+            aria-label="앱 헤더"
+            className="sticky top-0 z-40 flex items-center border-b border-border/50 bg-background px-4 lg:hidden"
+            style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="사이드바 열기"
+              className="rounded-xl"
+            >
+              <Menu size={20} aria-hidden="true" />
+            </Button>
+            <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
+                L
+              </span>
+              Link<span className="text-gradient-brand">Brain</span>
+            </Link>
+          </header>
+          {children}
+        </PullToRefreshWrapper>
 
         {/* FAB — Quick clip add (hidden on mobile where bottom nav has add button) */}
         <button
