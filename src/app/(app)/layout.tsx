@@ -95,7 +95,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <aside
         aria-label="주 네비게이션"
         className={[
-          'fixed inset-y-0 left-0 z-sticky flex-shrink-0',
+          'fixed inset-y-0 left-0 z-[50] flex-shrink-0 lg:z-sticky',
           'bg-background border-r border-border/50',
           'lg:bg-glass-heavy',
           'flex flex-col transition-all duration-200 ease-in-out',
