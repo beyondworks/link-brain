@@ -322,7 +322,7 @@ export function ClipList({
       {viewMode === 'grid' && (
         <div>
           <div
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
             role="list"
             aria-label={`클립 목록 ${clips.length}개`}
           >

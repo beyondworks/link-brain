@@ -2,8 +2,8 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
-import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin, Bell, Clock } from 'lucide-react';
-import { Sparkline } from '@/components/charts/sparkline';
+import { BookmarkPlus, X, BookOpen, TrendingUp, Star, Gauge, Sparkles, RotateCcw, Pin, Bell, Clock, LayoutGrid, List } from 'lucide-react';
+
 import Link from 'next/link';
 import { ClipList } from '@/components/clips/clip-list';
 import { ClipCard } from '@/components/clips/clip-card';
@@ -17,6 +17,7 @@ import { useCategories } from '@/lib/hooks/use-categories';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { ContinueReading } from '@/components/clips/continue-reading';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { WeeklyReport } from '@/components/dashboard/weekly-report';
@@ -180,15 +181,11 @@ function StatCard({
   value,
   label,
   loading,
-  sparklineData,
-  sparklineColor,
 }: {
   icon: React.ElementType;
   value: string;
   label: string;
   loading: boolean;
-  sparklineData?: number[];
-  sparklineColor?: string;
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
@@ -201,17 +198,6 @@ function StatCard({
         <p className="mb-1 text-3xl font-black tracking-tight text-foreground">{value}</p>
       )}
       <p className="text-sm text-muted-foreground">{label}</p>
-      {!loading && sparklineData && sparklineData.length > 0 && (
-        <div className="mt-3">
-          <Sparkline
-            data={sparklineData}
-            color={sparklineColor}
-            height={32}
-            width={80}
-            className="opacity-70"
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -242,7 +228,10 @@ function CompactStat({
 
 export function DashboardClient() {
   const { user: authUser } = useSupabase();
+  const { user: publicUser } = useCurrentUser();
   const setQuickFilter = useUIStore((s) => s.setQuickFilter);
+  const viewMode = useUIStore((s) => s.viewMode);
+  const setViewMode = useUIStore((s) => s.setViewMode);
   const filters = useUIStore((s) => s.filters);
   const { widgets, dashboardView, setDashboardView } = useDashboardPreferences();
 
@@ -258,26 +247,6 @@ export function DashboardClient() {
 
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: credits, isLoading: creditsLoading } = useCredits();
-
-  // Generate seeded 7-day sparkline data derived from actual stats so it stays
-  // consistent across re-renders and correlates with real values.
-  const sparklineData = useMemo(() => {
-    const seed = stats?.totalClips ?? 0;
-    // Simple LCG seeded with totalClips for deterministic output
-    function lcg(s: number, index: number): number {
-      return ((s * 1664525 + 1013904223 + index * 6364136) & 0x7fffffff) / 0x7fffffff;
-    }
-
-    const base = (s: number, scale: number) =>
-      Array.from({ length: 7 }, (_, i) => Math.round(lcg(s + i, i) * scale));
-
-    return {
-      totalClips: base(seed, Math.max(1, seed)),
-      thisMonth: base(seed + 1, Math.max(1, stats?.thisMonthClips ?? 5)),
-      favorites: base(seed + 2, Math.max(1, stats?.favoriteCount ?? 3)),
-      credits: [] as number[], // credits fluctuate, skip sparkline
-    };
-  }, [stats]);
 
   function formatCredits(): string {
     if (creditsLoading || !credits) return '—';
@@ -338,9 +307,9 @@ export function DashboardClient() {
         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/50">
           {formatTodayDate()}
         </p>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold tracking-tight">
               <span className="text-foreground">{getGreeting()},&nbsp;</span>
               <span className="text-gradient-shimmer">
                 {authUser?.user_metadata?.display_name
@@ -349,13 +318,13 @@ export function DashboardClient() {
                   ?? 'LinkBrain'}
               </span>
             </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground/70">
+            <p className="mt-1 text-sm text-muted-foreground/70">
               저장된 클립을 확인하고 관리하세요.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {/* Dashboard view toggle */}
-            <div className="flex items-center rounded-lg border border-border/50 bg-muted/30 p-0.5">
+            <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-0.5">
               <button
                 onClick={() => setDashboardView('summary')}
                 className={cn(
@@ -384,7 +353,7 @@ export function DashboardClient() {
         </div>
       </div>
 
-      {/* Stats — detail: full cards with sparklines, summary: compact inline */}
+      {/* Stats — detail: full cards, summary: compact inline */}
       {widgets.stats && dashboardView === 'detail' && (
         <div className="animate-fade-in-up animation-delay-50 mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard
@@ -392,24 +361,18 @@ export function DashboardClient() {
             value={statsLoading ? '—' : String(stats?.totalClips ?? 0)}
             label="총 클립 수"
             loading={statsLoading}
-            sparklineData={sparklineData.totalClips}
-            sparklineColor="#21DBA4"
           />
           <StatCard
             icon={TrendingUp}
             value={statsLoading ? '—' : String(stats?.thisMonthClips ?? 0)}
             label="이번 달 저장"
             loading={statsLoading}
-            sparklineData={sparklineData.thisMonth}
-            sparklineColor="#3b82f6"
           />
           <StatCard
             icon={Star}
             value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)}
             label="즐겨찾기"
             loading={statsLoading}
-            sparklineData={sparklineData.favorites}
-            sparklineColor="#f59e0b"
           />
           <StatCard
             icon={Gauge}
@@ -435,10 +398,10 @@ export function DashboardClient() {
       {widgets.weeklyReport && dashboardView === 'detail' && <WeeklyReport />}
 
       {/* Continue Reading + Recent Activity — detail only */}
-      {authUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
+      {publicUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
         <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {widgets.continueReading && <ContinueReading userId={authUser.id} />}
-          {widgets.recentActivity && <RecentActivity userId={authUser.id} />}
+          {widgets.continueReading && <ContinueReading userId={publicUser.id} />}
+          {widgets.recentActivity && <RecentActivity userId={publicUser.id} />}
         </div>
       )}
 
@@ -447,23 +410,51 @@ export function DashboardClient() {
         <ActiveCategoryBadge categoryId={filters.categoryId} />
       )}
 
-      {/* Quick filters */}
-      <div className="animate-fade-in-up animation-delay-100 mb-7 flex gap-2">
-        {QUICK_FILTERS.map(({ key, label, emoji }) => (
+      {/* Quick filters + view mode toggle */}
+      <div className="animate-fade-in-up animation-delay-100 mb-7 flex items-center gap-2">
+        <div className="flex gap-2">
+          {QUICK_FILTERS.map(({ key, label, emoji }) => (
+            <button
+              key={key}
+              onClick={() => handleFilterClick(key)}
+              className={[
+                'flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-spring',
+                activeFilter === key
+                  ? 'bg-gradient-brand text-white shadow-brand hover-scale'
+                  : 'border border-border/50 bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/60 hover:text-foreground',
+              ].join(' ')}
+            >
+              <span className="text-[11px]">{emoji}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center rounded-lg border border-border/50 bg-muted/30 p-0.5">
           <button
-            key={key}
-            onClick={() => handleFilterClick(key)}
-            className={[
-              'flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-spring',
-              activeFilter === key
-                ? 'bg-gradient-brand text-white shadow-brand hover-scale'
-                : 'border border-border/50 bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/60 hover:text-foreground',
-            ].join(' ')}
+            onClick={() => setViewMode('grid')}
+            className={cn(
+              'flex items-center justify-center rounded-md p-1.5 transition-spring',
+              viewMode === 'grid'
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            aria-label="그리드 보기"
           >
-            <span className="text-[11px]">{emoji}</span>
-            {label}
+            <LayoutGrid size={15} />
           </button>
-        ))}
+          <button
+            onClick={() => setViewMode('list')}
+            className={cn(
+              'flex items-center justify-center rounded-md p-1.5 transition-spring',
+              viewMode === 'list'
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            aria-label="리스트 보기"
+          >
+            <List size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Divider */}
