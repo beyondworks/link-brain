@@ -30,10 +30,17 @@ export function usePullToRefresh({
   const startY = useRef(0);
   const currentY = useRef(0);
   const pulling = useRef(false);
+  const pullDistanceRef = useRef(0);
+  const refreshingRef = useRef(false);
+  const onRefreshRef = useRef(onRefresh);
+
+  // Keep refs in sync
+  onRefreshRef.current = onRefresh;
+  refreshingRef.current = isRefreshing;
 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
-      if (!isEnabled || isRefreshing) return;
+      if (!isEnabled || refreshingRef.current) return;
 
       const container = containerRef?.current;
       const scrollTop = container ? container.scrollTop : 0;
@@ -43,12 +50,12 @@ export function usePullToRefresh({
       startY.current = e.touches[0].clientY;
       pulling.current = false;
     },
-    [isEnabled, isRefreshing, containerRef],
+    [isEnabled, containerRef],
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
-      if (!isEnabled || isRefreshing) return;
+      if (!isEnabled || refreshingRef.current) return;
 
       const container = containerRef?.current;
       const scrollTop = container ? container.scrollTop : 0;
@@ -58,6 +65,7 @@ export function usePullToRefresh({
           pulling.current = false;
           setIsPulling(false);
           setPullDistance(0);
+          pullDistanceRef.current = 0;
         }
         return;
       }
@@ -70,6 +78,7 @@ export function usePullToRefresh({
           pulling.current = false;
           setIsPulling(false);
           setPullDistance(0);
+          pullDistanceRef.current = 0;
         }
         return;
       }
@@ -84,14 +93,16 @@ export function usePullToRefresh({
       e.preventDefault();
 
       const distance = Math.min(diff * RESISTANCE, MAX_PULL);
+      pullDistanceRef.current = distance;
       setPullDistance(distance);
     },
-    [isEnabled, isRefreshing, containerRef],
+    [isEnabled, containerRef],
   );
 
   const handleTouchEnd = useCallback(async () => {
-    if (!pulling.current || isRefreshing) {
+    if (!pulling.current || refreshingRef.current) {
       setPullDistance(0);
+      pullDistanceRef.current = 0;
       setIsPulling(false);
       pulling.current = false;
       return;
@@ -100,19 +111,24 @@ export function usePullToRefresh({
     pulling.current = false;
     setIsPulling(false);
 
-    if (pullDistance >= THRESHOLD) {
+    const currentPull = pullDistanceRef.current;
+
+    if (currentPull >= THRESHOLD) {
       setIsRefreshing(true);
       setPullDistance(THRESHOLD);
+      pullDistanceRef.current = THRESHOLD;
       try {
-        await onRefresh();
+        await onRefreshRef.current();
       } finally {
         setIsRefreshing(false);
         setPullDistance(0);
+        pullDistanceRef.current = 0;
       }
     } else {
       setPullDistance(0);
+      pullDistanceRef.current = 0;
     }
-  }, [pullDistance, isRefreshing, onRefresh]);
+  }, []);
 
   useEffect(() => {
     const container = containerRef?.current;

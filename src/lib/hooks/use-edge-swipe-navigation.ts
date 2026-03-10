@@ -19,10 +19,13 @@ interface EdgeSwipeState {
 
 interface UseEdgeSwipeNavigationOptions {
   isEnabled?: boolean;
+  /** Disable when sidebar overlay is visible to avoid conflicts */
+  isSidebarOpen?: boolean;
 }
 
 export function useEdgeSwipeNavigation({
   isEnabled = true,
+  isSidebarOpen = false,
 }: UseEdgeSwipeNavigationOptions = {}): EdgeSwipeState {
   const router = useRouter();
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -34,10 +37,17 @@ export function useEdgeSwipeNavigation({
   const edge = useRef<'left' | 'right' | null>(null);
   const isTracking = useRef(false);
   const directionLocked = useRef(false);
+  const swipeOffsetRef = useRef(0);
+  const navigatingRef = useRef(false);
+  const sidebarOpenRef = useRef(isSidebarOpen);
+
+  // Keep refs in sync
+  sidebarOpenRef.current = isSidebarOpen;
+  navigatingRef.current = isNavigating;
 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
-      if (!isEnabled || isNavigating) return;
+      if (!isEnabled || navigatingRef.current || sidebarOpenRef.current) return;
 
       const x = e.touches[0].clientX;
       const screenWidth = window.innerWidth;
@@ -56,7 +66,7 @@ export function useEdgeSwipeNavigation({
       isTracking.current = true;
       directionLocked.current = false;
     },
-    [isEnabled, isNavigating],
+    [isEnabled],
   );
 
   const handleTouchMove = useCallback(
@@ -81,11 +91,13 @@ export function useEdgeSwipeNavigation({
 
       // Left edge: only allow swipe right (back)
       if (edge.current === 'left' && dx <= 0) {
+        swipeOffsetRef.current = 0;
         setSwipeOffset(0);
         return;
       }
       // Right edge: only allow swipe left (forward)
       if (edge.current === 'right' && dx >= 0) {
+        swipeOffsetRef.current = 0;
         setSwipeOffset(0);
         return;
       }
@@ -96,6 +108,7 @@ export function useEdgeSwipeNavigation({
       const distance = Math.min(absDx * RESISTANCE, MAX_SWIPE);
       const signedDistance = edge.current === 'left' ? distance : -distance;
 
+      swipeOffsetRef.current = signedDistance;
       setSwipeOffset(signedDistance);
       setActiveEdge(edge.current);
     },
@@ -104,12 +117,13 @@ export function useEdgeSwipeNavigation({
 
   const handleTouchEnd = useCallback(() => {
     if (!isTracking.current || !edge.current) {
+      swipeOffsetRef.current = 0;
       setSwipeOffset(0);
       setActiveEdge(null);
       return;
     }
 
-    const absDist = Math.abs(swipeOffset);
+    const absDist = Math.abs(swipeOffsetRef.current);
     const currentEdge = edge.current;
 
     isTracking.current = false;
@@ -118,7 +132,9 @@ export function useEdgeSwipeNavigation({
     if (absDist >= SWIPE_THRESHOLD * RESISTANCE) {
       setIsNavigating(true);
       // Animate out
-      setSwipeOffset(currentEdge === 'left' ? MAX_SWIPE : -MAX_SWIPE);
+      const outOffset = currentEdge === 'left' ? MAX_SWIPE : -MAX_SWIPE;
+      swipeOffsetRef.current = outOffset;
+      setSwipeOffset(outOffset);
 
       setTimeout(() => {
         if (currentEdge === 'left') {
@@ -126,15 +142,17 @@ export function useEdgeSwipeNavigation({
         } else {
           router.forward();
         }
+        swipeOffsetRef.current = 0;
         setSwipeOffset(0);
         setActiveEdge(null);
         setIsNavigating(false);
       }, 200);
     } else {
+      swipeOffsetRef.current = 0;
       setSwipeOffset(0);
       setActiveEdge(null);
     }
-  }, [swipeOffset, router]);
+  }, [router]);
 
   useEffect(() => {
     if (!isEnabled) return;

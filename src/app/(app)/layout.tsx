@@ -52,7 +52,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Mobile-only features
   const isMobile = useIsMobile();
-  const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile });
+  const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile, isSidebarOpen: sidebarOpen });
   useStatusBarScrollTop({ isEnabled: isMobile });
 
   const handleSignOut = async () => {
@@ -82,7 +82,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-overlay bg-surface-overlay backdrop-blur-sm lg:hidden animate-fade-in"
+          className="fixed inset-0 z-overlay bg-surface-overlay lg:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
