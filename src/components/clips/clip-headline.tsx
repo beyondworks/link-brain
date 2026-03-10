@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { ClipData } from '@/types/database';
@@ -32,11 +33,14 @@ export const ClipHeadline = memo(function ClipHeadline({
   isSelected = false,
   onSelect,
 }: ClipHeadlineProps) {
+  const router = useRouter();
   const openClipPeek = useUIStore((s) => s.openClipPeek);
 
   function handleClick() {
     if (onSelect) {
       onSelect(clip.id);
+    } else if (window.innerWidth < 1024) {
+      router.push(`/clip/${clip.id}`);
     } else {
       openClipPeek(clip.id);
     }
