@@ -71,6 +71,7 @@ export function TagManager() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergeTargetName, setMergeTargetName] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['tags-with-count'] });
@@ -241,7 +242,7 @@ export function TagManager() {
 
       {/* Tag list */}
       <div className="space-y-1.5">
-        {sorted.map((tag) => (
+        {(showAll ? sorted : sorted.slice(0, 5)).map((tag) => (
           <div
             key={tag.id}
             className={cn(
@@ -335,6 +336,17 @@ export function TagManager() {
           </div>
         ))}
       </div>
+
+      {/* Show more / collapse */}
+      {sorted.length > 5 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="mt-2 w-full rounded-xl border border-border bg-transparent px-4 py-2.5 text-xs font-medium text-muted-foreground transition-spring hover:bg-muted/40 hover:text-foreground"
+        >
+          {showAll ? '접기 ▲' : `더 보기 (${sorted.length - 5}개) ▼`}
+        </button>
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>

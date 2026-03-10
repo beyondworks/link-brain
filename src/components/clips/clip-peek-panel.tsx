@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUIStore } from '@/stores/ui-store';
+import { useSwipeDismiss } from '@/lib/hooks/use-swipe-dismiss';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
@@ -568,6 +569,12 @@ export function ClipPeekPanel() {
     ) : null;
 
   /* ─── Side mode: Sheet from right ────────────────────────── */
+  const swipeHandlers = useSwipeDismiss({
+    direction: 'right',
+    onDismiss: closeClipPeek,
+    isEnabled: clipPeekMode === 'side' && isOpen,
+  });
+
   if (clipPeekMode === 'side') {
     return (
       <Sheet open={isOpen} onOpenChange={(open) => !open && closeClipPeek()}>
@@ -575,6 +582,8 @@ export function ClipPeekPanel() {
           side="right"
           showCloseButton={false}
           className="w-full border-l border-border/50 bg-background p-0 sm:max-w-[560px]"
+          onTouchStart={swipeHandlers.onTouchStart}
+          onTouchEnd={swipeHandlers.onTouchEnd}
         >
           <SheetTitle className="sr-only">클립 미리보기</SheetTitle>
           {content}

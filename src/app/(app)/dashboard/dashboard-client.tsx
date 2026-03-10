@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
 import { useClips } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
+import { useCollections } from '@/lib/hooks/use-collections';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
@@ -236,6 +237,8 @@ export function DashboardClient() {
   const { widgets, dashboardView, setDashboardView } = useDashboardPreferences();
 
   const { data: categories = [] } = useCategories();
+  const { data: collections = [] } = useCollections();
+  const setFilter = useUIStore((s) => s.setFilter);
   const toggleFavorite = useToggleFavorite();
   const toggleArchive = useToggleArchive();
 
@@ -455,6 +458,30 @@ export function DashboardClient() {
             <List size={15} />
           </button>
         </div>
+      </div>
+
+      {/* Mobile category/collection filters */}
+      <div className="animate-fade-in-up animation-delay-100 mb-4 flex gap-2 sm:hidden">
+        <select
+          value={filters.categoryId ?? ''}
+          onChange={(e) => setFilter('categoryId', e.target.value || null)}
+          className="flex-1 truncate rounded-xl border border-border/50 bg-card px-3 py-1.5 text-xs text-foreground"
+        >
+          <option value="">카테고리 전체</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        <select
+          value={filters.collectionId ?? ''}
+          onChange={(e) => setFilter('collectionId', e.target.value || null)}
+          className="flex-1 truncate rounded-xl border border-border/50 bg-card px-3 py-1.5 text-xs text-foreground"
+        >
+          <option value="">컬렉션 전체</option>
+          {collections.map((col) => (
+            <option key={col.id} value={col.id}>{col.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Divider */}
