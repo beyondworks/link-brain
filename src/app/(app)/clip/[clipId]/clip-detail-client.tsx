@@ -43,6 +43,7 @@ import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { shareClip } from '@/lib/utils/share';
 import { ClipTagEditor } from '@/components/clips/clip-tag-editor';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
+import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
 import { ClipNotes } from '@/components/clips/clip-notes';
 import { TextHighlighter } from '@/components/clips/text-highlighter';
 import { ReminderDialog } from '@/components/clips/reminder-dialog';
@@ -742,9 +743,10 @@ export function ClipDetailClient({ clipId }: Props) {
       {isSeed && <TagList clipId={clipId} />}
       {!isSeed && <ClipTagEditor clipId={clipId} />}
 
-      {/* Collection assignment */}
+      {/* Category + Collection assignment */}
       {!isSeed && (
-        <div className="mb-5 animate-fade-in-up animation-delay-200">
+        <div className="mb-5 flex flex-wrap items-center gap-2 animate-fade-in-up animation-delay-200">
+          <ClipCategorySelector clipId={clipId} currentCategoryId={clip.category_id ?? null} />
           <ClipCollectionAssigner clipId={clipId} />
         </div>
       )}

@@ -43,6 +43,7 @@ import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_LABELS, PLATFORM_COLORS, PLATFORM_ICONS } from '@/config/constants';
 import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
+import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
 import type { ClipData, ClipContent } from '@/types/database';
 
 
@@ -258,7 +259,7 @@ function PeekContent({
           clipPeekMode === 'full' && 'mx-auto max-w-3xl'
         )}>
           {/* Platform + Category badge */}
-          {(platformLabel || categoryName) && (
+          {(platformLabel || categoryName || !isSeed) && (
             <div className="mb-3 flex items-center gap-2">
               {platformLabel && (
                 <>
@@ -271,7 +272,13 @@ function PeekContent({
               {clip.author_handle && (
                 <span className="text-xs text-muted-foreground/60">· {clip.author_handle}</span>
               )}
-              {categoryName && (
+              {!isSeed && (
+                <>
+                  {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
+                  <ClipCategorySelector clipId={clip.id} currentCategoryId={clip.category_id ?? null} />
+                </>
+              )}
+              {isSeed && categoryName && (
                 <>
                   {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
                   <span
