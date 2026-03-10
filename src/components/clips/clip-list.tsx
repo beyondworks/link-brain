@@ -363,7 +363,7 @@ export function ClipList({
       {viewMode === 'list' && (
         <div>
           <div
-            className="flex flex-col gap-1"
+            className="flex flex-col"
             role="list"
             aria-label={`클립 목록 ${clips.length}개`}
           >

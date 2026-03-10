@@ -318,7 +318,7 @@ export function DashboardClient() {
                   ?? 'LinkBrain'}
               </span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground/70">
+            <p className="mt-1 truncate text-xs text-muted-foreground/70">
               저장된 클립을 확인하고 관리하세요.
             </p>
           </div>
@@ -411,20 +411,20 @@ export function DashboardClient() {
       )}
 
       {/* Quick filters + view mode toggle */}
-      <div className="animate-fade-in-up animation-delay-100 mb-7 flex items-center gap-2">
-        <div className="flex gap-2">
+      <div className="animate-fade-in-up animation-delay-100 mb-7 flex items-center gap-2 overflow-x-auto scrollbar-none">
+        <div className="flex shrink-0 gap-1.5">
           {QUICK_FILTERS.map(({ key, label, emoji }) => (
             <button
               key={key}
               onClick={() => handleFilterClick(key)}
               className={[
-                'flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-spring',
+                'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-medium transition-spring',
                 activeFilter === key
                   ? 'bg-gradient-brand text-white shadow-brand hover-scale'
                   : 'border border-border/50 bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/60 hover:text-foreground',
               ].join(' ')}
             >
-              <span className="text-[11px]">{emoji}</span>
+              <span className="text-[10px]">{emoji}</span>
               {label}
             </button>
           ))}
