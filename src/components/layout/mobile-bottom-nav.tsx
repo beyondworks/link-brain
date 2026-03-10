@@ -23,6 +23,8 @@ function MobileBottomNavComponent() {
     (e: React.MouseEvent, isActive: boolean) => {
       if (isActive) {
         e.preventDefault();
+        // Show header before scrolling to top
+        window.dispatchEvent(new CustomEvent('show-mobile-header'));
         const main = document.querySelector('#main-content');
         if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
       }

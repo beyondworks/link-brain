@@ -23,7 +23,9 @@ import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
+import { useScrollDirection } from '@/lib/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,6 +70,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile, isSidebarOpen: sidebarOpen });
   useStatusBarScrollTop({ isEnabled: isMobile });
+  const { isHeaderVisible } = useScrollDirection({ isEnabled: isMobile });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -350,32 +353,35 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Add clip dialog — available on all pages */}
         <AddClipDialog />
 
-        {/* Page content — mobile header as stickyHeader prop (outside transform wrapper) */}
-        <PullToRefreshWrapper
-          stickyHeader={
-            <header
-              aria-label="앱 헤더"
-              className="sticky top-0 z-40 flex items-center border-b border-border/50 bg-background px-4 lg:hidden"
-              style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="사이드바 열기"
-                className="rounded-xl"
-              >
-                <Menu size={20} aria-hidden="true" />
-              </Button>
-              <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
-                  L
-                </span>
-                Link<span className="text-gradient-brand">Brain</span>
-              </Link>
-            </header>
-          }
+        {/* Mobile header — fixed position with hide-on-scroll */}
+        <header
+          aria-label="앱 헤더"
+          className={cn(
+            'fixed top-0 left-0 right-0 z-40 flex items-center border-b border-border/50 bg-background px-4 lg:hidden',
+            'transition-transform duration-300 ease-out',
+            !isHeaderVisible && '-translate-y-full',
+          )}
+          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="사이드바 열기"
+            className="rounded-xl"
+          >
+            <Menu size={20} aria-hidden="true" />
+          </Button>
+          <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
+              L
+            </span>
+            Link<span className="text-gradient-brand">Brain</span>
+          </Link>
+        </header>
+
+        {/* Page content */}
+        <PullToRefreshWrapper>
           {children}
         </PullToRefreshWrapper>
 
