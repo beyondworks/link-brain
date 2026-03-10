@@ -13,6 +13,7 @@ import { MAIN_NAV } from '@/config/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
+import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
@@ -332,7 +333,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <KeyboardShortcutsDialog />
 
         {/* Page content */}
-        <main id="main-content" aria-label="메인 콘텐츠" className="flex-1 overflow-y-auto">{children}</main>
+        <PullToRefreshWrapper>{children}</PullToRefreshWrapper>
 
         {/* FAB — Quick clip add (hidden on mobile where bottom nav has add button) */}
         <button
