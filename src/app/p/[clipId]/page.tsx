@@ -147,7 +147,7 @@ export default async function PublicClipPage({ params }: Props) {
               {clip.platform}
             </span>
           )}
-          <span>{formatRelativeTime(clip.created_at)}</span>
+          <span suppressHydrationWarning>{formatRelativeTime(clip.created_at)}</span>
           <span className="flex items-center gap-1">
             <Heart className="h-3.5 w-3.5" />
             {clip.likes_count}
