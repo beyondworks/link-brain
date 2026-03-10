@@ -42,8 +42,8 @@ INSTRUCTIONS:
 Generate JSON:
 {
   "title": "Clear, descriptive title in ${langName} (max 60 chars)",
-  "summary": "Concise 3-5 sentence summary of the video content in ${langName}. Cover main topics and key takeaways.",
-  "detailedSummary": "Create a timestamped chapter summary of the video in ${langName}. Use timestamps from the transcript to identify major topic transitions. For each chapter, write '[MM:SS] Chapter Title — 2-3 sentence summary of what is discussed.' Cover all major sections chronologically. Aim for 5-10 chapters depending on video length. Example format:\n[0:00] Introduction — The creator introduces today's topic...\n[3:20] First Key Point — Explains the concept of...\nThis should be informative enough that someone can understand the video's full content without watching it.",
+  "summary": "Detailed 3-5 sentence summary of the video content in ${langName}. Cover main topics and key takeaways.",
+  "detailedSummary": "A richer 5-8 sentence explanation of the video's flow and major points in ${langName}.",
   "keywords": ["5-7 specific keywords in ${langName}"],
   "category": "Choose from: Design, Dev, AI, Product, Business, Marketing, Finance, Stock, Investment, Crypto, Health, Fitness, Education, Science, News, Entertainment, Music, Gaming, Travel, Food, Lifestyle, Sports, Fashion, Art, Photography, Automation, Productivity, Career, Startup, Other",
   "sentiment": "positive | neutral | negative",
@@ -51,7 +51,7 @@ Generate JSON:
 }
 
 Return ONLY valid JSON.`,
-      maxTokens: 1200,
+      maxTokens: 600,
     };
   }
 

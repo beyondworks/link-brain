@@ -9,7 +9,6 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { getGradient } from '@/config/constants';
 import type { ClipData, ReadingProgress } from '@/types/database';
 
 interface ContinueReadingProps {
@@ -20,6 +19,18 @@ interface ProgressWithClip {
   clip: ClipData;
   scroll_percentage: number;
   last_read_at: string;
+}
+
+const GRADIENT_COLORS = [
+  'from-violet-500 to-purple-600',
+  'from-blue-500 to-cyan-600',
+  'from-green-500 to-emerald-600',
+  'from-orange-500 to-red-600',
+  'from-pink-500 to-rose-600',
+];
+
+function getGradient(id: string): string {
+  return GRADIENT_COLORS[id.charCodeAt(0) % GRADIENT_COLORS.length];
 }
 
 async function fetchContinueReading(userId: string): Promise<ProgressWithClip[]> {

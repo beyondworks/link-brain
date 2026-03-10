@@ -96,20 +96,6 @@ Pretendard Variable. text-xs(12) / text-sm(14) / text-base(16) / text-lg(18) / t
 ### 오버레이/그라데이션
 - 콘텐츠 위에 겹치는 그라데이션 div는 반드시 `pointer-events-none` 추가 (CollapsibleSection 등)
 
-### 커스텀 드롭다운 + CSS 애니메이션 stacking context
-- `animate-fade-in-up` 등 CSS animation은 각 요소에 별도 stacking context 생성
-- Portal 미사용 커스텀 드롭다운(`position: absolute`)이 animated 형제 뒤에 숨을 수 있음
-- **해결**: 드롭다운을 포함하는 부모 wrapper에 `relative z-[var(--z-popover)]` 추가
-- `bg-glass` (60% 불투명도) 위 드롭다운 → `bg-popover` + `backdrop-blur-none` 사용
-
-### Supabase 관계 데이터 정규화
-- `clip_contents` 등 Supabase `.select()` 관계 데이터는 단일 객체 또는 배열로 반환될 수 있음
-- **반드시** `Array.isArray(data) ? data : [data]` 정규화 후 사용 (peek 패널과 상세 페이지 모두 동일 패턴)
-
-### 폼 해제 패턴
-- 자식에 interactive 요소(버튼, 색상 선택 등)가 있는 인라인 폼은 `onBlur` 사용 금지
-- `useRef` + `mousedown` 이벤트의 `ref.contains()` 외부 클릭 감지 패턴 사용
-
 ## 네이밍
 - 파일: `kebab-case.tsx`
 - 컴포넌트: `PascalCase`

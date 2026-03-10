@@ -14,9 +14,14 @@ import { MAIN_NAV } from '@/config/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
+import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
+import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
+import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
+import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,6 +53,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Global keyboard shortcuts
   useGlobalShortcuts();
 
+  // Mobile-only features
+  const isMobile = useIsMobile();
+  const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile, isSidebarOpen: sidebarOpen });
+  useStatusBarScrollTop({ isEnabled: isMobile });
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';
@@ -75,7 +85,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-overlay bg-surface-overlay backdrop-blur-sm lg:hidden animate-fade-in"
+          className="fixed inset-0 z-overlay bg-surface-overlay lg:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -86,7 +96,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         aria-label="주 네비게이션"
         className={[
           'fixed inset-y-0 left-0 z-sticky flex-shrink-0',
-          'bg-glass-heavy border-r border-border/50',
+          'bg-background border-r border-border/50',
+          'lg:bg-glass-heavy',
           'flex flex-col transition-all duration-200 ease-in-out',
           'lg:static lg:translate-x-0 lg:animate-slide-in-left',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
@@ -332,7 +343,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <KeyboardShortcutsDialog />
 
         {/* Page content */}
-        <main id="main-content" aria-label="메인 콘텐츠" className="flex-1 overflow-y-auto">{children}</main>
+        <PullToRefreshWrapper>{children}</PullToRefreshWrapper>
 
         {/* FAB — Quick clip add (hidden on mobile where bottom nav has add button) */}
         <button
@@ -343,6 +354,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           <Plus size={22} aria-hidden="true" />
         </button>
+
+        {/* Edge swipe navigation indicator */}
+        <EdgeSwipeIndicator activeEdge={activeEdge} swipeOffset={swipeOffset} />
 
         {/* Mobile bottom nav */}
         <MobileBottomNav />
