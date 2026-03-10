@@ -14,9 +14,13 @@ import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
+import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
+import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
+import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,6 +49,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Global keyboard shortcuts
   useGlobalShortcuts();
+
+  // Mobile-only features
+  const isMobile = useIsMobile();
+  const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile });
+  useStatusBarScrollTop({ isEnabled: isMobile });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -344,6 +353,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           <Plus size={22} aria-hidden="true" />
         </button>
+
+        {/* Edge swipe navigation indicator */}
+        <EdgeSwipeIndicator activeEdge={activeEdge} swipeOffset={swipeOffset} />
 
         {/* Mobile bottom nav */}
         <MobileBottomNav />
