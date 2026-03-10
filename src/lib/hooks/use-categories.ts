@@ -15,7 +15,7 @@ export function useCategories() {
 
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select('*, clips(count)')
         .eq('user_id', user.id)
         .order('sort_order', { ascending: true });
 

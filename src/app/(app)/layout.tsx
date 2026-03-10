@@ -11,6 +11,7 @@ import { useRealtimeInvalidation } from '@/lib/hooks/use-realtime-invalidation';
 import { useGlobalShortcuts } from '@/lib/hooks/use-global-shortcuts';
 import { supabase } from '@/lib/supabase/client';
 import { MAIN_NAV } from '@/config/navigation';
+import { useNavCounts } from '@/lib/hooks/use-nav-counts';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
@@ -46,6 +47,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user: publicUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
   const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+  const { data: navCounts } = useNavCounts();
+
+  const countByHref: Record<string, number> = {
+    '/dashboard': navCounts?.total ?? 0,
+    '/favorites': navCounts?.favorites ?? 0,
+    '/read-later': navCounts?.readLater ?? 0,
+    '/archive': navCounts?.archived ?? 0,
+    '/collections': navCounts?.collections ?? 0,
+  };
 
   // Single Realtime channel for cache invalidation
   // Must use publicUser.id (clips.user_id), NOT auth UID (user.id)
@@ -194,11 +204,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         {!isSidebarCollapsed && (
                           <>
                             <span>{item.labelKo}</span>
-                            {item.badge && (
+                            {item.badge ? (
                               <span className="ml-auto rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
                                 {item.badge}
                               </span>
-                            )}
+                            ) : (countByHref[item.href] ?? 0) > 0 ? (
+                              <span className="ml-auto text-[10px] tabular-nums text-muted-foreground/50">
+                                {countByHref[item.href]}
+                              </span>
+                            ) : null}
                           </>
                         )}
                       </Link>

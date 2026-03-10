@@ -210,6 +210,15 @@ export function SidebarCategories() {
                       style={{ backgroundColor: cat.color ?? '#21DBA4' }}
                     />
                     <span className="flex-1 truncate">{cat.name}</span>
+                    {(() => {
+                      const clips = (cat as Record<string, unknown>).clips;
+                      const count = Array.isArray(clips) ? clips[0]?.count ?? 0 : 0;
+                      return count > 0 ? (
+                        <span className="ml-auto mr-1 text-[10px] tabular-nums text-muted-foreground/50">
+                          {count}
+                        </span>
+                      ) : null;
+                    })()}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -256,15 +265,24 @@ export function SidebarCategories() {
         {/* Inline add form */}
         {adding && (
           <li className="flex flex-col gap-1.5 px-3 py-1.5">
-            <input
-              ref={addInputRef}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={handleAddKeyDown}
-              onBlur={() => setTimeout(() => cancelAdding(), 150)}
-              placeholder="카테고리 이름"
-              className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/50"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                ref={addInputRef}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={handleAddKeyDown}
+                placeholder="카테고리 이름"
+                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground outline-none focus:border-primary placeholder:text-muted-foreground/50"
+              />
+              <button
+                type="button"
+                onClick={() => void submitAdd()}
+                disabled={!newName.trim() || createCategory.isPending}
+                className="flex-shrink-0 rounded-md bg-primary px-2 py-1 text-[10px] font-semibold text-primary-foreground transition-smooth hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none"
+              >
+                생성
+              </button>
+            </div>
             <ColorPicker selected={newColor} onChange={setNewColor} />
           </li>
         )}
