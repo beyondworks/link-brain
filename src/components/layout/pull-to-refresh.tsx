@@ -11,10 +11,11 @@ const THRESHOLD = 80;
 
 interface PullToRefreshWrapperProps {
   children: React.ReactNode;
+  stickyHeader?: React.ReactNode;
   className?: string;
 }
 
-export function PullToRefreshWrapper({ children, className }: PullToRefreshWrapperProps) {
+export function PullToRefreshWrapper({ children, stickyHeader, className }: PullToRefreshWrapperProps) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLElement | null>(null);
@@ -39,6 +40,9 @@ export function PullToRefreshWrapper({ children, className }: PullToRefreshWrapp
       aria-label="메인 콘텐츠"
       className={cn('relative flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0', className)}
     >
+      {/* Sticky header — outside transform wrapper so sticky works at scroll-end */}
+      {stickyHeader}
+
       {/* Pull indicator */}
       {showIndicator && (
         <div
