@@ -125,13 +125,18 @@ export function useDeleteCategory() {
     mutationFn: async ({ id }: { id: string }) => {
       if (!user?.id) throw new Error('인증이 필요합니다');
 
-      const { error: clipError } = await supabase
+      // Check if any clips are assigned to this category
+      const { count, error: countError } = await supabase
         .from('clips')
-        .update({ category_id: null } as never)
+        .select('*', { count: 'exact', head: true })
         .eq('category_id', id)
         .eq('user_id', user.id);
 
-      if (clipError) throw clipError;
+      if (countError) throw countError;
+
+      if (count && count > 0) {
+        throw new Error(`이 카테고리에 ${count}개의 클립이 있습니다. 클립을 다른 카테고리로 이동한 후 삭제해주세요.`);
+      }
 
       const { error } = await supabase
         .from('categories')
@@ -153,11 +158,11 @@ export function useDeleteCategory() {
 
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (user?.id && context?.previous !== undefined) {
         queryClient.setQueryData(['categories', user.id], context.previous);
       }
-      toast.error('카테고리 삭제 실패');
+      toast.error(err instanceof Error ? err.message : '카테고리 삭제 실패');
     },
     onSuccess: () => {
       if (user?.id) queryClient.invalidateQueries({ queryKey: ['categories', user.id] });
