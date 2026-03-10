@@ -745,7 +745,7 @@ export function ClipDetailClient({ clipId }: Props) {
 
       {/* Category + Collection assignment */}
       {!isSeed && (
-        <div className="mb-5 flex flex-wrap items-center gap-2 animate-fade-in-up animation-delay-200">
+        <div className="relative z-[60] mb-5 flex flex-wrap items-center gap-2 animate-fade-in-up animation-delay-200">
           <ClipCategorySelector clipId={clipId} currentCategoryId={clip.category_id ?? null} />
           <ClipCollectionAssigner clipId={clipId} />
         </div>
