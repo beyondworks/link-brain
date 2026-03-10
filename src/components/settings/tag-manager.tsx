@@ -65,7 +65,6 @@ export function TagManager() {
   const { data: tags, isLoading } = useTagsWithCount(user?.id);
 
   const [sortMode, setSortMode] = useState<SortMode>('name');
-  const [visibleCount, setVisibleCount] = useState(10);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<TagWithCount | null>(null);
@@ -205,7 +204,7 @@ export function TagManager() {
               'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
               sortMode === 'name' && 'bg-muted text-foreground',
             )}
-            onClick={() => { setSortMode('name'); setVisibleCount(10); }}
+            onClick={() => setSortMode('name')}
           >
             <ArrowDownUp size={11} />
             이름순
@@ -217,7 +216,7 @@ export function TagManager() {
               'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
               sortMode === 'count' && 'bg-muted text-foreground',
             )}
-            onClick={() => { setSortMode('count'); setVisibleCount(10); }}
+            onClick={() => setSortMode('count')}
           >
             <ArrowDownUp size={11} />
             사용순
@@ -242,7 +241,7 @@ export function TagManager() {
 
       {/* Tag list */}
       <div className="space-y-1.5">
-        {sorted.slice(0, visibleCount).map((tag) => (
+        {sorted.map((tag) => (
           <div
             key={tag.id}
             className={cn(
@@ -336,19 +335,6 @@ export function TagManager() {
           </div>
         ))}
       </div>
-
-      {/* Load more */}
-      {sorted.length > visibleCount && (
-        <div className="mt-3 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={() => setVisibleCount((v) => v + 10)}
-            className="rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            더 불러오기 ({Math.min(visibleCount, sorted.length)} / {sorted.length}개)
-          </button>
-        </div>
-      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>

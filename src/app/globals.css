@@ -552,7 +552,6 @@
     position: absolute;
     inset: 0;
     padding: 1px;
-    pointer-events: none;
     border-radius: inherit;
     background: linear-gradient(135deg, oklch(0.78 0.15 168 / 40%), oklch(0.65 0.18 155 / 20%), oklch(0.78 0.15 168 / 40%));
     background-size: 200% 200%;

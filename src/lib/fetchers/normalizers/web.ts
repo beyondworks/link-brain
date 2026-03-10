@@ -17,10 +17,7 @@ const NAV_KEYWORDS = [
     'HOME', 'MENU', 'LOGIN', 'SUBSCRIBE', 'SEARCH', 'SETTINGS',
     '전체기사', '최신기사', '인기기사', '포토', '영상', '연예', '스포츠',
     '경제', '정치', '사회', '국제', '문화', '생활', 'IT', '과학',
-    '오피니언', '인터뷰', '칼럼', '사설', '기획', '특집',
-    // Community site patterns
-    '최신글', '댓글', '예전글', '글등록', 'Bookmarklet', 'RSS',
-    'Podcast', 'Weekly', 'FAQ', '사이트 이용법',
+    '오피니언', '인터뷰', '칼럼', '사설', '기획', '특집'
 ];
 
 // Footer patterns
@@ -33,12 +30,7 @@ const FOOTER_PATTERNS = [
     /저작권\s*보호/,
     /문의\s*메일/,
     /대표\s*전화/,
-    /사업자\s*등록/,
-    // Community site footers (GeekNews, etc.)
-    /긱뉴스봇\s*:/,
-    /Slack잔디/,
-    /DiscordTeams/,
-    /Google\s*Chat/i,
+    /사업자\s*등록/
 ];
 
 // Category list patterns (news sites often have these)
@@ -142,41 +134,6 @@ function removeJsonBlocks(text: string): string {
     }
 
     return cleaned.join('\n\n');
-}
-
-/**
- * Remove community site noise: vote buttons, javascript links,
- * comment metadata, and site-wide navigation footers.
- */
-function removeCommunityNoise(text: string): string {
-    let t = text;
-
-    // Remove javascript: links and vote/fav buttons (GeekNews, HN-style)
-    t = t.replace(/▲\([^)]*\)/g, '');
-    t = t.replace(/\(javascript:[^)]*\)/g, '');
-    t = t.replace(/javascript:\w+\([^)]*\)/g, '');
-
-    // Remove vote point indicators like "8 P by username"
-    t = t.replace(/^\d+\s*P\s+by\s+\S+.*$/gm, '');
-
-    // Remove relative timestamps attached to usernames (comment headers)
-    t = t.replace(/^\S{2,20}\d+\s*(일|시간|분|초)\s*전\s*[-;)]*\s*$/gm, '');
-
-    // Remove standalone "favorite" / "★ favorite" lines
-    t = t.replace(/^[★☆]?\s*favorite\s*$/gim, '');
-
-    // Remove lines that are just site section links concatenated
-    t = t.replace(/^(Slack|잔디|Discord|Teams|Dooray!|Google Chat|Swit|X \(Twitter\)|Facebook)+.*$/gm, '');
-
-    // Remove "인증 이메일 클릭" type notices
-    t = t.replace(/^인증\s*이메일.*$/gm, '');
-    t = t.replace(/^체크박스를\s*눌러.*$/gm, '');
-
-    // Remove HN/GN-style comment section markers
-    t = t.replace(/^댓글\s*\d*개?\s*$/gm, '');
-
-    t = t.replace(/\n{3,}/g, '\n\n').trim();
-    return t;
 }
 
 function removeNavigationSections(text: string): string {
@@ -283,7 +240,6 @@ export function normalizeWeb(raw: string): string {
     text = cleanMarkdownLinks(text);
     text = cleanMarkdownFormatting(text);
     text = removeGarbageTokens(text);
-    text = removeCommunityNoise(text);
     text = removeJsonBlocks(text);
     text = removeNavigationSections(text);
     text = extractMainContent(text);
