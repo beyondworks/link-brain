@@ -211,8 +211,8 @@ export function SidebarCategories() {
                     />
                     <span className="flex-1 truncate">{cat.name}</span>
                     {(() => {
-                      const clips = (cat as Record<string, unknown>).clips;
-                      const count = Array.isArray(clips) ? clips[0]?.count ?? 0 : 0;
+                      const clips = (cat as unknown as Record<string, unknown>).clips;
+                      const count = Array.isArray(clips) ? (clips[0] as Record<string, number> | undefined)?.count ?? 0 : 0;
                       return count > 0 ? (
                         <span className="ml-auto mr-1 text-[10px] tabular-nums text-muted-foreground/50">
                           {count}
