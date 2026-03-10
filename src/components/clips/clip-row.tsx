@@ -86,26 +86,25 @@ export const ClipRow = memo(function ClipRow({
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
-      {/* Selection checkbox — hidden (no space) unless selection mode */}
-      <div
-        onClick={handleCheckboxClick}
-        className={cn(
-          'flex-shrink-0 transition-all',
-          isSelectionMode || isSelected ? 'w-5 opacity-100' : 'w-0 overflow-hidden opacity-0 group-hover:w-5 group-hover:opacity-100'
-        )}
-      >
-        <div className={cn(
-          'flex h-5 w-5 items-center justify-center rounded border-2 cursor-pointer transition-spring',
-          isSelected
-            ? 'border-primary bg-primary text-white'
-            : 'border-border bg-muted hover:border-primary'
-        )}>
-          {isSelected && <Check className="h-3 w-3" />}
-        </div>
-      </div>
-
-      {/* Thumbnail — larger */}
+      {/* Thumbnail with checkbox overlay */}
       <div className="relative h-[72px] w-[72px] flex-shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm">
+        {/* Selection checkbox — overlay on thumbnail */}
+        <div
+          onClick={handleCheckboxClick}
+          className={cn(
+            'absolute left-1 top-1 z-10 transition-all',
+            isSelectionMode || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}
+        >
+          <div className={cn(
+            'flex h-5 w-5 items-center justify-center rounded border-2 cursor-pointer transition-spring shadow-sm',
+            isSelected
+              ? 'border-primary bg-primary text-white'
+              : 'border-border bg-background/80 backdrop-blur-sm hover:border-primary'
+          )}>
+            {isSelected && <Check className="h-3 w-3" />}
+          </div>
+        </div>
         {clip.image ? (
           <Image
             src={clip.image}
