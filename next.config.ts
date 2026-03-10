@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'media.licdn.com' },
       { protocol: 'https', hostname: '*.pstatic.net' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'montage.wanted.co.kr' },
+      { protocol: 'https', hostname: 'social.news.hada.io' },
     ],
   },
   trailingSlash: !!process.env.CAPACITOR_BUILD,

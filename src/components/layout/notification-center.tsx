@@ -54,7 +54,7 @@ function NotificationItem({
           {notification.title}
         </p>
         <p className="mt-0.5 break-all text-xs text-muted-foreground line-clamp-1">{notification.message}</p>
-        <p className="mt-1 text-[10px] text-muted-foreground/60">{formatRelativeTime(notification.createdAt)}</p>
+        <p className="mt-1 text-[10px] text-muted-foreground/60" suppressHydrationWarning>{formatRelativeTime(notification.createdAt)}</p>
       </div>
       {!notification.isRead && (
         <span className="sr-only">읽지 않음</span>

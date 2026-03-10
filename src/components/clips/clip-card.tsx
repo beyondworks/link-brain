@@ -311,7 +311,7 @@ export const ClipCard = memo(function ClipCard({
 
         {/* Bottom row */}
         <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
-          <span className="text-[11px] font-medium text-muted-foreground/60">
+          <span className="text-[11px] font-medium text-muted-foreground/60" suppressHydrationWarning>
             {formatRelativeTime(clip.created_at)}
           </span>
           <div className="flex items-center gap-1.5">

@@ -77,7 +77,7 @@ export function ShortcutsOverlay() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>키보드 단축키</DialogTitle>
         </DialogHeader>

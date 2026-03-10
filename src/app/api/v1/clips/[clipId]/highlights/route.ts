@@ -35,6 +35,8 @@ async function verifyClipOwnership(
   clipId: string,
   userId: string
 ): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+  if (!clipId) return { ok: false, response: errors.notFound('clip') };
+
   const { data: clip, error: clipErr } = await db
     .from('clips')
     .select('id, user_id')
@@ -72,7 +74,9 @@ async function handleGet(
       if (
         error.code === 'PGRST116' ||
         error.code === '42P01' ||
-        error.message?.includes('does not exist')
+        error.message?.includes('does not exist') ||
+        error.message?.includes('relation') ||
+        error.code === 'PGRST204'
       ) {
         return sendSuccess([] as HighlightRow[]);
       }

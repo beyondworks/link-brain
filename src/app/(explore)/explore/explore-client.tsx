@@ -90,7 +90,7 @@ function ExploreCard({ clip }: { clip: ExploreClip }) {
 
         {/* Footer: time + stats */}
         <div className="mt-auto pt-1 flex items-center justify-between">
-          <p className="text-xs text-subtle">{formatRelativeTime(clip.createdAt)}</p>
+          <p className="text-xs text-subtle" suppressHydrationWarning>{formatRelativeTime(clip.createdAt)}</p>
           <div className="flex items-center gap-2.5 text-xs text-subtle">
             {clip.likesCount > 0 && (
               <span className="flex items-center gap-0.5">

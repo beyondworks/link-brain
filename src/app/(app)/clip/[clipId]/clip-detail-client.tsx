@@ -164,7 +164,7 @@ function PlatformHero({ clip }: { clip: ClipData }) {
           <div className="flex items-center gap-2 text-sm">
             <span className="rounded-full bg-orange-600 px-2 py-0.5 text-xs font-bold text-white">{clip.author}</span>
             <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">{formatRelativeTime(clip.created_at)}</span>
+            <span className="text-muted-foreground" suppressHydrationWarning>{formatRelativeTime(clip.created_at)}</span>
           </div>
           <p className="mt-2 text-lg font-bold text-foreground">{clip.title}</p>
           <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
@@ -723,7 +723,7 @@ export function ClipDetailClient({ clipId }: Props) {
               약 {clip.read_time ?? estimatedReadMinutes}분 읽기
             </span>
           )}
-          <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground" suppressHydrationWarning>
             <Calendar size={11} />
             {formatRelativeTime(clip.created_at)}
           </span>

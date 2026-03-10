@@ -59,7 +59,7 @@ export const ClipHeadline = memo(function ClipHeadline({
       <p className="min-w-0 flex-1 truncate text-sm text-foreground">
         {clip.title ?? clip.url}
       </p>
-      <span className="flex-shrink-0 text-[11px] text-muted-foreground tabular-nums">
+      <span className="flex-shrink-0 text-[11px] text-muted-foreground tabular-nums" suppressHydrationWarning>
         {formatRelativeTime(clip.created_at)}
       </span>
     </div>

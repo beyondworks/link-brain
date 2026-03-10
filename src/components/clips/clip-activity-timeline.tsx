@@ -187,7 +187,7 @@ function ActivityItem({
           <span className="text-sm font-medium text-foreground">{meta.label}</span>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="cursor-default text-xs text-muted-foreground">{relative}</span>
+              <span className="cursor-default text-xs text-muted-foreground" suppressHydrationWarning>{relative}</span>
             </TooltipTrigger>
             <TooltipContent side="right">{absolute}</TooltipContent>
           </Tooltip>

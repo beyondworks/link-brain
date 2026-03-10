@@ -163,7 +163,7 @@ export function StudioOutputPanel({
                       {item.output}
                     </p>
                   </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                  <span className="shrink-0 text-[10px] text-muted-foreground/60" suppressHydrationWarning>
                     {formatRelativeTime(item.createdAt)}
                   </span>
                 </div>

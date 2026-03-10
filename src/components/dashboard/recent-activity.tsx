@@ -96,7 +96,7 @@ export function RecentActivity({ userId }: RecentActivityProps) {
                 <p className="line-clamp-1 text-sm font-medium text-foreground">
                   {item.title}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground" suppressHydrationWarning>
                   클립 저장 · {formatRelativeTime(item.created_at)}
                 </p>
               </div>

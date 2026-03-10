@@ -184,7 +184,7 @@ export const ClipRow = memo(function ClipRow({
               나중에
             </span>
           )}
-          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/50">
+          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/50" suppressHydrationWarning>
             {formatRelativeTime(clip.created_at)}
           </span>
           <button
