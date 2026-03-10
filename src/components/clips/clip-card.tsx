@@ -1,7 +1,6 @@
 'use client';
 
 import { memo } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
@@ -39,7 +38,6 @@ export const ClipCard = memo(function ClipCard({
   categoryName,
   categoryColor,
 }: ClipCardProps) {
-  const router = useRouter();
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
   const retryClip = useRetryClip();
@@ -53,8 +51,6 @@ export const ClipCard = memo(function ClipCard({
     }
     if (onSelect) {
       onSelect(clip.id);
-    } else if (window.innerWidth < 1024) {
-      router.push(`/clip/${clip.id}`);
     } else {
       openClipPeek(clip.id);
     }
