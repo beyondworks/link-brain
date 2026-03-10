@@ -184,7 +184,7 @@ export const useUIStore = create<UIState & UIActions>()(
     }),
     {
       name: 'linkbrain-ui',
-      partialize: (state) => ({ isSidebarCollapsed: state.isSidebarCollapsed }),
+      partialize: (state) => ({ isSidebarCollapsed: state.isSidebarCollapsed, viewMode: state.viewMode }),
     },
   ),
 );
