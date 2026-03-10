@@ -82,7 +82,7 @@ export const ClipRow = memo(function ClipRow({
     <div
       onClick={handleRowClick}
       className={cn(
-        'card-interactive group flex cursor-pointer items-center gap-4 rounded-2xl border border-transparent px-4 py-3 transition-spring hover:border-border/50 hover:bg-card hover:shadow-card',
+        'card-interactive group flex cursor-pointer items-start gap-3 border-b border-border/30 px-4 py-3 transition-spring last:border-b-0 hover:bg-card/60',
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
@@ -152,9 +152,9 @@ export const ClipRow = memo(function ClipRow({
         {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
           <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/60">분석 중...</p>
         )}
-        <div className="mt-2 flex items-center gap-2.5">
+        <div className="mt-1.5 flex items-center gap-2">
           {clip.platform && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1">
               <span
                 className={cn(
                   'inline-block h-1.5 w-1.5 rounded-full',
@@ -167,7 +167,7 @@ export const ClipRow = memo(function ClipRow({
             </div>
           )}
           {categoryName && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1">
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: categoryColor ?? '#21DBA4' }}
@@ -177,20 +177,20 @@ export const ClipRow = memo(function ClipRow({
               </span>
             </div>
           )}
-          <span className="text-[11px] text-muted-foreground/50">
-            {formatRelativeTime(clip.created_at)}
-          </span>
           {clip.is_pinned && (
-            <Pin className="h-3 w-3 fill-amber-400 text-amber-400" aria-label="고정됨" />
+            <Pin className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-label="고정됨" />
           )}
           {clip.is_read_later && (
-            <span className="rounded-full bg-gradient-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-brand">
+            <span className="shrink-0 rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
               나중에
             </span>
           )}
+          <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/50">
+            {formatRelativeTime(clip.created_at)}
+          </span>
           <button
             onClick={handleFavorite}
-            className="flex h-5 w-5 items-center justify-center rounded-full transition-spring hover:bg-yellow-500/10 hover:scale-110"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-spring hover:bg-yellow-500/10 hover:scale-110"
             aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
           >
             <Star
@@ -206,8 +206,8 @@ export const ClipRow = memo(function ClipRow({
         </div>
       </div>
 
-      {/* Actions — visible on hover */}
-      <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-spring group-hover:opacity-100">
+      {/* Actions — visible on hover, hidden on mobile */}
+      <div className="hidden flex-shrink-0 items-center gap-1 opacity-0 transition-spring group-hover:opacity-100 sm:flex">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
