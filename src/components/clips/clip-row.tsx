@@ -86,12 +86,12 @@ export const ClipRow = memo(function ClipRow({
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
-      {/* Selection checkbox */}
+      {/* Selection checkbox — hidden (no space) unless selection mode */}
       <div
         onClick={handleCheckboxClick}
         className={cn(
-          'flex-shrink-0 transition-opacity',
-          isSelectionMode || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          'flex-shrink-0 transition-all',
+          isSelectionMode || isSelected ? 'w-5 opacity-100' : 'w-0 overflow-hidden opacity-0 group-hover:w-5 group-hover:opacity-100'
         )}
       >
         <div className={cn(
