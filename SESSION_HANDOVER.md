@@ -1,6 +1,6 @@
 # Session Handover
 
-## 날짜: 2026-03-10 (세션 2)
+## 날짜: 2026-03-10 (세션 3)
 
 ---
 
@@ -8,10 +8,11 @@
 
 | 해시 | 설명 |
 |------|------|
+| `1d9e612` | fix: peek panel category/collection dropdown not visible |
+| `d53e57b` | fix: sticky header unsticking at scroll-end — move outside transform wrapper |
+| `9c7873a` | fix: mobile sticky header + bottom nav scroll padding |
+| `247d291` | fix: strict type cast for category clip count |
 | `0ce22a8` | feat: show clip/collection counts next to sidebar nav items and categories |
-| `b8c14ea` | fix: move AddClipDialog to app layout — available on all pages |
-| `3a0ac78` | fix: prevent category deletion when clips are assigned |
-| `e90f615` | fix: hydration warning on public clip page + favicon 404 |
 
 **브랜치**: `main` → GitHub push 완료
 
@@ -19,39 +20,35 @@
 
 ## 완료
 
-### 이전 세션 (세션 1)
-- 메모 저장 버그 수정 (pendingValueRef + fire-and-forget flush)
-- iOS 노치 배경 처리 (html bg + safe-area-fill layer)
-- 하단 냅바 scroll-to-top
+### 1. 사이드바 카운트 표시 (`0ce22a8`)
+- `use-nav-counts.ts` 훅 — 홈/즐겨찾기/나중에읽기/아카이브/컬렉션 개수 (5개 병렬 count 쿼리)
+- `use-categories.ts` — `.select('*, clips(count)')` 관계 쿼리로 카테고리별 클립 수
+- 사이드바 메뉴 + 카테고리 옆 카운트 표시 (0개 숨김, badge 우선)
 
-### 이번 세션 (세션 2)
+### 2. 카테고리 생성 버튼 추가
+- 인라인 추가 폼에 "생성" 버튼 추가 (Enter + 클릭 모두 가능)
+- `onBlur` 제거 (버튼 클릭 시 blur 경합 방지)
 
-#### 1. 콘솔 에러 수정 (`e90f615`)
-- React #418 hydration: `src/app/p/[clipId]/page.tsx` — `suppressHydrationWarning` 추가
-- favicon 404: SVG favicon 생성 (`public/icons/favicon.svg`) + metadata 경로 수정
-- Instagram 이미지 502: 외부 CDN 만료 — 수정 불가 (정상)
+### 3. 빌드 타입 에러 수정 (`247d291`)
+- `Category` → `Record<string, unknown>` strict cast: `unknown` 경유 필수
 
-#### 2. 카테고리 삭제 가드 (`3a0ac78`)
-- 삭제 전 해당 카테고리에 매칭된 클립 수 확인
-- 클립 존재 시 삭제 차단 + 에러 메시지 표시 ("이 카테고리에 N개의 클립이 있습니다")
+### 4. 모바일 sticky 헤더 + 하단 패딩 (`9c7873a`, `d53e57b`)
+- 모바일 헤더를 `PullToRefreshWrapper` 내부로 이동 + `sticky top-0`
+- `stickyHeader` prop으로 transform wrapper 바깥에 렌더 (sticky가 scroll-end에서 풀리는 문제 해결)
+- `#main-content`에 `pb-[calc(4rem+env(safe-area-inset-bottom))]` 추가 (하단 냅바 콘텐츠 가림 방지)
 
-#### 3. AddClipDialog 전역화 (`b8c14ea`)
-- `dashboard-client.tsx`에서 `(app)/layout.tsx`로 이동
-- 모든 앱 페이지에서 하단 `+` 버튼으로 클립 추가 가능
-
-#### 4. 사이드바 카운트 표시 (`0ce22a8`)
-- `use-nav-counts.ts` 훅 신규 생성 — 홈/즐겨찾기/나중에읽기/아카이브/컬렉션 개수 조회
-- 사이드바 메뉴 옆 카운트 표시 (0개는 숨김, badge 있는 메뉴는 badge 우선)
-- 카테고리별 클립 수: `use-categories.ts`에서 `clips(count)` 관계 쿼리 추가
-- 카테고리 인라인 추가 폼에 "생성" 버튼 추가 (Enter 외에도 클릭으로 생성 가능)
+### 5. Peek 패널 드롭다운 수정 (`1d9e612`)
+- 카테고리/컬렉션 셀렉터를 `overflow-x-auto` 컨테이너에서 분리
+- 별도 행 + `relative z-[60]` wrapper로 드롭다운 정상 표시
 
 ---
 
 ## 미완료
 
 ### P0 — 실기기 확인 필요
-- [ ] iOS 노치 겹침 해결 여부 실기기 테스트 (에뮬레이터 불가)
-- [ ] 메모 저장 실기기 테스트 (flush on unmount 동작 확인)
+- [ ] iOS 노치 + sticky 헤더 실기기 테스트
+- [ ] 하단 냅바 콘텐츠 가림 해결 확인
+- [ ] peek 패널 드롭다운 동작 확인
 
 ### P1 — 기능
 - [ ] 로고 결정: 7개 SVG (`public/logo-concept-a~g.svg`) 중 선택 → 미사용 삭제
@@ -66,15 +63,16 @@
 
 ## 에러/학습
 
-1. **Supabase `clips(count)` 관계 쿼리**: `.select('*, clips(count)')` → 결과에 `clips: [{count: N}]` 배열로 반환. `Array.isArray` + `[0]?.count` 정규화 필요.
-2. **카테고리 삭제 가드**: optimistic delete가 있으므로 `onError`에서 실제 에러 메시지 표시 필요 (`err instanceof Error ? err.message : ...`).
-3. **인라인 폼 onBlur**: 옆에 버튼이 있으면 `onBlur`로 폼 닫기 시 버튼 클릭이 먼저 blur로 취소됨 → `onBlur` 제거하고 명시적 취소/제출만 사용.
+1. **sticky + transform wrapper**: `position: sticky`는 부모 컨테이너 끝에 도달하면 풀림. PullToRefreshWrapper의 transform div 안에 넣으면 해당 div 끝에서 sticky 해제됨. → `stickyHeader` prop으로 transform wrapper 바깥에 렌더해야 함.
+2. **overflow-x-auto + dropdown**: 부모에 `overflow-x-auto`가 있으면 자식 드롭다운(absolute/portal 없는)이 잘림. → 드롭다운을 overflow 컨테이너 바깥으로 분리.
+3. **strict type cast**: `Category as Record<string, unknown>` 불가 (TypeScript strict). `as unknown as Record<string, unknown>` 경유 필수.
+4. **Supabase relation count**: `.select('*, clips(count)')` → `[{count: N}]` 배열. `Array.isArray` + `[0]?.count` 정규화.
 
 ---
 
 ## 다음 세션 시작 시
 
 1. `MEMORY.md` + `SESSION_HANDOVER.md` 읽기
-2. 사용자에게 iOS 노치/메모 실기기 테스트 결과 확인
+2. 사용자에게 실기기 테스트 결과 확인 (sticky 헤더, 하단 패딩, peek 드롭다운)
 3. 로고 선정 결과 확인 → 미사용 SVG 삭제
 4. DB 마이그레이션 008/009 적용 여부 확인
