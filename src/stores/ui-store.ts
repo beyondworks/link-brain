@@ -80,7 +80,7 @@ export const useUIStore = create<UIState & UIActions>()(
   persist(
     (set) => ({
       // State
-      sidebarOpen: true,
+      sidebarOpen: false,
       isSidebarCollapsed: false,
       viewMode: 'grid',
       searchQuery: '',
