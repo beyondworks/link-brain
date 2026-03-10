@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { PenLine, Check, Loader2, ChevronDown } from 'lucide-react';
+import { PenLine, Check, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -10,13 +10,17 @@ interface ClipNotesProps {
   initialNotes?: string | null;
 }
 
-type SaveStatus = 'idle' | 'saving' | 'saved';
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function ClipNotes({ clipId, initialNotes }: ClipNotesProps) {
   const [value, setValue] = useState(initialNotes ?? '');
   const [isExpanded, setIsExpanded] = useState(!!(initialNotes));
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track the latest unsaved value so we can flush on unmount
+  const pendingValueRef = useRef<string | null>(null);
+  const clipIdRef = useRef(clipId);
+  clipIdRef.current = clipId;
 
   // Sync if initialNotes changes (e.g. refetch)
   useEffect(() => {
@@ -30,35 +34,48 @@ export function ClipNotes({ clipId, initialNotes }: ClipNotesProps) {
       const { error } = await supabase
         .from('clips')
         .update({ notes } as never)
-        .eq('id', clipId);
+        .eq('id', clipIdRef.current);
 
       if (!error) {
+        pendingValueRef.current = null;
         setSaveStatus('saved');
-        // Reset to idle after 2 seconds
         setTimeout(() => setSaveStatus('idle'), 2000);
       } else {
-        setSaveStatus('idle');
+        console.error('[ClipNotes] save failed:', error.message);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       }
     },
-    [clipId]
+    []
   );
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const next = e.target.value;
     if (next.length > 2000) return;
     setValue(next);
+    pendingValueRef.current = next;
     setSaveStatus('idle');
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      pendingValueRef.current = null;
       save(next);
     }, 1000);
   }
 
-  // Cleanup on unmount
+  // Flush pending save on unmount (fire-and-forget)
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      const pending = pendingValueRef.current;
+      if (pending !== null) {
+        // Fire-and-forget: save immediately before unmount
+        supabase
+          .from('clips')
+          .update({ notes: pending } as never)
+          .eq('id', clipIdRef.current)
+          .then();
+      }
     };
   }, []);
 
@@ -96,6 +113,12 @@ export function ClipNotes({ clipId, initialNotes }: ClipNotesProps) {
             <span className="flex items-center gap-1 text-[11px] text-primary">
               <Check size={11} />
               저장됨
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="flex items-center gap-1 text-[11px] text-destructive">
+              <AlertCircle size={11} />
+              저장 실패
             </span>
           )}
           <ChevronDown
