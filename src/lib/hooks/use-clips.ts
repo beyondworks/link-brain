@@ -114,9 +114,15 @@ export function useClips(options: UseClipsOptions = {}) {
         }
       }
 
-      // Full-text search
+      // Full-text search + ILIKE fallback for partial/English matches
       if (search && search.trim()) {
-        query = query.textSearch('fts', search.trim(), { type: 'websearch' });
+        const q = search.trim();
+        // Escape ILIKE special chars
+        const esc = q.replace(/%/g, '\\%').replace(/_/g, '\\_');
+        // FTS (config must match stored tsvector 'simple') OR title/summary ILIKE
+        query = query.or(
+          `fts.wfts(simple).${q},title.ilike.%${esc}%,summary.ilike.%${esc}%`
+        );
       }
 
       const { data, error } = await query;

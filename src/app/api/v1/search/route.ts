@@ -63,7 +63,7 @@ async function handleSearch(req: NextRequest, auth: AuthContext): Promise<NextRe
         { count: 'exact' }
       )
       .eq('user_id', auth.publicUserId)
-      .textSearch('fts', q, { type: 'plain', config: 'simple' })
+      .or(`fts.plfts(simple).${q},title.ilike.%${q.replace(/%/g, '\\%').replace(/_/g, '\\_')}%,summary.ilike.%${q.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`)
       .order('created_at', { ascending: false });
 
     if (categoryId) query = query.eq('category_id', categoryId);
