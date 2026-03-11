@@ -19,6 +19,7 @@ import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
+import { AdvancedFilters } from '@/components/layout/advanced-filters';
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
@@ -380,6 +381,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <LinkbrainLogo variant="full" height={20} />
                 </Link>
                 <div className="ml-auto flex items-center gap-1">
+                  <AdvancedFilters />
                   <Button
                     variant="ghost"
                     size="icon"
