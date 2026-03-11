@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CONTENT_STUDIO_TYPES } from '@/config/constants';
+import { useStudioGenerations, useSaveGeneration, useDeleteGeneration } from '@/lib/hooks/use-studio-generations';
+import type { StudioGeneration } from '@/lib/hooks/use-studio-generations';
 import type { ContentStudioType } from '@/config/constants';
 import { useClips } from '@/lib/hooks/use-clips';
 import { Button } from '@/components/ui/button';
@@ -153,8 +155,6 @@ const LENGTH_OPTIONS = [
   { value: 'long', label: '길게 (1000자 이상)' },
 ];
 
-const MAX_HISTORY = 10;
-
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
 export function StudioClient() {
@@ -167,7 +167,22 @@ export function StudioClient() {
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAllClips, setShowAllClips] = useState(false);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // DB-backed generation history
+  const { data: generations } = useStudioGenerations();
+  const saveGeneration = useSaveGeneration();
+  const deleteGeneration = useDeleteGeneration();
+
+  const history: HistoryItem[] = useMemo(
+    () =>
+      (generations ?? []).map((g: StudioGeneration) => ({
+        id: g.id,
+        prompt: `${STUDIO_META[g.content_type as ContentStudioType]?.label ?? g.content_type} · ${TONE_OPTIONS.find((t) => t.value === g.tone)?.label ?? g.tone}`,
+        output: g.output,
+        createdAt: new Date(g.created_at),
+      })),
+    [generations]
+  );
 
   const { data, isLoading: clipsLoading } = useClips();
   const allClips = useMemo(
@@ -268,15 +283,15 @@ export function StudioClient() {
         setOutput((prev) => prev + chunk);
       }
 
-      // Push to history (FIFO, max 10)
+      // Save to DB
       if (generated) {
-        const meta = STUDIO_META[selectedType];
-        const newItem: HistoryItem = {
-          prompt: `${meta.label} · ${TONE_OPTIONS.find((t) => t.value === tone)?.label ?? tone}`,
+        saveGeneration.mutate({
+          content_type: selectedType,
+          tone,
+          length,
+          source_clip_ids: Array.from(selectedClipIds),
           output: generated,
-          createdAt: new Date(),
-        };
-        setHistory((prev) => [newItem, ...prev].slice(0, MAX_HISTORY));
+        });
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, '네트워크 오류가 발생했습니다.'));
@@ -577,6 +592,9 @@ export function StudioClient() {
             contentTypeLabel={STUDIO_META[selectedType].label}
             history={history}
             onHistorySelect={(item) => setOutput(item.output)}
+            onHistoryDelete={(item) => {
+              if (item.id) deleteGeneration.mutate(item.id);
+            }}
           />
         </div>
       </div>

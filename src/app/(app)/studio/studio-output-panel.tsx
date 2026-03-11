@@ -1,6 +1,6 @@
 'use client';
 
-import { Save, Loader2, Sparkles, Clock } from 'lucide-react';
+import { Save, Loader2, Sparkles, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type HistoryItem = {
+  id?: string;
   prompt: string;
   output: string;
   createdAt: Date;
@@ -25,6 +26,7 @@ type OutputPanelProps = {
   contentTypeLabel: string;
   history: HistoryItem[];
   onHistorySelect: (item: HistoryItem) => void;
+  onHistoryDelete?: (item: HistoryItem) => void;
 };
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -50,6 +52,7 @@ export function StudioOutputPanel({
   contentTypeLabel,
   history,
   onHistorySelect,
+  onHistoryDelete,
 }: OutputPanelProps) {
   return (
     <div className="space-y-4">
@@ -163,9 +166,23 @@ export function StudioOutputPanel({
                       {item.output}
                     </p>
                   </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground/60" suppressHydrationWarning>
-                    {formatRelativeTime(item.createdAt)}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground/60" suppressHydrationWarning>
+                      {formatRelativeTime(item.createdAt)}
+                    </span>
+                    {onHistoryDelete && item.id && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onHistoryDelete(item);
+                        }}
+                        className="rounded-md p-1 text-muted-foreground/40 transition-spring hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}
