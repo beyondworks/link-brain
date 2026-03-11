@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
