@@ -28,7 +28,7 @@ import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
 import { cn } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
-type QuickFilter = 'all' | 'favorite' | 'readLater';
+type QuickFilter = 'all' | 'favorite' | 'readLater' | 'unread';
 
 /* ─── 리마인더 섹션 ──────────────────────────────────────────────────── */
 function ReminderSection({ clips }: { clips: ClipData[] }) {
@@ -128,7 +128,7 @@ function ReminderSection({ clips }: { clips: ClipData[] }) {
 const QUICK_FILTERS: { key: QuickFilter; label: string; emoji: string }[] = [
   { key: 'all', label: '전체', emoji: '✦' },
   { key: 'favorite', label: '즐겨찾기', emoji: '♥' },
-  { key: 'readLater', label: '나중에 읽기', emoji: '◷' },
+  { key: 'unread', label: '안읽은 클립', emoji: '◷' },
 ];
 
 function getGreeting(): string {
@@ -257,18 +257,18 @@ export function DashboardClient() {
 
   // Derive active quick filter from Zustand (single source of truth)
   const activeFilter: QuickFilter =
-    filters.isFavorite ? 'favorite' : filters.isReadLater ? 'readLater' : 'all';
+    filters.isFavorite ? 'favorite' : filters.readStatus === 'unread' ? 'unread' : 'all';
 
   const searchQuery = useUIStore((s) => s.searchQuery);
 
   const clipsFilter = useMemo(() => ({
     isArchived: false as const,
     ...(filters.isFavorite ? { isFavorite: true as const } : {}),
-    ...(filters.isReadLater ? { isReadLater: true as const } : {}),
+    ...(filters.readStatus === 'unread' ? { readStatus: 'unread' as const } : {}),
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters.collectionId ? { collectionId: filters.collectionId } : {}),
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
-  }), [filters.isFavorite, filters.isReadLater, filters.categoryId, filters.collectionId, filters.platform]);
+  }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, search: debouncedSearch || undefined });
@@ -293,8 +293,8 @@ export function DashboardClient() {
   );
   const hasActiveFilters = useMemo(() =>
     filters.categoryId || filters.collectionId || filters.platform ||
-    filters.isFavorite || filters.isReadLater,
-  [filters.categoryId, filters.collectionId, filters.platform, filters.isFavorite, filters.isReadLater]);
+    filters.isFavorite || filters.readStatus === 'unread',
+  [filters.categoryId, filters.collectionId, filters.platform, filters.isFavorite, filters.readStatus]);
 
   const handleFilterClick = useCallback((key: QuickFilter) => {
     setQuickFilter(key);

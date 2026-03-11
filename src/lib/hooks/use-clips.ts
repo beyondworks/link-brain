@@ -67,6 +67,11 @@ export function useClips(options: UseClipsOptions = {}) {
       if (filters?.isReadLater) {
         query = query.eq('is_read_later', true);
       }
+      if (filters?.readStatus === 'unread') {
+        query = query.eq('is_read', false);
+      } else if (filters?.readStatus === 'read') {
+        query = query.eq('is_read', true);
+      }
       if (filters?.isArchived !== undefined) {
         query = query.eq('is_archived', filters.isArchived);
       } else {

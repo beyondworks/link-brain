@@ -53,7 +53,7 @@ interface UIActions {
   setSortBy: (sortBy: ClipSortBy) => void;
   setSortOrder: (order: SortOrder) => void;
   setFilter: <K extends keyof UIFilters>(key: K, value: UIFilters[K]) => void;
-  setQuickFilter: (key: 'all' | 'favorite' | 'readLater') => void;
+  setQuickFilter: (key: 'all' | 'favorite' | 'readLater' | 'unread') => void;
   clearFilters: () => void;
   openClipPeek: (clipId: string) => void;
   closeClipPeek: () => void;
@@ -156,6 +156,7 @@ export const useUIStore = create<UIState & UIActions>()(
             ...s.filters,
             isFavorite: key === 'favorite' ? true : null,
             isReadLater: key === 'readLater' ? true : null,
+            readStatus: key === 'unread' ? 'unread' : null,
           },
         })),
 
