@@ -41,17 +41,15 @@ const VIEW_MODE_LABELS: Record<ViewMode, string> = {
 };
 
 export function AppHeader({ title, titleKo }: AppHeaderProps) {
-  const {
-    viewMode,
-    setViewMode,
-    sortBy,
-    sortOrder,
-    setSortBy,
-    setSortOrder,
-    openModal,
-    searchQuery,
-    setSearchQuery,
-  } = useUIStore();
+  const viewMode = useUIStore((s) => s.viewMode);
+  const setViewMode = useUIStore((s) => s.setViewMode);
+  const sortBy = useUIStore((s) => s.sortBy);
+  const sortOrder = useUIStore((s) => s.sortOrder);
+  const setSortBy = useUIStore((s) => s.setSortBy);
+  const setSortOrder = useUIStore((s) => s.setSortOrder);
+  const openModal = useUIStore((s) => s.openModal);
+  const searchQuery = useUIStore((s) => s.searchQuery);
+  const setSearchQuery = useUIStore((s) => s.setSearchQuery);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,7 +65,7 @@ export function AppHeader({ title, titleKo }: AppHeaderProps) {
   };
 
   return (
-    <header className="animate-fade-in-down flex h-16 items-center gap-3 border-b border-border/50 bg-glass px-5">
+    <header className="animate-fade-in-down flex h-16 items-center gap-3 border-b border-border/50 bg-background px-5">
       {/* Title (desktop) */}
       {(title || titleKo) && (
         <h1 className="mr-1 hidden text-sm font-semibold text-foreground lg:block">

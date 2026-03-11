@@ -21,7 +21,11 @@ export function PullToRefreshWrapper({ children, stickyHeader, className }: Pull
   const containerRef = useRef<HTMLElement | null>(null);
 
   const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['clips'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] }),
+    ]);
   }, [queryClient]);
 
   const { pullDistance, isRefreshing } = usePullToRefresh({
