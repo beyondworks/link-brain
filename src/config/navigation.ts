@@ -45,7 +45,7 @@ export const MAIN_NAV: NavSection[] = [
     titleKo: '도구',
     items: [
       { label: 'Studio', labelKo: '스튜디오', href: '/studio', icon: Sparkles },
-      { label: 'Insights', labelKo: '인사이트', href: '/insights', icon: BarChart3, badge: 'pro' },
+      { label: 'Insights', labelKo: '인사이트', href: '/insights', icon: BarChart3 },
       { label: 'Explore', labelKo: '탐색', href: '/explore', icon: Globe },
     ],
   },

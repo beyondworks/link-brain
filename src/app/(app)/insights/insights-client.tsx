@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useInsights } from '@/lib/hooks/use-insights';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +33,7 @@ const PLATFORM_COLORS = [
 ];
 
 export function InsightsClient() {
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const { data, isLoading, isError } = useInsights();
 
   if (isLoading) {
@@ -173,14 +175,32 @@ export function InsightsClient() {
             </div>
             {/* Mini bar chart */}
             <div className="flex h-16 items-end gap-0.5">
-              {data.recentActivity.map((day) => (
-                <div
-                  key={day.date}
-                  title={`${day.date}: ${day.count}개`}
-                  className="flex-1 rounded-t-sm bg-emerald-500/60 transition-all hover:bg-emerald-500"
-                  style={{ height: `${Math.max(4, (day.count / maxActivity) * 100)}%` }}
-                />
-              ))}
+              {data.recentActivity.map((day, idx) => {
+                const d = new Date(day.date + 'T00:00:00');
+                const label = `${d.getMonth() + 1}월 ${d.getDate()}일`;
+                return (
+                  <div
+                    key={day.date}
+                    className="relative flex-1"
+                    style={{ height: '100%' }}
+                    onMouseEnter={() => setHoveredBar(idx)}
+                    onMouseLeave={() => setHoveredBar(null)}
+                  >
+                    {hoveredBar === idx && (
+                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 -translate-x-1/2">
+                        <div className="whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background shadow-lg">
+                          {label} · {day.count}개 저장
+                        </div>
+                        <div className="mx-auto h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-foreground" />
+                      </div>
+                    )}
+                    <div
+                      className="absolute inset-x-0 bottom-0 rounded-t-sm bg-emerald-500/60 transition-all hover:bg-emerald-500"
+                      style={{ height: `${Math.max(4, (day.count / maxActivity) * 100)}%` }}
+                    />
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
               <span>30일 전</span>
@@ -256,7 +276,7 @@ export function InsightsClient() {
               <span className="ml-0.5 text-sm font-normal text-muted-foreground">%</span>
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              전체 {data.totalClips}개 기준 (읽기 진행률 80% 초과)
+              전체 {data.totalClips}개 중 읽음 표시된 클립
             </p>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div

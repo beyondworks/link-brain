@@ -58,13 +58,13 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
         .eq('user_id', userId)
         .eq('is_archived', true),
 
-      // Clips with reading_progress > 80 (read clips)
+      // Read clips (is_read = true)
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('is_archived', false)
-        .gt('reading_progress', 80),
+        .eq('is_read', true),
 
       // AI analyzed clips (non-null summary)
       supabaseAdmin
@@ -136,7 +136,7 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
       }
     }
 
-    // Read rate: percentage of non-archived clips with reading_progress > 80
+    // Read rate: percentage of non-archived clips marked as read
     const readRate = totalClips > 0 ? Math.round((readCount / totalClips) * 100) : 0;
 
     // Platform breakdown: group and count
