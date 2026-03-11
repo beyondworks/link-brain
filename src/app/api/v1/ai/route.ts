@@ -117,7 +117,7 @@ function parseBody(raw: unknown): AiRequestBody | null {
   if (typeof obj.length !== 'string' || !VALID_LENGTHS.has(obj.length)) return null;
 
   return {
-    clipIds: obj.clipIds.filter((id): id is string => typeof id === 'string'),
+    clipIds: obj.clipIds.filter((id): id is string => typeof id === 'string').slice(0, 20),
     type: obj.type,
     tone: obj.tone,
     length: obj.length,
@@ -242,7 +242,7 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
 
   const obj = rawBody as Record<string, unknown>;
   const url = typeof obj.url === 'string' ? obj.url : null;
-  const clipIds = Array.isArray(obj.clipIds) ? (obj.clipIds as string[]) : [];
+  const clipIds = Array.isArray(obj.clipIds) ? (obj.clipIds as string[]).slice(0, 20) : [];
 
   // Fetch clips if clipIds provided
   let sourceMaterial = '';
@@ -596,7 +596,7 @@ const routeHandler = withAuth(
       case 'analyze': return handleAnalyze(clonedReq, auth);
       case 'ask':     return handleAsk(clonedReq, auth);
       case 'insights': return handleInsights(clonedReq, auth);
-      default:        return handleGenerate(req, auth);
+      default:        return handleGenerate(clonedReq, auth);
     }
   },
   { allowedMethods: ['POST'], isAiEndpoint: true }

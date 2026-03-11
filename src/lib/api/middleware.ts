@@ -158,37 +158,23 @@ export function withAuth(
       }
     }
 
-    // Rate limiting (API key auth only)
-    if (auth && keyId) {
-      const rateLimitResult = checkRateLimit(keyId, auth.tier, isAiEndpoint);
-      const rlHeaders = rateLimitHeaders(rateLimitResult);
+    // Rate limiting (API key + session auth)
+    const rateLimitKey = keyId ?? `session:${auth!.userId}`;
+    const rateLimitResult = checkRateLimit(rateLimitKey, auth!.tier, isAiEndpoint);
+    const rlHeaders = rateLimitHeaders(rateLimitResult);
 
-      if (!rateLimitResult.allowed) {
-        const res = errors.rateLimitExceeded(rateLimitResult.retryAfter ?? 60);
-        Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
-        Object.entries(rlHeaders).forEach(([k, v]) => res.headers.set(k, v));
-        return res;
-      }
-
-      try {
-        const params = await context.params;
-        const res = await handler(req, auth, params);
-        Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
-        Object.entries(rlHeaders).forEach(([k, v]) => res.headers.set(k, v));
-        return res;
-      } catch (error) {
-        console.error('[API v1] Handler error:', error);
-        const res = errors.internalError();
-        Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
-        return res;
-      }
+    if (!rateLimitResult.allowed) {
+      const res = errors.rateLimitExceeded(rateLimitResult.retryAfter ?? 60);
+      Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
+      Object.entries(rlHeaders).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
     }
 
-    // No rate limiting (session auth)
     try {
       const params = await context.params;
       const res = await handler(req, auth!, params);
       Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
+      Object.entries(rlHeaders).forEach(([k, v]) => res.headers.set(k, v));
       return res;
     } catch (error) {
       console.error('[API v1] Handler error:', error);
