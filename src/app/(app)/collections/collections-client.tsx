@@ -41,7 +41,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, FolderOpen, Globe, Lock, MoreHorizontal, Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Plus, FolderOpen, Globe, MoreHorizontal, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { Collection } from '@/types/database';
@@ -119,10 +119,8 @@ function SortableCollectionCard({ col, index, onEdit, onDelete }: SortableCollec
               style={{ backgroundColor: col.color ?? '#21DBA4' }}
             />
           </div>
-          {col.is_public ? (
+          {col.is_public && (
             <Globe size={13} className="text-muted-foreground" />
-          ) : (
-            <Lock size={13} className="text-muted-foreground" />
           )}
         </div>
         <h3 className="font-semibold text-foreground transition-spring group-hover:text-primary">
@@ -325,7 +323,7 @@ export function CollectionsClient() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <Button
             size="sm"
-            className="bg-gradient-brand glow-brand-sm hover-scale rounded-xl font-semibold shadow-none transition-spring"
+            className="bg-gradient-brand glow-brand-sm hover-scale rounded-xl font-semibold text-white shadow-none transition-spring"
             onClick={() => setCreateOpen(true)}
           >
             <Plus size={16} className="mr-1.5" />

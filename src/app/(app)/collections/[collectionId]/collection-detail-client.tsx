@@ -8,6 +8,7 @@ import {
   useRemoveClipFromCollection,
 } from '@/lib/hooks/use-collection-mutations';
 import { ClipCard } from '@/components/clips/clip-card';
+import { ClipRow } from '@/components/clips/clip-row';
 import { ClipCardSkeleton } from '@/components/clips/clip-skeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,9 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import { FolderOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useUIStore } from '@/stores/ui-store';
 import type { ClipData } from '@/types/database';
 import { AddClipsToCollectionDialog } from '@/components/collections/add-clips-to-collection-dialog';
 import { CollectionShareButton } from '@/components/collections/collection-share-button';
@@ -42,6 +45,7 @@ export function CollectionDetailClient({ collectionId }: Props) {
   const updateCollection = useUpdateCollection();
   const deleteCollection = useDeleteCollection();
   const removeClip = useRemoveClipFromCollection();
+  const viewMode = useUIStore((s) => s.viewMode);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -82,7 +86,7 @@ export function CollectionDetailClient({ collectionId }: Props) {
           <Skeleton className="mb-2 h-8 w-48 rounded-xl shimmer" />
           <Skeleton className="h-4 w-72 rounded-lg shimmer" />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <ClipCardSkeleton key={i} />)}
         </div>
       </div>
@@ -160,7 +164,7 @@ export function CollectionDetailClient({ collectionId }: Props) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               size="sm"
-              className="rounded-xl gap-1.5 bg-gradient-brand glow-brand font-semibold shadow-none transition-spring"
+              className="rounded-xl gap-1.5 bg-gradient-brand glow-brand font-semibold text-white shadow-none transition-spring"
               onClick={() => setAddClipsOpen(true)}
             >
               <Plus size={14} />
@@ -195,7 +199,7 @@ export function CollectionDetailClient({ collectionId }: Props) {
       {/* Content area */}
       <div className="p-6 lg:p-8">
         {clipsLoading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => <ClipCardSkeleton key={i} />)}
           </div>
         ) : validClips.length === 0 ? (
@@ -220,10 +224,21 @@ export function CollectionDetailClient({ collectionId }: Props) {
             </p>
           </div>
         ) : (
-          <div className="animate-blur-in animation-delay-100 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={cn(
+              'animate-blur-in animation-delay-100',
+              viewMode === 'list'
+                ? 'flex flex-col'
+                : 'grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4',
+            )}
+          >
             {validClips.map((clip) => (
               <div key={clip.id} className="relative group">
-                <ClipCard clip={clip} />
+                {viewMode === 'list' ? (
+                  <ClipRow clip={clip} />
+                ) : (
+                  <ClipCard clip={clip} />
+                )}
                 {/* Remove button — appears on hover */}
                 <button
                   type="button"
