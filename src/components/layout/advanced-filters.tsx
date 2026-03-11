@@ -14,26 +14,11 @@ import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useCollections } from '@/lib/hooks/use-collections';
-import type { ClipPlatform } from '@/types/database';
+import { PLATFORMS, PLATFORM_LABELS_EN } from '@/config/constants';
 import type { ReadStatus } from '@/types/clip';
 
-const PLATFORM_LIST: ClipPlatform[] = [
-  'web', 'youtube', 'twitter', 'github', 'medium', 'reddit', 'substack', 'linkedin',
-];
-
-const PLATFORM_LABELS: Record<string, string> = {
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-  instagram: 'Instagram',
-  tiktok: 'TikTok',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
-  medium: 'Medium',
-  substack: 'Substack',
-  reddit: 'Reddit',
-  web: 'Web',
-  other: '기타',
-};
+const PLATFORM_LIST = PLATFORMS;
+const PLATFORM_LABELS: Record<string, string> = PLATFORM_LABELS_EN;
 
 const DATE_PRESETS: { label: string; from: string; to: string }[] = [
   {
