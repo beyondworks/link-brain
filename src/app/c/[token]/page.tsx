@@ -114,7 +114,7 @@ export default async function SharedCollectionPage({ params }: Props) {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 md:px-6">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-full.svg" alt="Linkbrain" width={100} height={18} />
+            <img src="/linkbrain-logo.svg" alt="Linkbrain" width={100} height={18} />
           </Link>
           <span className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
             공유된 컬렉션

@@ -71,9 +71,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           {/* Logo */}
           <div className="flex flex-col items-center gap-6 animate-fade-in-up">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-symbol.svg" alt="" width={80} height={45} className="drop-shadow-lg" aria-hidden="true" />
+            <img src="/linkbrain-symbol.svg" alt="" width={80} height={45} className="drop-shadow-lg" aria-hidden="true" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-typo.svg" alt="Linkbrain" width={160} height={34} className="drop-shadow-md" />
+            <img src="/linkbrain-typo.svg" alt="Linkbrain" width={160} height={34} className="drop-shadow-md" />
           </div>
 
           {/* Tagline */}
@@ -146,7 +146,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Mobile logo */}
         <div className="md:hidden mb-8 flex flex-col items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-full.svg" alt="Linkbrain" width={126} height={22} />
+          <img src="/linkbrain-logo.svg" alt="Linkbrain" width={126} height={22} />
         </div>
 
         {/* Auth card */}

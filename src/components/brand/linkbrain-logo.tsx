@@ -26,7 +26,7 @@ export function LinkbrainLogo({
     const w = Math.round(height * (39 / 22));
     return (
       <Image
-        src="/logo-symbol.svg"
+        src="/linkbrain-symbol.svg"
         alt="Linkbrain"
         width={w}
         height={height}
@@ -40,7 +40,7 @@ export function LinkbrainLogo({
     const w = Math.round(height * (79 / 17));
     return (
       <Image
-        src="/logo-typo.svg"
+        src="/linkbrain-typo.svg"
         alt="Linkbrain"
         width={w}
         height={height}
@@ -54,7 +54,7 @@ export function LinkbrainLogo({
   const w = Math.round(height * (126 / 22));
   return (
     <Image
-      src="/logo-full.svg"
+      src="/linkbrain-logo.svg"
       alt="Linkbrain"
       width={w}
       height={height}
