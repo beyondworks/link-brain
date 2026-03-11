@@ -2,15 +2,10 @@
 
 import { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Image from 'next/image';
-import { BookmarkPlus } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { BookOpen, BookmarkPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useUIStore } from '@/stores/ui-store';
-import { cn, formatRelativeTime } from '@/lib/utils';
-import { getGradient } from '@/config/constants';
-import { isProxiableImageUrl } from '@/lib/utils/clip-content';
+import { formatRelativeTime } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
 
 interface ReadLaterListProps {
@@ -33,11 +28,11 @@ async function fetchReadLaterClips(userId: string): Promise<ClipData[]> {
 
 function ReadLaterSkeleton() {
   return (
-    <div className="flex items-center gap-3 p-3">
-      <Skeleton className="h-12 w-16 flex-shrink-0 rounded-md" />
+    <div className="flex items-start gap-3 py-2.5">
+      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 animate-pulse items-center justify-center rounded-full bg-muted" />
       <div className="flex-1 space-y-1.5">
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3 w-2/3" />
+        <div className="h-3.5 w-3/4 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-1/4 animate-pulse rounded bg-muted" />
       </div>
     </div>
   );
@@ -53,79 +48,60 @@ function ReadLaterListComponent({ userId }: ReadLaterListProps) {
     retry: false,
   });
 
-  if (isLoading) {
-    return (
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">나중에 읽기</h2>
-        <div className="space-y-1">
+  return (
+    <section className="space-y-3">
+      <h2 className="text-base font-semibold text-foreground">나중에 읽기</h2>
+
+      {isLoading && (
+        <div className="rounded-xl border border-border/60 bg-card p-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <ReadLaterSkeleton key={i} />
           ))}
         </div>
-      </section>
-    );
-  }
+      )}
 
-  if (error || !clips || clips.length === 0) {
-    return (
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground">나중에 읽기</h2>
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
-          <BookmarkPlus className="h-8 w-8 text-muted-foreground" />
+      {!isLoading && (error || !clips || clips.length === 0) && (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 py-8 text-center">
+          <BookmarkPlus className="h-7 w-7 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">나중에 읽을 클립이 없습니다.</p>
         </div>
-      </section>
-    );
-  }
+      )}
 
-  return (
-    <section className="space-y-2">
-      <h2 className="text-base font-semibold text-foreground">나중에 읽기</h2>
-      <div className="space-y-1">
-        {clips.map((clip) => {
-          const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
-          const gradient = getGradient(clip.id);
-
-          return (
-            <Card
+      {!isLoading && clips && clips.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card px-4 py-2">
+          {clips.map((clip, index) => (
+            <button
               key={clip.id}
+              type="button"
               onClick={() => openClipPeek(clip.id)}
-              className="flex cursor-pointer items-center gap-3 p-3 transition-shadow hover:shadow-md"
+              className="relative flex w-full items-start gap-3 py-2.5 text-left"
             >
-              <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                {clip.image ? (
-                  <Image
-                    src={clip.image}
-                    alt={clip.title ?? ''}
-                    fill
-                    unoptimized={!isProxiableImageUrl(clip.image)}
-                    className="object-cover"
-                    sizes="64px"
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      'flex h-full w-full items-center justify-center bg-gradient-to-br',
-                      gradient
-                    )}
-                  >
-                    <span className="text-base font-bold text-white">{firstLetter}</span>
-                  </div>
-                )}
+              {/* vertical line */}
+              {index < clips.length - 1 && (
+                <span
+                  className="absolute left-3.5 top-9 h-full w-px -translate-x-1/2 bg-border/50"
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* dot + icon */}
+              <div className="z-10 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
+                <BookOpen size={13} className="text-primary" />
               </div>
 
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="line-clamp-1 text-sm font-medium leading-snug">
+              {/* text */}
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="line-clamp-1 text-sm font-medium text-foreground">
                   {clip.title ?? clip.url}
                 </p>
-                <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                <p className="mt-0.5 text-xs text-muted-foreground" suppressHydrationWarning>
                   {formatRelativeTime(clip.created_at)}
-                </span>
+                </p>
               </div>
-            </Card>
-          );
-        })}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

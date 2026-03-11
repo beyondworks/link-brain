@@ -122,7 +122,7 @@ export function AdvancedFilters() {
 
       <PopoverContent
         align="end"
-        className="w-72 rounded-2xl border-border/60 bg-glass-heavy p-4 shadow-elevated"
+        className="w-72 rounded-2xl border-border/60 bg-card p-4 shadow-elevated"
       >
         <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-0.5">
 

@@ -233,6 +233,8 @@ export function DashboardClient() {
   const viewMode = useUIStore((s) => s.viewMode);
   const setViewMode = useUIStore((s) => s.setViewMode);
   const filters = useUIStore((s) => s.filters);
+  const sortBy = useUIStore((s) => s.sortBy);
+  const sortOrder = useUIStore((s) => s.sortOrder);
   const { widgets, dashboardView, setDashboardView } = useDashboardPreferences();
 
   const { data: categories = [] } = useCategories();
@@ -271,7 +273,7 @@ export function DashboardClient() {
   }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
-  const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, search: debouncedSearch || undefined });
+  const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, sortBy, sortOrder, search: debouncedSearch || undefined });
 
   const clips = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
   const pinnedClips = useMemo(() => clips.filter((c) => c.is_pinned), [clips]);
