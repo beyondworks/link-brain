@@ -127,9 +127,9 @@ async function handleGetWeeklyStats(
       }
     })(),
 
-    // highlights_made: annotations 테이블 created_at 기준
-    countRows('annotations', auth.publicUserId, 'created_at', thisWeekIso),
-    countRows('annotations', auth.publicUserId, 'created_at', lastWeekIso, lastWeekEndIso),
+    // highlights_made: clip_annotations 테이블 created_at 기준
+    countRows('clip_annotations', auth.publicUserId, 'created_at', thisWeekIso),
+    countRows('clip_annotations', auth.publicUserId, 'created_at', lastWeekIso, lastWeekEndIso),
 
     // collections_updated: collections 테이블 updated_at 기준
     (async () => {

@@ -31,7 +31,7 @@ export const WIDGET_META: WidgetMeta[] = [
   { key: 'weeklyReport', label: '주간 리포트' },
   { key: 'reminders', label: '리마인더' },
   { key: 'pinnedClips', label: '고정된 클립' },
-  { key: 'continueReading', label: '계속 읽기' },
+  { key: 'continueReading', label: '나중에 읽기' },
   { key: 'recentActivity', label: '최근 활동' },
 ];
 

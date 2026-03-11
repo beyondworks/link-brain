@@ -2,10 +2,10 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle, RotateCcw, BookmarkPlus } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
-import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
+import { useTogglePin, useToggleReadLater } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -37,6 +37,7 @@ export const ClipRow = memo(function ClipRow({
 }: ClipRowProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
+  const toggleReadLater = useToggleReadLater();
   const retryClip = useRetryClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
@@ -253,6 +254,21 @@ export const ClipRow = memo(function ClipRow({
             </button>
           </TooltipTrigger>
           <TooltipContent><p>{clip.is_pinned ? '고정 해제' : '고정'}</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleReadLater.mutate({ clipId: clip.id, isReadLater: clip.is_read_later }); }}
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-emerald-500/10 hover:text-emerald-500 hover:scale-110',
+                clip.is_read_later && 'text-emerald-500 opacity-100'
+              )}
+              aria-label={clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}
+            >
+              <BookmarkPlus className={cn('h-4 w-4', clip.is_read_later && 'fill-current')} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>{clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}</p></TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>

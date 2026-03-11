@@ -2,10 +2,10 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check, Loader2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Star, Archive, ExternalLink, Share2, MessageSquare, Pin, Check, Loader2, AlertTriangle, RotateCcw, BookmarkPlus } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
-import { useTogglePin } from '@/lib/hooks/use-clip-mutations';
+import { useTogglePin, useToggleReadLater } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -40,6 +40,7 @@ export const ClipCard = memo(function ClipCard({
 }: ClipCardProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
+  const toggleReadLater = useToggleReadLater();
   const retryClip = useRetryClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
@@ -84,6 +85,11 @@ export const ClipCard = memo(function ClipCard({
   function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
     shareClip({ title: clip.title ?? clip.url, url: clip.url });
+  }
+
+  function handleReadLater(e: React.MouseEvent) {
+    e.stopPropagation();
+    toggleReadLater.mutate({ clipId: clip.id, isReadLater: clip.is_read_later });
   }
 
   function handleReprocess(e: React.MouseEvent) {
@@ -242,8 +248,23 @@ export const ClipCard = memo(function ClipCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  onClick={handleReadLater}
+                  className={cn(
+                    'animate-fade-in-up animation-delay-400 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110',
+                    clip.is_read_later && 'text-emerald-300'
+                  )}
+                  aria-label={clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}
+                >
+                  <BookmarkPlus className={cn('h-4 w-4', clip.is_read_later && 'fill-current')} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent><p>{clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}</p></TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
                   onClick={handleShare}
-                  className="animate-fade-in-up animation-delay-400 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  className="animate-fade-in-up animation-delay-500 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
                   aria-label="공유"
                 >
                   <Share2 className="h-4 w-4" />
@@ -255,7 +276,7 @@ export const ClipCard = memo(function ClipCard({
               <TooltipTrigger asChild>
                 <button
                   onClick={handleReprocess}
-                  className="animate-fade-in-up animation-delay-500 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  className="animate-fade-in-up animation-delay-600 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
                   aria-label="재처리"
                 >
                   <RotateCcw className="h-4 w-4" />

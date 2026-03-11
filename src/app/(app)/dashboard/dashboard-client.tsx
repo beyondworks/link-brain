@@ -18,7 +18,7 @@ import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
-import { ContinueReading } from '@/components/clips/continue-reading';
+import { ReadLaterList } from '@/components/clips/read-later-list';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { WeeklyReport } from '@/components/dashboard/weekly-report';
 import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
@@ -403,7 +403,7 @@ export function DashboardClient() {
       {/* Continue Reading + Recent Activity — detail only */}
       {publicUser && dashboardView === 'detail' && (widgets.continueReading || widgets.recentActivity) && (
         <div className="animate-fade-in-up animation-delay-75 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {widgets.continueReading && <ContinueReading userId={publicUser.id} />}
+          {widgets.continueReading && <ReadLaterList userId={publicUser.id} />}
           {widgets.recentActivity && <RecentActivity userId={publicUser.id} />}
         </div>
       )}

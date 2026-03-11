@@ -189,6 +189,86 @@ export function useTogglePin() {
   });
 }
 
+// ─── Toggle Read Later ───────────────────────────────────────────────────────
+
+export function useToggleReadLater() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ clipId, isReadLater }: { clipId: string; isReadLater: boolean }) => {
+      const { error } = await supabase
+        .from('clips')
+        .update({ is_read_later: !isReadLater } as never)
+        .eq('id', clipId);
+      if (error) throw error;
+      return { clipId, newValue: !isReadLater };
+    },
+
+    onMutate: async ({ clipId, isReadLater }) => {
+      await queryClient.cancelQueries({ queryKey: ['clips'] });
+
+      const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
+        queryKey: ['clips'],
+      });
+
+      queryClient.setQueriesData<ClipsInfiniteData>({ queryKey: ['clips'] }, (old) =>
+        updateClipInInfiniteData(old, clipId, (clip) => ({
+          ...clip,
+          is_read_later: !isReadLater,
+        }))
+      );
+
+      return { previousEntries };
+    },
+
+    onError: (_err, _vars, context) => {
+      context?.previousEntries?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast.error('나중에 읽기 변경에 실패했습니다.');
+    },
+
+    onSuccess: (_data, { isReadLater }) => {
+      toast.success(isReadLater ? '나중에 읽기에서 제거됨' : '나중에 읽기에 추가됨');
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
+    },
+  });
+}
+
+// ─── Mark as Read ────────────────────────────────────────────────────────────
+
+export function useMarkAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ clipId }: { clipId: string }) => {
+      const { error } = await supabase
+        .from('clips')
+        .update({ is_read: true } as never)
+        .eq('id', clipId);
+      if (error) throw error;
+      return { clipId };
+    },
+
+    onMutate: async ({ clipId }) => {
+      queryClient.setQueriesData<ClipsInfiniteData>({ queryKey: ['clips'] }, (old) =>
+        updateClipInInfiniteData(old, clipId, (clip) => ({
+          ...clip,
+          is_read: true,
+        }))
+      );
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
+    },
+  });
+}
+
 // ─── Delete Clip ──────────────────────────────────────────────────────────────
 
 export function useDeleteClip() {

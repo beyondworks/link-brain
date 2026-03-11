@@ -37,7 +37,7 @@ import { useSwipeDismiss } from '@/lib/hooks/use-swipe-dismiss';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
-import { useToggleFavorite, useToggleArchive } from '@/lib/hooks/use-clip-mutations';
+import { useToggleFavorite, useToggleArchive, useMarkAsRead } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -556,6 +556,16 @@ export function ClipPeekPanel() {
   const clip = seedClip ?? apiClip;
   const rawCC = !isSeed && apiClip ? (apiClip as ClipData & { clip_contents?: ClipContent[] | ClipContent }).clip_contents : undefined;
   const clipContents = rawCC ? (Array.isArray(rawCC) ? rawCC : [rawCC]) : undefined;
+
+  const markAsRead = useMarkAsRead();
+
+  // 클립을 열면 자동으로 읽음 표시
+  useEffect(() => {
+    if (peekClipId && !isSeed && apiClip && !apiClip.is_read) {
+      markAsRead.mutate({ clipId: peekClipId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peekClipId, isSeed, apiClip?.id]);
 
   const { data: categories = [] } = useCategories();
   const category = clip?.category_id
