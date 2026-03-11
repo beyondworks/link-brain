@@ -138,7 +138,7 @@ function HighlightCard({ annotation, grouped, index = 0 }: HighlightCardProps) {
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HighlightBadge color={annotation.color} />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground" suppressHydrationWarning>
               {new Date(annotation.created_at).toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'short',

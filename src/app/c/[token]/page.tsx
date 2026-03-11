@@ -239,7 +239,7 @@ function ClipItem({ clip }: { clip: ClipData }) {
             <ExternalLink size={10} />
             {hostname}
           </span>
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70">
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/70" suppressHydrationWarning>
             <Calendar size={10} />
             {formatDate(clip.created_at)}
           </span>

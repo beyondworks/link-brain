@@ -131,7 +131,7 @@ export default async function SharedClipPage({ params }: Props) {
                 {clip.read_time}분 읽기
               </span>
             )}
-            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs text-muted-foreground" suppressHydrationWarning>
               <Calendar size={11} />
               {formatDate(clip.created_at)}
             </span>

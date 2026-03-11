@@ -221,9 +221,9 @@ export function WebhookManager() {
                   ))}
                 </div>
                 <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-foreground">
-                  <span>생성: {formatDate(wh.createdAt)}</span>
+                  <span suppressHydrationWarning>생성: {formatDate(wh.createdAt)}</span>
                   {wh.lastTriggered && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1" suppressHydrationWarning>
                       <Clock size={10} />
                       마지막 호출: {formatDate(wh.lastTriggered)}
                     </span>

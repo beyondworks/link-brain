@@ -182,7 +182,7 @@ function ContinueReadingComponent({ userId }: ContinueReadingProps) {
                   <span className="text-xs text-muted-foreground">
                     {scroll_percentage}% 읽음
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                     {lastReadDate}
                   </span>
                 </div>

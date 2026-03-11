@@ -703,7 +703,7 @@ export function SettingsClient() {
               </div>
 
               {/* 다음 초기화 */}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                 다음 초기화:{' '}
                 {new Date(credits.resetAt).toLocaleDateString('ko-KR', {
                   year: 'numeric',

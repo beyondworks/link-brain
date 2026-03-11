@@ -124,7 +124,7 @@ export function ConnectedAccounts() {
                   <AtSign size={10} />
                   <span>{conn.providerUsername ?? 'Connected'}</span>
                   <span className="mx-1">·</span>
-                  <span>
+                  <span suppressHydrationWarning>
                     {new Date(conn.connectedAt).toLocaleDateString('ko-KR', {
                       year: 'numeric',
                       month: 'short',
