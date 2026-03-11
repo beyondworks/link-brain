@@ -139,37 +139,50 @@ export function ClipList({
   async function handleBulkFavorite() {
     const ids = Array.from(selectedClipIds);
     const clipMap = new Map(clips.map((c) => [c.id, c]));
-    await Promise.all(
-      ids.map((id) => {
-        const clip = clipMap.get(id);
-        if (!clip) return Promise.resolve();
-        return toggleFavorite.mutateAsync({ clipId: id, isFavorite: clip.is_favorite ?? false });
-      })
-    );
-    toast.success(`${ids.length}개 클립의 즐겨찾기가 변경되었습니다.`);
-    clearSelection();
+    try {
+      await Promise.all(
+        ids.map((id) => {
+          const clip = clipMap.get(id);
+          if (!clip) return Promise.resolve();
+          return toggleFavorite.mutateAsync({ clipId: id, isFavorite: clip.is_favorite ?? false });
+        })
+      );
+      toast.success(`${ids.length}개 클립의 즐겨찾기가 변경되었습니다.`);
+      clearSelection();
+    } catch {
+      toast.error('일부 클립의 즐겨찾기 변경에 실패했습니다.');
+    }
   }
 
   async function handleBulkArchive() {
     const ids = Array.from(selectedClipIds);
     const clipMap = new Map(clips.map((c) => [c.id, c]));
-    await Promise.all(
-      ids.map((id) => {
-        const clip = clipMap.get(id);
-        if (!clip) return Promise.resolve();
-        return toggleArchive.mutateAsync({ clipId: id, isArchived: clip.is_archived ?? false });
-      })
-    );
-    toast.success(`${ids.length}개 클립이 아카이브되었습니다.`);
-    clearSelection();
+    try {
+      await Promise.all(
+        ids.map((id) => {
+          const clip = clipMap.get(id);
+          if (!clip) return Promise.resolve();
+          return toggleArchive.mutateAsync({ clipId: id, isArchived: clip.is_archived ?? false });
+        })
+      );
+      toast.success(`${ids.length}개 클립이 아카이브되었습니다.`);
+      clearSelection();
+    } catch {
+      toast.error('일부 클립의 아카이브에 실패했습니다.');
+    }
   }
 
   async function handleBulkDelete() {
     const ids = Array.from(selectedClipIds);
-    await Promise.all(ids.map((id) => deleteClip.mutateAsync({ clipId: id })));
-    toast.success(`${ids.length}개 클립이 삭제되었습니다.`);
-    clearSelection();
-    setDeleteDialogOpen(false);
+    try {
+      await Promise.all(ids.map((id) => deleteClip.mutateAsync({ clipId: id })));
+      toast.success(`${ids.length}개 클립이 삭제되었습니다.`);
+      clearSelection();
+      setDeleteDialogOpen(false);
+    } catch {
+      toast.error('일부 클립 삭제에 실패했습니다.');
+      setDeleteDialogOpen(false);
+    }
   }
 
   const showToolbar = isSelectionMode || selectedCount > 0;
@@ -206,7 +219,7 @@ export function ClipList({
       {showToolbar && (
         <div
           className={cn(
-            'sticky top-0 z-[var(--z-sticky)] mb-4 flex items-center gap-2 rounded-2xl border border-border/60 bg-card/95 px-4 py-2.5 shadow-card backdrop-blur-md',
+            'sticky top-0 z-[30] mb-4 flex items-center gap-2 rounded-2xl border border-border/60 bg-card/95 px-4 py-2.5 shadow-card backdrop-blur-md',
             'animate-fade-in-up'
           )}
         >

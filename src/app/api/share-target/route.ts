@@ -4,8 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
+  // Verify authentication — prevent open redirect abuse
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
   const formData = await req.formData();
   const url = formData.get('url') as string | null;
   const text = formData.get('text') as string | null;

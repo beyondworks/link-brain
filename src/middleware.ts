@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const PROTECTED_ROUTES = ['/dashboard', '/settings', '/studio', '/insights', '/admin'];
+const PROTECTED_ROUTES = ['/dashboard', '/settings', '/studio', '/insights', '/admin', '/favorites', '/read-later', '/archive', '/collections', '/clip', '/graph', '/highlights'];
 const AUTH_ROUTES = ['/login', '/signup'];
 const ADMIN_ROUTES = ['/admin'];
 

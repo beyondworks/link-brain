@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import type { WeeklyStatsData } from '@/app/api/v1/stats/weekly/route';
 
 export type { WeeklyStatsData };
@@ -19,7 +19,7 @@ async function fetchWeeklyStats(): Promise<WeeklyStatsData> {
 }
 
 export function useWeeklyStats() {
-  const { user } = useSupabase();
+  const { user } = useCurrentUser();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['weekly-stats', user?.id],

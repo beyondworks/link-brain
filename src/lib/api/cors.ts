@@ -7,6 +7,7 @@
 
 const ALLOWED_ORIGINS = [
   // Production domains
+  'https://linkbrain.cloud',
   'https://linkbrain.vercel.app',
   'https://linkbrain-v-2.vercel.app',
   'https://www.linkbrain.app',

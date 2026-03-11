@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,9 +23,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // signed_request = base64url(signature).base64url(payload)
-    const [, payloadB64] = signedRequest.split('.');
-    if (!payloadB64) {
+    const [sigB64, payloadB64] = signedRequest.split('.');
+    if (!sigB64 || !payloadB64) {
       return NextResponse.json({ success: true });
+    }
+
+    // Verify HMAC-SHA256 signature — fail-safe: reject if secret not configured
+    const appSecret = process.env.META_THREADS_APP_SECRET;
+    if (!appSecret) {
+      console.error('[OAuth Deauthorize] META_THREADS_APP_SECRET not configured');
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+    }
+    const expectedSig = crypto
+      .createHmac('sha256', appSecret)
+      .update(payloadB64)
+      .digest('base64url');
+    if (sigB64 !== expectedSig) {
+      console.warn('[OAuth Deauthorize] Invalid signature');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const payload = JSON.parse(

@@ -51,6 +51,10 @@ next-env.d.ts
 /playwright-report
 .playwright-mcp/
 
+# design exploration
+.interface-design/
+Logo/
+
 # screenshots
 *.png
 !public/icon-*.png

@@ -276,7 +276,7 @@ export function TextHighlighter({
       {selection && (
         <div
           data-highlight-toolbar
-          className="absolute z-[var(--z-popover)] flex items-center gap-1 rounded-xl border border-border/60 bg-card px-2 py-1.5 shadow-elevated"
+          className="absolute z-[60] flex items-center gap-1 rounded-xl border border-border/60 bg-card px-2 py-1.5 shadow-elevated"
           style={{
             top: selection.position.top,
             left: selection.position.left,
@@ -305,7 +305,7 @@ export function TextHighlighter({
       {activeHighlight && (
         <div
           data-highlight-toolbar
-          className="absolute z-[var(--z-popover)] flex items-center gap-1 rounded-xl border border-border/60 bg-card px-2 py-1.5 shadow-elevated"
+          className="absolute z-[60] flex items-center gap-1 rounded-xl border border-border/60 bg-card px-2 py-1.5 shadow-elevated"
           style={{
             top: activeHighlight.position.top,
             left: activeHighlight.position.left,

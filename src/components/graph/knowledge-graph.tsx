@@ -23,6 +23,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { PLATFORM_LABELS_EN } from '@/config/constants';
 import type { GraphNode, GraphEdge } from '@/app/api/v1/graph/route';
 
 // ─── 플랫폼 색상 (Tailwind → hex, ReactFlow는 인라인 스타일 필요) ──────────
@@ -41,20 +42,6 @@ const PLATFORM_HEX: Record<string, string> = {
   other: '#9ca3af',
 };
 
-const PLATFORM_LABELS: Record<string, string> = {
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-  instagram: 'Instagram',
-  tiktok: 'TikTok',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
-  medium: 'Medium',
-  substack: 'Substack',
-  reddit: 'Reddit',
-  web: 'Web',
-  other: 'Other',
-};
-
 // ─── 커스텀 노드 ──────────────────────────────────────────────────────────────
 
 interface ClipNodeData extends Record<string, unknown> {
@@ -68,7 +55,7 @@ function ClipNode({ data }: NodeProps) {
   const nodeData = data as ClipNodeData;
   const platform = nodeData.platform ?? 'web';
   const color = PLATFORM_HEX[platform] ?? PLATFORM_HEX.web;
-  const label = PLATFORM_LABELS[platform] ?? platform;
+  const label = PLATFORM_LABELS_EN[platform] ?? platform;
   const title = nodeData.title ?? '제목 없음';
 
   return (

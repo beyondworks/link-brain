@@ -117,7 +117,9 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,summary.ilike.%${search}%`);
+      // Escape PostgREST ilike wildcards to prevent pattern extraction
+      const escaped = search.replace(/[%_\\]/g, '\\$&');
+      query = query.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%`);
     }
 
     const { data, count, error } = await query.range(offset, offset + limit - 1);

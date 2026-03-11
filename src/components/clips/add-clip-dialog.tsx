@@ -23,6 +23,7 @@ import { addNotification } from '@/lib/hooks/use-notifications';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabase } from '@/components/providers/supabase-provider';
+import { PLATFORM_LABELS } from '@/config/constants';
 
 
 interface AnalyzeResult {
@@ -35,16 +36,6 @@ interface AnalyzeResult {
   authorHandle: string;
   authorAvatar: string;
 }
-
-const PLATFORM_LABELS: Record<string, string> = {
-  youtube: '유튜브',
-  twitter: 'X (트위터)',
-  instagram: '인스타그램',
-  threads: '스레드',
-  naver: '네이버',
-  pinterest: '핀터레스트',
-  web: '웹',
-};
 
 function isValidUrl(value: string): boolean {
   try {
@@ -550,7 +541,7 @@ export function AddClipDialog() {
                     variant="secondary"
                     className="mt-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
                   >
-                    {PLATFORM_LABELS[previewData.platform] ?? previewData.platform}
+                    {PLATFORM_LABELS[previewData.platform as keyof typeof PLATFORM_LABELS]?.ko ?? previewData.platform}
                   </Badge>
                 </div>
               </div>
@@ -617,7 +608,7 @@ export function AddClipDialog() {
                   variant="secondary"
                   className="rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                 >
-                  {PLATFORM_LABELS[platform] ?? platform}
+                  {PLATFORM_LABELS[platform as keyof typeof PLATFORM_LABELS]?.ko ?? platform}
                 </Badge>
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 
 export type ClipActivityAction =
   | 'created'
@@ -46,7 +46,7 @@ async function fetchClipActivity(clipId: string): Promise<ClipActivity[]> {
  * 클립의 활동 로그를 조회합니다.
  */
 export function useClipActivity(clipId: string) {
-  const { user } = useSupabase();
+  const { user } = useCurrentUser();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['clip-activity', clipId],

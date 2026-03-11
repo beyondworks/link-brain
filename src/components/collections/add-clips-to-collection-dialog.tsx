@@ -9,7 +9,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useClips } from '@/lib/hooks/use-clips';
 import { useMoveToCollection } from '@/lib/hooks/use-move-to-collection';
 import { toast } from 'sonner';
@@ -125,7 +124,7 @@ export function AddClipsToCollectionDialog({
         </div>
 
         {/* Clip list */}
-        <ScrollArea className="h-72">
+        <div className="h-72 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-full py-10">
               <Loader2 size={20} className="animate-spin text-muted-foreground" />
@@ -188,7 +187,7 @@ export function AddClipsToCollectionDialog({
               })}
             </ul>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

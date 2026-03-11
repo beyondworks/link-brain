@@ -193,7 +193,7 @@ export function ClipTagEditor({ clipId }: Props) {
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full z-[var(--z-dropdown)] mt-1.5 w-56 rounded-xl border border-border/60 bg-card shadow-elevated overflow-hidden">
+          <div className="absolute left-0 top-full z-[20] mt-1.5 w-56 rounded-xl border border-border/60 bg-card shadow-elevated overflow-hidden">
             <div className="border-b border-border/40 px-3 py-2">
               <input
                 ref={inputRef}

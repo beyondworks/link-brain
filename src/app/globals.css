@@ -380,13 +380,10 @@
    UTILITIES — The visual language
    ═══════════════════════════════════════════════════════════════ */
 @layer utilities {
-  /* --- Z-index system --- */
-  .z-dropdown { z-index: 20; }
-  .z-sticky  { z-index: 30; }
-  .z-overlay { z-index: 40; }
-  .z-modal   { z-index: 50; }
-  .z-popover { z-index: 60; }
-  .z-toast   { z-index: 70; }
+  /* --- Z-index system ---
+   * Values (CLAUDE.md): dropdown=20, sticky=30, overlay=40, modal=50, popover=60, toast=70
+   * Applied via Tailwind arbitrary values: z-[20], z-[30], etc.
+   */
 
   /* ─── GRADIENTS ─── */
 
@@ -554,6 +551,7 @@
     inset: 0;
     padding: 1px;
     border-radius: inherit;
+    pointer-events: none;
     background: linear-gradient(135deg, oklch(0.78 0.15 168 / 40%), oklch(0.65 0.18 155 / 20%), oklch(0.78 0.15 168 / 40%));
     background-size: 200% 200%;
     animation: gradient-shift 4s ease infinite;

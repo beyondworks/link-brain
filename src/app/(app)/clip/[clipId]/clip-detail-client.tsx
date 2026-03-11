@@ -549,7 +549,7 @@ export function ClipDetailClient({ clipId }: Props) {
 
       {/* Reading progress bar */}
       {!isSeed && (
-        <div className="fixed left-0 top-0 z-[var(--z-sticky)] h-1 w-full bg-border/30">
+        <div className="fixed left-0 top-0 z-[30] h-1 w-full bg-border/30">
           <div
             className="h-full bg-[#21DBA4] transition-[width] duration-300"
             style={{ width: `${scrollPct}%` }}

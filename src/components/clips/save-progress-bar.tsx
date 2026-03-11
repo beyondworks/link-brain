@@ -35,7 +35,7 @@ export function SaveProgressBar() {
   return (
     <div
       className={cn(
-        'sticky top-0 z-[var(--z-sticky)] mb-4 overflow-hidden rounded-xl border bg-card shadow-card transition-all duration-300',
+        'sticky top-0 z-[30] mb-4 overflow-hidden rounded-xl border bg-card shadow-card transition-all duration-300',
         isActive ? 'border-primary/30' : 'border-emerald-500/30',
       )}
     >
