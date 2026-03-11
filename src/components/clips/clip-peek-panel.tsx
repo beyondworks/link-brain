@@ -23,6 +23,7 @@ import {
   FileText,
   MessageSquare,
   RotateCcw,
+  BookmarkPlus,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -37,7 +38,7 @@ import { useSwipeDismiss } from '@/lib/hooks/use-swipe-dismiss';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
 import { useCategories } from '@/lib/hooks/use-categories';
-import { useToggleFavorite, useToggleArchive, useMarkAsRead } from '@/lib/hooks/use-clip-mutations';
+import { useToggleFavorite, useToggleArchive, useToggleReadLater, useMarkAsRead } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { getSeedClip } from '@/config/seed-clips';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -142,6 +143,7 @@ function PeekContent({
 }) {
   const toggleFavorite = useToggleFavorite();
   const archiveClip = useToggleArchive();
+  const toggleReadLater = useToggleReadLater();
   const retryClip = useRetryClip();
   const clipPeekMode = useUIStore((s) => s.clipPeekMode);
   const setClipPeekMode = useUIStore((s) => s.setClipPeekMode);
@@ -218,6 +220,27 @@ function PeekContent({
                 <Archive
                   size={15}
                   className={clip.is_archived ? 'text-primary' : 'text-muted-foreground'}
+                />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg transition-spring hover:bg-emerald-500/10"
+                onClick={() =>
+                  toggleReadLater.mutate({
+                    clipId: clip.id,
+                    isReadLater: clip.is_read_later,
+                  })
+                }
+                aria-label={clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}
+              >
+                <BookmarkPlus
+                  size={15}
+                  className={
+                    clip.is_read_later
+                      ? 'fill-emerald-500 text-emerald-500'
+                      : 'text-muted-foreground'
+                  }
                 />
               </Button>
               <Button

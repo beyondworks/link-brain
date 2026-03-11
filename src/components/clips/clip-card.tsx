@@ -343,11 +343,22 @@ export const ClipCard = memo(function ClipCard({
                 aria-label="메모 있음"
               />
             )}
-            {clip.is_read_later && (
-              <span className="rounded-full bg-gradient-brand px-2.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
-                나중에
-              </span>
-            )}
+            <button
+              onClick={handleReadLater}
+              className={cn(
+                'flex h-6 items-center justify-center rounded-full transition-spring hover:scale-110',
+                clip.is_read_later
+                  ? 'bg-gradient-brand px-2 py-0.5 text-white shadow-brand'
+                  : 'w-6 hover:bg-emerald-500/10'
+              )}
+              aria-label={clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}
+            >
+              {clip.is_read_later ? (
+                <span className="text-[10px] font-bold">나중에</span>
+              ) : (
+                <BookmarkPlus size={13} className="text-muted-foreground/40 hover:text-emerald-500" />
+              )}
+            </button>
             <button
               onClick={handleFavorite}
               className="flex h-6 w-6 items-center justify-center rounded-full transition-spring hover:bg-yellow-500/10 hover:scale-110"

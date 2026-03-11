@@ -180,11 +180,22 @@ export const ClipRow = memo(function ClipRow({
           {clip.is_pinned && (
             <Pin className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-label="고정됨" />
           )}
-          {clip.is_read_later && (
-            <span className="shrink-0 rounded-full bg-gradient-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow-brand">
-              나중에
-            </span>
-          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleReadLater.mutate({ clipId: clip.id, isReadLater: clip.is_read_later }); }}
+            className={cn(
+              'flex shrink-0 items-center rounded-full transition-spring',
+              clip.is_read_later
+                ? 'bg-gradient-brand px-1.5 py-0.5 text-white shadow-brand'
+                : 'h-5 w-5 justify-center hover:bg-emerald-500/10'
+            )}
+            aria-label={clip.is_read_later ? '나중에 읽기 해제' : '나중에 읽기'}
+          >
+            {clip.is_read_later ? (
+              <span className="text-[10px] font-bold">나중에</span>
+            ) : (
+              <BookmarkPlus size={12} className="text-muted-foreground/40 hover:text-emerald-500" />
+            )}
+          </button>
           <span className="ml-auto shrink-0 text-[11px] text-muted-foreground/50" suppressHydrationWarning>
             {formatRelativeTime(clip.created_at)}
           </span>
