@@ -31,16 +31,16 @@ All other endpoints (clips list, search, collections, manage) align correctly wi
 
 ---
 
-### 2. Clip Detail Operations (GET/PATCH/DELETE) — **CRITICAL MISMATCH**
+### 2. Clip Detail Operations (GET/PATCH/DELETE) — **RESOLVED**
 
-| Aspect | MCP Client Expectation | v2 API Implementation | Status | Mismatch Details |
-|--------|----------------------|----------------------|--------|-----------------|
-| **Get clip** | `GET /api/v1/clips-detail?id=CLIP_ID&content=true` | `GET /api/v1/clips/[clipId]?content=true` | ❌ **Path param mismatch** | MCP expects query param `?id=`, v2 uses path param `[clipId]`. Both support `?content=true` for full content. |
-| **Update clip** | `PATCH /api/v1/clips-detail?id=CLIP_ID { title?, summary?, category?, isFavorite?, isReadLater?, isArchived?, collectionIds? }` | `PATCH /api/v1/clips/[clipId] { same body }` | ❌ **Path param mismatch** | Same pattern: MCP expects `?id=`, v2 uses `[clipId]`. Body identical. |
-| **Delete clip** | `DELETE /api/v1/clips-detail?id=CLIP_ID` | `DELETE /api/v1/clips/[clipId]` | ❌ **Path param mismatch** | Same pattern. Both return `{ id, deleted: true }`. |
+| Aspect | MCP Client Expectation | v2 API Implementation | Status | Notes |
+|--------|----------------------|----------------------|--------|-------|
+| **Get clip** | `GET /api/v1/clips-detail?id=CLIP_ID&content=true` | Alias route `/api/v1/clips-detail?id=CLIP_ID` delegating to path-param handler | ✅ Query param alias implemented | MCP query param format now supported via dedicated alias route |
+| **Update clip** | `PATCH /api/v1/clips-detail?id=CLIP_ID { title?, summary?, category?, isFavorite?, isReadLater?, isArchived?, collectionIds? }` | Alias route `/api/v1/clips-detail?id=CLIP_ID` delegating to path-param handler | ✅ Query param alias implemented | Same alias route; body identical |
+| **Delete clip** | `DELETE /api/v1/clips-detail?id=CLIP_ID` | Alias route `/api/v1/clips-detail?id=CLIP_ID` delegating to path-param handler | ✅ Query param alias implemented | Same pattern; both return `{ id, deleted: true }` |
 | **Response format** | Same camelCase format as clips list | Identical | ✅ Match | Content conditional on `?content=true` parameter |
 
-**Resolution needed**: Either (a) add alias route `/api/v1/clips-detail?id=X` that maps to `/clips/[id]`, or (b) update MCP client to use path params instead of query params.
+**Resolution implemented**: Alias route `/api/v1/clips-detail/route.ts` created successfully. Accepts query parameter `id=CLIP_ID` format expected by MCP client and delegates to existing path-parameter implementation, maintaining identical behavior and response formats.
 
 ---
 
@@ -127,8 +127,7 @@ All other endpoints (clips list, search, collections, manage) align correctly wi
 ## Missing Implementation Summary
 
 ### Tier 1: Critical (Blocks MCP Client)
-1. **Clip detail query param alias** — `/api/v1/clips-detail?id=X` not implemented (v2 uses path params)
-2. **AI action-based routing** — analyze, ask, insights actions missing
+1. **AI action-based routing** — analyze, ask, insights actions missing
 
 ### Tier 2: Important (Feature Gaps)
 3. **Streaming vs JSON response** — AI endpoint returns text/plain stream; MCP may expect JSON
@@ -141,8 +140,7 @@ All other endpoints (clips list, search, collections, manage) align correctly wi
 ## Recommendations
 
 ### Immediate (This Sprint)
-1. **Path param resolution**: Create `/api/v1/clips-detail` route that redirects to `/clips/[id]` or update MCP client to use path params
-2. **AI routing**: Add action parameter support or update MCP client to remove analyze/ask/insights actions
+1. **AI routing**: Add action parameter support or update MCP client to remove analyze/ask/insights actions
 
 ### Short-term (Next Sprint)
 3. **Validate manage endpoints**: Full code review of `/api/v1/manage/route.ts`
@@ -168,6 +166,7 @@ All other endpoints (clips list, search, collections, manage) align correctly wi
 |-------|------|--------|
 | `GET/POST /clips` | `route.ts` | ✅ Audited |
 | `GET/PATCH/DELETE /clips/[clipId]` | `[clipId]/route.ts` | ✅ Audited |
+| `GET/PATCH/DELETE /clips-detail?id=CLIP_ID` | `clips-detail/route.ts` | ✅ Audited and Resolved |
 | `GET /search` | `search/route.ts` | ✅ Audited |
 | `GET/POST/PATCH/DELETE /collections` | `collections/route.ts` | ✅ Audited |
 | `POST /ai` | `ai/route.ts` | ✅ Audited |

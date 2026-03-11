@@ -43,7 +43,13 @@ export class LinkbrainClient {
             ...(body ? { body: JSON.stringify(body) } : {}),
         });
 
-        const json = await response.json() as ApiResponse<T>;
+        let json: ApiResponse<T>;
+        try {
+            json = await response.json() as ApiResponse<T>;
+        } catch {
+            const text = await response.text().catch(() => '');
+            throw new Error(`[PARSE_ERROR] Failed to parse API response (status ${response.status}): ${text.slice(0, 200)}`);
+        }
 
         if (!response.ok || json.success === false) {
             const errMsg = json.error?.message || `API error ${response.status}: ${response.statusText}`;

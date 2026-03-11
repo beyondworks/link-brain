@@ -1,24 +1,35 @@
 /**
- * API v1 - Clip Detail (Alias Route)
+ * API v1 - Clip Detail (Query Parameter Alias)
  *
- * Compatibility alias for MCP client which uses query param ?id= pattern.
- * Delegates to /api/v1/clips/[clipId] logic.
+ * GET    /api/v1/clips-detail?id=CLIP_ID - Get single clip
+ * PATCH  /api/v1/clips-detail?id=CLIP_ID - Update clip
+ * DELETE /api/v1/clips-detail?id=CLIP_ID - Delete clip
  *
- * GET    /api/v1/clips-detail?id=CLIP_ID&content=true  - Get clip
- * PATCH  /api/v1/clips-detail?id=CLIP_ID               - Update clip
- * DELETE /api/v1/clips-detail?id=CLIP_ID               - Delete clip
+ * This route provides query-parameter compatibility with MCP client expectations.
+ * Delegates to the path-parameter implementation at /api/v1/clips/[clipId]/
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
-import { validateBody, updateClipSchema } from '@/lib/api/validate';
+import { validateQuery, validateBody, updateClipSchema } from '@/lib/api/validate';
 import type { ClipData, Category } from '@/types/database';
+import { z } from 'zod';
 
+// Query parameter schema
+const clipDetailQuerySchema = z.object({
+  id: z.string().min(1, 'Clip ID is required'),
+  content: z.enum(['true', 'false']).optional(),
+});
+
+// Escape strict Supabase generics
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
 
+/**
+ * GET /api/v1/clips-detail?id=CLIP_ID
+ */
 async function handleGet(
   req: NextRequest,
   auth: AuthContext,
@@ -41,6 +52,7 @@ async function handleGet(
   const clip = data as ClipData & { clip_contents?: Record<string, unknown> };
   if (clip.user_id !== auth.publicUserId) return errors.accessDenied();
 
+  // Fetch collection memberships
   const { data: ccRows } = await db
     .from('clip_collections')
     .select('collection_id')
@@ -64,7 +76,6 @@ async function handleGet(
     collectionIds,
     notes: '',
     keyTakeaways: '',
-    processingStatus: clip.processing_status ?? 'ready',
     createdAt: clip.created_at,
     updatedAt: clip.updated_at,
   };
@@ -79,6 +90,9 @@ async function handleGet(
   return sendSuccess(response);
 }
 
+/**
+ * PATCH /api/v1/clips-detail?id=CLIP_ID
+ */
 async function handleUpdate(
   req: NextRequest,
   auth: AuthContext,
@@ -104,6 +118,7 @@ async function handleUpdate(
   if (body.isReadLater !== undefined) updates.is_read_later = body.isReadLater;
   if (body.isArchived !== undefined) updates.is_archived = body.isArchived;
 
+  // Category: name -> id resolution
   if (body.category !== undefined) {
     const { data: catRow } = await db
       .from('categories')
@@ -122,12 +137,13 @@ async function handleUpdate(
     .single();
 
   if (updateErr || !updated) {
-    console.error('[API v1 Clips-Detail Alias] Update error:', updateErr);
+    console.error('[API v1 Clips-Detail Query] Update error:', updateErr);
     return errors.internalError();
   }
 
   const updatedClip = updated as ClipData;
 
+  // Update collection memberships if provided
   if (body.collectionIds !== undefined) {
     await db.from('clip_collections').delete().eq('clip_id', clipId);
     if (body.collectionIds.length > 0) {
@@ -140,6 +156,7 @@ async function handleUpdate(
     }
   }
 
+  // Get final collection ids
   const { data: ccRows } = await db
     .from('clip_collections')
     .select('collection_id')
@@ -166,6 +183,9 @@ async function handleUpdate(
   });
 }
 
+/**
+ * DELETE /api/v1/clips-detail?id=CLIP_ID
+ */
 async function handleDelete(
   _req: NextRequest,
   auth: AuthContext,
@@ -186,17 +206,20 @@ async function handleDelete(
     .eq('id', clipId);
 
   if (deleteErr) {
-    console.error('[API v1 Clips-Detail Alias] Delete error:', deleteErr);
+    console.error('[API v1 Clips-Detail Query] Delete error:', deleteErr);
     return errors.internalError();
   }
 
   return sendSuccess({ id: clipId, deleted: true });
 }
 
+// Route-level handlers
 const routeHandler = withAuth(
   async (req, auth) => {
-    const clipId = req.nextUrl.searchParams.get('id');
-    if (!clipId) return errors.invalidRequest('Query parameter "id" is required');
+    const queryResult = validateQuery(req.nextUrl.searchParams, clipDetailQuerySchema);
+    if (!queryResult.ok) return queryResult.response;
+
+    const { id: clipId } = queryResult.value;
 
     if (req.method === 'GET') return handleGet(req, auth, clipId);
     if (req.method === 'PATCH') return handleUpdate(req, auth, clipId);

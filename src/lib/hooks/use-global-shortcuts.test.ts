@@ -169,17 +169,28 @@ describe('useGlobalShortcuts', () => {
     expect((e.preventDefault as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
   });
 
-  // ── Cmd/Ctrl+K ─────────────────────────────────────────────────────────────
+  // ── Cmd/Ctrl+K: focus inline search input ──────────────────────────────────
 
-  it('Cmd+K calls setOmniSearchOpen(true)', () => {
+  it('Cmd+K focuses inline search input via document.querySelector', () => {
+    const mockFocus = vi.fn();
+    const mockSelect = vi.fn();
+    const origQS = document.querySelector;
+    document.querySelector = vi.fn().mockReturnValue({ focus: mockFocus, select: mockSelect });
     const e = dispatch({ key: 'k', metaKey: true });
-    expect(mockSetOmniSearchOpen).toHaveBeenCalledWith(true);
+    expect(document.querySelector).toHaveBeenCalledWith('[data-search-input]');
+    expect(mockFocus).toHaveBeenCalled();
     expect((e.preventDefault as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    document.querySelector = origQS;
   });
 
-  it('Ctrl+K calls setOmniSearchOpen(true)', () => {
+  it('Ctrl+K focuses inline search input via document.querySelector', () => {
+    const mockFocus = vi.fn();
+    const mockSelect = vi.fn();
+    const origQS = document.querySelector;
+    document.querySelector = vi.fn().mockReturnValue({ focus: mockFocus, select: mockSelect });
     dispatch({ key: 'k', ctrlKey: true });
-    expect(mockSetOmniSearchOpen).toHaveBeenCalledWith(true);
+    expect(mockFocus).toHaveBeenCalled();
+    document.querySelector = origQS;
   });
 
   // ── g+<key> navigation sequences ───────────────────────────────────────────

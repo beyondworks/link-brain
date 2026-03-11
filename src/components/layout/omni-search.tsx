@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/command';
 import { useUIStore } from '@/stores/ui-store';
 import { supabase } from '@/lib/supabase/client';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { exportClips } from '@/lib/utils/export';
 
 const RECENT_SEARCHES_KEY = 'linkbrain-recent-searches';
@@ -65,7 +65,7 @@ interface SearchResult {
 
 export function OmniSearch() {
   const { omniSearchOpen, setOmniSearchOpen, openModal } = useUIStore();
-  const { user } = useSupabase();
+  const { user: publicUser } = useCurrentUser();
   const router = useRouter();
 
   const [query, setQuery] = useState('');
@@ -94,7 +94,7 @@ export function OmniSearch() {
 
   // Debounced search
   useEffect(() => {
-    if (!query.trim() || !user) {
+    if (!query.trim() || !publicUser) {
       setClips([]);
       setCollections([]);
       setTags([]);
@@ -109,13 +109,13 @@ export function OmniSearch() {
         supabase
           .from('clips')
           .select('id, title')
-          .eq('user_id', user.id)
+          .eq('user_id', publicUser.id)
           .or(`title.ilike.${searchTerm},summary.ilike.${searchTerm}`)
           .limit(5),
         supabase
           .from('collections')
           .select('id, name')
-          .eq('user_id', user.id)
+          .eq('user_id', publicUser.id)
           .ilike('name', searchTerm)
           .limit(3),
         supabase
@@ -150,7 +150,7 @@ export function OmniSearch() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, user]);
+  }, [query, publicUser]);
 
   const handleSelect = useCallback(
     (result: SearchResult) => {

@@ -69,6 +69,15 @@
 | 팝오버 | `--z-popover` | 60 |
 | 토스트 | `--z-toast` | 70 |
 
+### 레이아웃 시스템
+- 컨테이너: `mx-auto max-w-4xl px-4 md:px-6` (콘텐츠 페이지)
+- 카드 그리드: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`
+- 간격: `gap-2` (인라인 요소), `gap-3` (리스트 아이템), `gap-4` (카드), `gap-6` (섹션)
+- 사이드바: flex 기반, 사이드바 고정폭. 메인 영역 `flex-1 min-h-0 overflow-y-auto`
+- 모바일: 단일 컬럼, `px-4` 좌우 패딩
+- flex 내 스크롤: `min-h-0 flex-1 overflow-y-auto` (Radix ScrollArea 금지 — CLAUDE.md 규칙)
+- 임의 크기값(`w-[347px]` 등) 금지 → Tailwind 스케일 사용
+
 ### 타이포그래피
 Pretendard Variable. text-xs(12) / text-sm(14) / text-base(16) / text-lg(18) / text-xl(20) / text-2xl+(24+)
 
