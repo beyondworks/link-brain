@@ -15,10 +15,10 @@ interface MetricConfig {
 
 // ─── 변화율 계산 유틸 (테스트 가능하도록 export) ────────────────────────────
 
-/** 지난 주 대비 이번 주 변화율(%)을 계산합니다. */
-export function calcChangeRate(thisWeek: number, lastWeek: number): number {
+/** 지난 주 대비 이번 주 변화율(%)을 계산합니다. lastWeek=0이면 null(신규) 반환. */
+export function calcChangeRate(thisWeek: number, lastWeek: number): number | null {
   if (lastWeek === 0 && thisWeek === 0) return 0;
-  if (lastWeek === 0) return 100;
+  if (lastWeek === 0) return null; // 비교 불가 (신규)
   return Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
 }
 
@@ -34,12 +34,21 @@ function MetricCard({ icon: Icon, label, metric }: MetricCardProps) {
   const rate = calcChangeRate(metric.thisWeek, metric.lastWeek);
 
   const trendConfig =
-    rate > 0
+    rate === null
+      ? {
+          icon: ArrowUpRight,
+          colorClass: 'text-emerald-500',
+          bgClass: 'bg-emerald-500/10',
+          label: '신규',
+          suffix: '',
+        }
+      : rate > 0
       ? {
           icon: ArrowUpRight,
           colorClass: 'text-emerald-500',
           bgClass: 'bg-emerald-500/10',
           label: `+${rate}%`,
+          suffix: 'vs 지난 주',
         }
       : rate < 0
       ? {
@@ -47,12 +56,14 @@ function MetricCard({ icon: Icon, label, metric }: MetricCardProps) {
           colorClass: 'text-red-500',
           bgClass: 'bg-red-500/10',
           label: `${rate}%`,
+          suffix: 'vs 지난 주',
         }
       : {
           icon: Minus,
           colorClass: 'text-muted-foreground',
           bgClass: 'bg-muted/60',
           label: '0%',
+          suffix: 'vs 지난 주',
         };
 
   const TrendIcon = trendConfig.icon;
@@ -80,7 +91,9 @@ function MetricCard({ icon: Icon, label, metric }: MetricCardProps) {
       >
         <TrendIcon size={11} />
         <span>{trendConfig.label}</span>
-        <span className="font-normal text-muted-foreground/70">vs 지난 주</span>
+        {trendConfig.suffix && (
+          <span className="font-normal text-muted-foreground/70">{trendConfig.suffix}</span>
+        )}
       </div>
     </div>
   );
