@@ -143,7 +143,7 @@ const JSON_LD = [
     '@type': 'Organization',
     name: 'Linkbrain',
     url: 'https://linkbrain.cloud',
-    logo: 'https://linkbrain.cloud/icon.png',
+    logo: 'https://linkbrain.cloud/icon.svg',
     sameAs: [],
   },
   {

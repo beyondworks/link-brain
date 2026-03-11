@@ -12,18 +12,18 @@ interface LinkbrainLogoProps {
 /**
  * Linkbrain brand logo component.
  *
- * Assets from `/public/logo-*.svg` (copied from `logo/` directory).
- * - symbol: 39×22 (aspect ~1.77:1)
- * - typo:   79×17 (aspect ~4.65:1)
- * - full:  126×22 (aspect ~5.73:1)
+ * Assets from `/public/linkbrain-*.svg`.
+ * - symbol: 37×20 (aspect 1.85:1)
+ * - typo:   77×14 (aspect 5.5:1)
+ * - full:  120×20 (aspect 6:1)
  */
 export function LinkbrainLogo({
   variant = 'full',
-  height = 22,
+  height = 20,
   className,
 }: LinkbrainLogoProps) {
   if (variant === 'symbol') {
-    const w = Math.round(height * (39 / 22));
+    const w = Math.round(height * (37 / 20));
     return (
       <Image
         src="/linkbrain-symbol.svg"
@@ -37,7 +37,7 @@ export function LinkbrainLogo({
   }
 
   if (variant === 'typo') {
-    const w = Math.round(height * (79 / 17));
+    const w = Math.round(height * (77 / 14));
     return (
       <Image
         src="/linkbrain-typo.svg"
@@ -51,7 +51,7 @@ export function LinkbrainLogo({
   }
 
   // full
-  const w = Math.round(height * (126 / 22));
+  const w = Math.round(height * (120 / 20));
   return (
     <Image
       src="/linkbrain-logo.svg"
