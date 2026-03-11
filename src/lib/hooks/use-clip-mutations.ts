@@ -235,6 +235,7 @@ export function useToggleReadLater() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
       queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['read-later-list'] });
     },
   });
 }
