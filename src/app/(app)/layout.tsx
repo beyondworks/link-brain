@@ -1,8 +1,9 @@
 'use client';
 
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
@@ -48,7 +49,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user, isLoading } = useSupabase();
   const { user: publicUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
-  const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse, searchQuery, setSearchQuery } = useUIStore();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
   const { data: navCounts } = useNavCounts();
 
   const countByHref: Record<string, number> = {
@@ -359,27 +362,71 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <header
               aria-label="앱 헤더"
               className={cn(
-                'sticky top-0 z-40 flex items-center border-b border-border/50 bg-background px-4 lg:hidden',
+                'sticky top-0 z-40 flex flex-col border-b border-border/50 bg-background lg:hidden',
                 'transition-transform duration-300 ease-out',
                 !isHeaderVisible && '-translate-y-full',
               )}
-              style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+              style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
             >
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="사이드바 열기"
-                className="rounded-xl"
-              >
-                <Menu size={20} aria-hidden="true" />
-              </Button>
-              <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
-                  L
-                </span>
-                Link<span className="text-gradient-brand">Brain</span>
-              </Link>
+              <div className="flex h-16 items-center px-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="사이드바 열기"
+                  className="rounded-xl"
+                >
+                  <Menu size={20} aria-hidden="true" />
+                </Button>
+                <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
+                    L
+                  </span>
+                  Link<span className="text-gradient-brand">Brain</span>
+                </Link>
+                <div className="ml-auto flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      const next = !mobileSearchOpen;
+                      setMobileSearchOpen(next);
+                      if (!next) setSearchQuery('');
+                      else setTimeout(() => mobileSearchRef.current?.focus(), 100);
+                    }}
+                    aria-label={mobileSearchOpen ? '검색 닫기' : '검색'}
+                    className="rounded-xl"
+                  >
+                    {mobileSearchOpen ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
+                  </Button>
+                </div>
+              </div>
+              {/* Inline search bar */}
+              {mobileSearchOpen && (
+                <div className="flex items-center gap-2 border-t border-border/30 bg-muted/30 px-4 py-2">
+                  <Search size={14} className="shrink-0 text-muted-foreground" />
+                  <input
+                    ref={mobileSearchRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="키워드로 클립 검색..."
+                    className="h-8 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+                    autoComplete="off"
+                    enterKeyHint="search"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label="검색어 지우기"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
             </header>
           }
         >

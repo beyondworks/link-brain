@@ -58,15 +58,20 @@ export function useGlobalShortcuts() {
     }
 
     function handleKeyDown(e: KeyboardEvent) {
-      // Skip when typing in inputs
-      if (isInputFocused()) return;
-
-      // Cmd/Ctrl+K: Open omni-search
+      // Cmd/Ctrl+K: Focus inline search (works even when input is focused)
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setOmniSearchOpen(true);
+        // Focus desktop inline search input
+        const searchInput = document.querySelector<HTMLInputElement>('[data-search-input]');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
         return;
       }
+
+      // Skip remaining shortcuts when typing in inputs
+      if (isInputFocused()) return;
 
       // Cmd/Ctrl+N: Open add clip dialog
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {

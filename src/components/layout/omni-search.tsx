@@ -82,18 +82,6 @@ export function OmniSearch() {
     }
   }, [omniSearchOpen]);
 
-  // Cmd+K handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setOmniSearchOpen(!omniSearchOpen);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [omniSearchOpen, setOmniSearchOpen]);
-
   // Reset on close
   useEffect(() => {
     if (!omniSearchOpen) {

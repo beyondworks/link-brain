@@ -12,6 +12,7 @@ import { SaveProgressBar } from '@/components/clips/save-progress-bar';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/ui-store';
 import { useClips } from '@/lib/hooks/use-clips';
+import { useDebouncedValue } from '@/lib/hooks/use-debounced-value';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useDashboardStats } from '@/lib/hooks/use-dashboard-stats';
 import { useCredits } from '@/lib/hooks/use-credits';
@@ -258,6 +259,8 @@ export function DashboardClient() {
   const activeFilter: QuickFilter =
     filters.isFavorite ? 'favorite' : filters.isReadLater ? 'readLater' : 'all';
 
+  const searchQuery = useUIStore((s) => s.searchQuery);
+
   const clipsFilter = useMemo(() => ({
     isArchived: false as const,
     ...(filters.isFavorite ? { isFavorite: true as const } : {}),
@@ -267,7 +270,8 @@ export function DashboardClient() {
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
   }), [filters.isFavorite, filters.isReadLater, filters.categoryId, filters.collectionId, filters.platform]);
 
-  const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter });
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, search: debouncedSearch || undefined });
 
   const clips = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
   const pinnedClips = useMemo(() => clips.filter((c) => c.is_pinned), [clips]);

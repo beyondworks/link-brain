@@ -1,6 +1,7 @@
 'use client';
 
-import { Search, Grid3X3, List, Newspaper, Plus, ChevronDown } from 'lucide-react';
+import { useRef } from 'react';
+import { Search, X, Grid3X3, List, Newspaper, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,8 +49,11 @@ export function AppHeader({ title, titleKo }: AppHeaderProps) {
     setSortBy,
     setSortOrder,
     openModal,
-    setOmniSearchOpen,
+    searchQuery,
+    setSearchQuery,
   } = useUIStore();
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const currentSortOption = SORT_OPTIONS.find((o) => o.value === sortBy);
 
@@ -71,18 +75,36 @@ export function AppHeader({ title, titleKo }: AppHeaderProps) {
         </h1>
       )}
 
-      {/* Search trigger */}
-      <Button
-        variant="ghost"
-        className="group hidden h-9 flex-1 max-w-md justify-start gap-2.5 rounded-xl border border-border/40 bg-muted/30 px-3.5 text-muted-foreground transition-spring hover:border-primary/30 hover:bg-muted/50 hover:glow-brand-sm lg:flex"
-        onClick={() => setOmniSearchOpen(true)}
-      >
-        <Search size={14} className="flex-shrink-0 transition-spring group-hover:text-primary" />
-        <span className="text-sm">검색...</span>
-        <kbd className="ml-auto hidden items-center gap-0.5 rounded-md border border-border/60 bg-background/80 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/70 lg:flex">
+      {/* Inline search */}
+      <div className="group hidden h-9 flex-1 max-w-md items-center gap-2 rounded-xl border border-border/40 bg-muted/30 px-3 transition-spring focus-within:border-primary/40 focus-within:bg-muted/50 focus-within:ring-1 focus-within:ring-primary/20 lg:flex">
+        <Search size={14} className="shrink-0 text-muted-foreground transition-spring group-focus-within:text-primary" />
+        <input
+          ref={searchInputRef}
+          data-search-input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="키워드로 클립 검색..."
+          className="h-full flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          autoComplete="off"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              searchInputRef.current?.focus();
+            }}
+            className="rounded-md p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="검색어 지우기"
+          >
+            <X size={13} />
+          </button>
+        )}
+        <kbd className="hidden items-center gap-0.5 rounded-md border border-border/60 bg-background/80 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/70 lg:flex">
           ⌘K
         </kbd>
-      </Button>
+      </div>
 
       <div className="ml-auto flex items-center gap-2.5">
         {/* View mode toggles - desktop only */}
