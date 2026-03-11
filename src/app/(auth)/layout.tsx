@@ -19,6 +19,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* Noise texture overlay */}
         <div className="absolute inset-0 bg-noise pointer-events-none z-[1]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
 
         {/* Glow orbs */}
         <div
@@ -68,38 +69,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Brand content */}
         <div className="relative z-10 flex flex-col items-center text-center gap-10">
           {/* Logo */}
-          <div className="flex flex-col items-center gap-4 animate-fade-in-up">
-            <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20 hover-lift transition-spring">
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-            </div>
-            <span
-              className="text-4xl font-black tracking-tight text-white"
-              style={{
-                textShadow: "0 2px 20px oklch(0 0 0 / 20%)",
-              }}
-            >
-              Link<span style={{
-                background: "linear-gradient(110deg, white 0%, oklch(0.95 0.05 168) 40%, white 60%, oklch(0.85 0.10 168) 100%)",
-                backgroundSize: "200% 100%",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                animation: "shimmer-text 3s ease-in-out infinite",
-              }}>Brain</span>
-            </span>
+          <div className="flex flex-col items-center gap-6 animate-fade-in-up">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-symbol.svg" alt="" width={80} height={45} className="drop-shadow-lg" aria-hidden="true" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-typo.svg" alt="Linkbrain" width={160} height={34} className="drop-shadow-md" />
           </div>
 
           {/* Tagline */}
@@ -171,25 +145,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="flex-1 flex flex-col items-center justify-center bg-background px-4 py-12">
         {/* Mobile logo */}
         <div className="md:hidden mb-8 flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-foreground">
-            Link<span className="text-primary">Brain</span>
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-full.svg" alt="Linkbrain" width={126} height={22} />
         </div>
 
         {/* Auth card */}

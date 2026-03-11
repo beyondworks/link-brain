@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Twitter, Github, ArrowRight, Zap } from 'lucide-react';
+import { Menu, X, Twitter, Github, ArrowRight } from 'lucide-react';
+import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 
 export default function MarketingLayout({
   children,
@@ -33,15 +34,9 @@ export default function MarketingLayout({
           {/* Logo */}
           <Link
             href="/"
-            className="group flex items-center gap-1.5 transition-opacity duration-200 hover:opacity-90"
+            className="group flex items-center transition-opacity duration-200 hover:opacity-90"
           >
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[oklch(0.78_0.15_168)] to-[oklch(0.55_0.20_155)] shadow-[0_2px_12px_oklch(0.78_0.15_168/40%)]">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tight">
-              <span className="text-foreground">Link</span>
-              <span className="text-gradient-shimmer">Brain</span>
-            </span>
+            <LinkbrainLogo variant="full" height={24} />
           </Link>
 
           {/* Desktop Nav */}
@@ -154,14 +149,8 @@ export default function MarketingLayout({
           <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
             {/* Brand column */}
             <div className="sm:col-span-2 md:col-span-1">
-              <Link href="/" className="group inline-flex items-center gap-1.5">
-                <div className="relative flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-[oklch(0.78_0.15_168)] to-[oklch(0.55_0.20_155)] glow-brand-sm transition-all duration-300 group-hover:glow-brand">
-                  <Zap className="h-3.5 w-3.5 text-white" />
-                </div>
-                <span className="text-lg font-black tracking-tight">
-                  <span className="text-foreground">Link</span>
-                  <span className="text-gradient-brand">Brain</span>
-                </span>
+              <Link href="/" className="group inline-flex items-center">
+                <LinkbrainLogo variant="full" height={20} />
               </Link>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 웹의 모든 콘텐츠를 저장하고,

@@ -19,6 +19,7 @@ import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
+import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
@@ -137,15 +138,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
         >
           <Link
             href="/dashboard"
-            className="group flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground"
+            className="group flex items-center gap-2.5"
           >
-            <span className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-brand text-[13px] font-black text-white shadow-brand glow-brand-sm animate-breathe">
-              L
-            </span>
-            {!isSidebarCollapsed && (
-              <span>
-                Link<span className="text-gradient-brand">Brain</span>
-              </span>
+            {isSidebarCollapsed ? (
+              <LinkbrainLogo variant="symbol" height={20} />
+            ) : (
+              <LinkbrainLogo variant="full" height={22} />
             )}
           </Link>
           {!isSidebarCollapsed && (
@@ -378,11 +376,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Menu size={20} aria-hidden="true" />
                 </Button>
-                <Link href="/dashboard" className="ml-3 flex items-center gap-2 text-base font-bold tracking-tight text-foreground">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand text-[11px] font-black text-white shadow-brand">
-                    L
-                  </span>
-                  Link<span className="text-gradient-brand">Brain</span>
+                <Link href="/dashboard" className="ml-3 flex items-center">
+                  <LinkbrainLogo variant="full" height={20} />
                 </Link>
                 <div className="ml-auto flex items-center gap-1">
                   <Button

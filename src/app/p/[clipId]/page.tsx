@@ -85,8 +85,9 @@ export default async function PublicClipPage({ params }: Props) {
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto flex h-14 items-center justify-between px-4">
-          <Link href="/" className="text-lg font-bold">
-            Linkbrain
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-full.svg" alt="Linkbrain" width={110} height={20} />
           </Link>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" asChild>
