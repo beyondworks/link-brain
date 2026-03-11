@@ -264,13 +264,15 @@ export function DashboardClient() {
   const searchQuery = useUIStore((s) => s.searchQuery);
 
   const clipsFilter = useMemo(() => ({
-    isArchived: false as const,
+    isArchived: filters.isArchived ?? false,
     ...(filters.isFavorite ? { isFavorite: true as const } : {}),
-    ...(filters.readStatus === 'unread' ? { readStatus: 'unread' as const } : {}),
+    ...(filters.readStatus && filters.readStatus !== 'all' ? { readStatus: filters.readStatus } : {}),
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
     ...(filters.collectionId ? { collectionId: filters.collectionId } : {}),
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
-  }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform]);
+    ...(filters.dateRange ? { dateRange: filters.dateRange } : {}),
+    ...(filters.hasAiAnalysis !== null ? { hasAiAnalysis: filters.hasAiAnalysis } : {}),
+  }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform, filters.dateRange, filters.hasAiAnalysis, filters.isArchived]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, sortBy, sortOrder, search: debouncedSearch || undefined });

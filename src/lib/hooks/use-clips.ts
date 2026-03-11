@@ -94,31 +94,6 @@ export function useClips(options: UseClipsOptions = {}) {
         query = query.is('summary', null);
       }
 
-      // Read status filter (based on reading_progress table, completed_at or scroll_percentage >= 80)
-      if (filters?.readStatus === 'read') {
-        const { data: readRows } = await supabase
-          .from('reading_progress')
-          .select('clip_id')
-          .eq('user_id', user.id)
-          .or('completed_at.not.is.null,scroll_percentage.gte.80');
-        const readIds = (readRows ?? []).map((r: { clip_id: string }) => r.clip_id);
-        if (readIds.length > 0) {
-          query = query.in('id', readIds);
-        } else {
-          return { data: [], nextPage: null };
-        }
-      } else if (filters?.readStatus === 'unread') {
-        const { data: readRows } = await supabase
-          .from('reading_progress')
-          .select('clip_id')
-          .eq('user_id', user.id)
-          .or('completed_at.not.is.null,scroll_percentage.gte.80');
-        const readIds = (readRows ?? []).map((r: { clip_id: string }) => r.clip_id);
-        if (readIds.length > 0) {
-          query = query.not('id', 'in', `(${readIds.join(',')})` );
-        }
-      }
-
       // Full-text search + ILIKE fallback for partial/English matches
       if (search && search.trim()) {
         const q = search.trim();
