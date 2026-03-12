@@ -265,6 +265,7 @@ export function DashboardClient() {
 
   const clipsFilter = useMemo(() => ({
     isArchived: filters.isArchived ?? false,
+    ...(filters.isHidden !== null ? { isHidden: filters.isHidden } : {}),
     ...(filters.isFavorite ? { isFavorite: true as const } : {}),
     ...(filters.readStatus && filters.readStatus !== 'all' ? { readStatus: filters.readStatus } : {}),
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
@@ -272,7 +273,7 @@ export function DashboardClient() {
     ...(filters.platform ? { platform: filters.platform as import('@/types/database').ClipPlatform } : {}),
     ...(filters.dateRange ? { dateRange: filters.dateRange } : {}),
     ...(filters.hasAiAnalysis !== null ? { hasAiAnalysis: filters.hasAiAnalysis } : {}),
-  }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform, filters.dateRange, filters.hasAiAnalysis, filters.isArchived]);
+  }), [filters.isFavorite, filters.readStatus, filters.categoryId, filters.collectionId, filters.platform, filters.dateRange, filters.hasAiAnalysis, filters.isArchived, filters.isHidden]);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const { data, isLoading, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useClips({ filters: clipsFilter, sortBy, sortOrder, search: debouncedSearch || undefined });
