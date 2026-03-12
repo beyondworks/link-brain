@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square } from 'lucide-react';
+import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
 import { ClipCard } from '@/components/clips/clip-card';
@@ -9,7 +9,7 @@ import { ClipRow } from '@/components/clips/clip-row';
 import { ClipHeadline } from '@/components/clips/clip-headline';
 import { AriaLive } from '@/components/ui/aria-live';
 import { useUIStore } from '@/stores/ui-store';
-import { useToggleFavorite, useToggleArchive, useDeleteClip } from '@/lib/hooks/use-clip-mutations';
+import { useToggleFavorite, useToggleArchive, useToggleHidden, useDeleteClip } from '@/lib/hooks/use-clip-mutations';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useListKeyboardNav } from '@/lib/hooks/use-list-keyboard-nav';
 import { cn } from '@/lib/utils';
@@ -79,6 +79,7 @@ export function ClipList({
 
   const toggleFavorite = useToggleFavorite();
   const toggleArchive = useToggleArchive();
+  const toggleHidden = useToggleHidden();
   const deleteClip = useDeleteClip();
   const { data: categories = [] } = useCategories();
 
@@ -172,6 +173,24 @@ export function ClipList({
     }
   }
 
+  async function handleBulkHide() {
+    const ids = Array.from(selectedClipIds);
+    const clipMap = new Map(clips.map((c) => [c.id, c]));
+    try {
+      await Promise.all(
+        ids.map((id) => {
+          const clip = clipMap.get(id);
+          if (!clip) return Promise.resolve();
+          return toggleHidden.mutateAsync({ clipId: id, isHidden: clip.is_hidden ?? false });
+        })
+      );
+      toast.success(`${ids.length}개 클립이 홈에서 숨겨졌습니다.`);
+      clearSelection();
+    } catch {
+      toast.error('일부 클립의 숨김 처리에 실패했습니다.');
+    }
+  }
+
   async function handleBulkDelete() {
     const ids = Array.from(selectedClipIds);
     try {
@@ -187,7 +206,7 @@ export function ClipList({
 
   const showToolbar = isSelectionMode || selectedCount > 0;
   const isBulkPending =
-    toggleFavorite.isPending || toggleArchive.isPending || deleteClip.isPending;
+    toggleFavorite.isPending || toggleArchive.isPending || toggleHidden.isPending || deleteClip.isPending;
 
   if (clips.length === 0) {
     return (
@@ -263,6 +282,16 @@ export function ClipList({
           >
             <Archive className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">아카이브</span>
+          </button>
+
+          <button
+            onClick={handleBulkHide}
+            disabled={selectedCount === 0 || isBulkPending}
+            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="선택한 클립 홈에서 숨김"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">홈에서 숨김</span>
           </button>
 
           <button

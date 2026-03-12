@@ -77,6 +77,7 @@ export function AdvancedFilters() {
     filters.categoryId !== null,
     filters.collectionId !== null,
     filters.isFavorite === true,
+    filters.isHidden === true,
     filters.dateRange !== null,
     filters.readStatus !== null && filters.readStatus !== 'all',
     filters.hasAiAnalysis !== null,
@@ -288,6 +289,27 @@ export function AdvancedFilters() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Hidden clips */}
+          <div>
+            <p className={SECTION_LABEL}>숨긴 클립</p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setFilter('isHidden', null)}
+                className={cn(CHIP_BASE, filters.isHidden === null ? CHIP_ACTIVE : CHIP_IDLE)}
+              >
+                제외
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('isHidden', true)}
+                className={cn(CHIP_BASE, filters.isHidden === true ? CHIP_ACTIVE : CHIP_IDLE)}
+              >
+                숨긴 클립만
+              </button>
             </div>
           </div>
 

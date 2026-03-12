@@ -140,6 +140,54 @@ export function useToggleArchive() {
   });
 }
 
+// ─── Toggle Hidden ────────────────────────────────────────────────────────────
+
+export function useToggleHidden() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ clipId, isHidden }: { clipId: string; isHidden: boolean }) => {
+      const { error } = await supabase
+        .from('clips')
+        .update({ is_hidden: !isHidden } as never)
+        .eq('id', clipId);
+      if (error) throw error;
+      return { clipId, newValue: !isHidden };
+    },
+
+    onMutate: async ({ clipId }) => {
+      await queryClient.cancelQueries({ queryKey: ['clips'] });
+
+      const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
+        queryKey: ['clips'],
+      });
+
+      // Remove from current list (hidden clips disappear from home feed)
+      queryClient.setQueriesData<ClipsInfiniteData>({ queryKey: ['clips'] }, (old) =>
+        removeClipFromInfiniteData(old, clipId)
+      );
+
+      return { previousEntries };
+    },
+
+    onError: (_err, _vars, context) => {
+      context?.previousEntries?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast.error('숨김 변경에 실패했습니다.');
+    },
+
+    onSuccess: (_data, { isHidden }) => {
+      toast.success(isHidden ? '홈에 다시 표시됩니다.' : '홈에서 숨겨졌습니다.');
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
+    },
+  });
+}
+
 // ─── Toggle Pin ───────────────────────────────────────────────────────────────
 
 export function useTogglePin() {

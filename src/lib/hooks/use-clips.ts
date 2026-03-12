@@ -79,6 +79,13 @@ export function useClips(options: UseClipsOptions = {}) {
         query = query.eq('is_archived', false);
       }
 
+      // Hidden filter — default: exclude hidden clips from home feed
+      if (filters?.isHidden === true) {
+        query = query.eq('is_hidden', true);
+      } else if (filters?.isHidden === false || filters?.isHidden === undefined || filters?.isHidden === null) {
+        query = query.eq('is_hidden', false);
+      }
+
       // Date range filter
       if (filters?.dateRange?.from) {
         query = query.gte('created_at', filters.dateRange.from);

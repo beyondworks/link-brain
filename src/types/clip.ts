@@ -20,6 +20,7 @@ export interface ClipFilters {
   isFavorite?: boolean | null;
   isReadLater?: boolean | null;
   isArchived?: boolean | null;
+  isHidden?: boolean | null;
   tags?: string[];
   searchQuery?: string;
   dateRange?: { from?: string; to?: string } | null;

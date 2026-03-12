@@ -11,6 +11,7 @@ interface UIFilters {
   isFavorite: boolean | null;
   isReadLater: boolean | null;
   isArchived: boolean | null;
+  isHidden: boolean | null;
   dateRange: { from?: string; to?: string } | null;
   readStatus: ReadStatus | null;
   hasAiAnalysis: boolean | null;
@@ -71,6 +72,7 @@ const DEFAULT_FILTERS: UIFilters = {
   isFavorite: null,
   isReadLater: null,
   isArchived: false,
+  isHidden: null,
   dateRange: null,
   readStatus: null,
   hasAiAnalysis: null,

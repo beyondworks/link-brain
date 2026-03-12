@@ -25,7 +25,8 @@ export function useNavCounts() {
           .from('clips')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('is_archived', false),
+          .eq('is_archived', false)
+          .eq('is_hidden', false),
         supabase
           .from('clips')
           .select('*', { count: 'exact', head: true })

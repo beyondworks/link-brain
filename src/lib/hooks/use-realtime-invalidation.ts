@@ -1,59 +1,132 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Opens a single Supabase Realtime channel that listens for postgres_changes
- * on clips, collections, categories, and tags tables, then invalidates the
- * matching TanStack Query cache keys so UI stays in sync without manual refetches.
+ * on all relevant tables, then invalidates the matching TanStack Query cache
+ * keys so UI stays in sync across devices without manual refetches.
+ *
+ * Includes:
+ * - clips, collections, categories, tags (core)
+ * - clip_collections (junction — collection clip counts)
+ * - clip_contents (content updates / analysis completion)
+ * - highlights (highlight CRUD)
+ * - Automatic reconnection on channel error
  *
  * Call this once at the app shell level (e.g. app layout).
  */
 export function useRealtimeInvalidation(userId: string | null) {
   const queryClient = useQueryClient();
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  const invalidate = useCallback(
+    (...keys: string[]) => {
+      for (const key of keys) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
+    },
+    [queryClient]
+  );
 
   useEffect(() => {
     if (!userId) return;
 
-    const channel = supabase
-      .channel(`realtime-invalidation:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'clips', filter: `user_id=eq.${userId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['clips'] });
-          // Credits balance changes when clips are analyzed; keep credit UI fresh.
-          void queryClient.invalidateQueries({ queryKey: ['credits'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'collections', filter: `user_id=eq.${userId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['collections'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['categories'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        // tags are scoped per-user in RLS; no client-side filter needed here.
-        { event: '*', schema: 'public', table: 'tags' },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ['tags'] });
-        }
-      )
-      .subscribe();
+    const setupChannel = () => {
+      // Clean up any existing channel before creating a new one
+      if (channelRef.current) {
+        void supabase.removeChannel(channelRef.current);
+      }
+
+      const channel = supabase
+        .channel(`realtime-invalidation:${userId}`)
+        // ── clips ──────────────────────────────────────────────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clips', filter: `user_id=eq.${userId}` },
+          () => {
+            invalidate(
+              'clips',
+              'clips-count',
+              'nav-counts',
+              'dashboard-stats',
+              'weekly-stats',
+              'credits',
+              'continue-reading',
+              'read-later-list',
+              'duplicates',
+              'recent-activity'
+            );
+          }
+        )
+        // ── collections ────────────────────────────────────────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'collections', filter: `user_id=eq.${userId}` },
+          () => {
+            invalidate('collections', 'nav-counts');
+          }
+        )
+        // ── categories ─────────────────────────────────────────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
+          () => {
+            invalidate('categories');
+          }
+        )
+        // ── tags (RLS-scoped, no client filter) ────────────────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tags' },
+          () => {
+            invalidate('tags', 'tags-with-count');
+          }
+        )
+        // ── clip_collections (junction — no user_id, RLS) ──────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clip_collections' },
+          () => {
+            invalidate('collection-clips', 'collections', 'clip-collections');
+          }
+        )
+        // ── clip_contents (analysis completion, content update) ─
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clip_contents' },
+          () => {
+            invalidate('clip', 'clips');
+          }
+        )
+        // ── highlights ─────────────────────────────────────────
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'highlights' },
+          () => {
+            invalidate('highlights', 'all-annotations', 'annotations');
+          }
+        )
+        .subscribe((status: string) => {
+          if (status === 'CHANNEL_ERROR') {
+            // Reconnect after a brief delay
+            setTimeout(() => setupChannel(), 3000);
+          }
+        });
+
+      channelRef.current = channel;
+    };
+
+    setupChannel();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (channelRef.current) {
+        void supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [userId, queryClient]);
+  }, [userId, invalidate]);
 }

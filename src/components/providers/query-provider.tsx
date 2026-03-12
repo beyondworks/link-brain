@@ -16,7 +16,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
             staleTime: 30_000,
             gcTime: 300_000,
             retry: 1,
-            refetchOnWindowFocus: false,
+            refetchOnWindowFocus: true,
           },
         },
       })
