@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square, EyeOff } from 'lucide-react';
+import { Loader2, Star, Archive, Trash2, FolderPlus, Tag, CheckSquare, X, Square, EyeOff, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
 import { ClipCard } from '@/components/clips/clip-card';
@@ -173,6 +173,15 @@ export function ClipList({
     }
   }
 
+  // Check if all selected clips are currently hidden (to toggle label)
+  const allSelectedHidden = useMemo(() => {
+    if (selectedClipIds.size === 0) return false;
+    return Array.from(selectedClipIds).every((id) => {
+      const clip = clips.find((c) => c.id === id);
+      return clip?.is_hidden === true;
+    });
+  }, [selectedClipIds, clips]);
+
   async function handleBulkHide() {
     const ids = Array.from(selectedClipIds);
     const clipMap = new Map(clips.map((c) => [c.id, c]));
@@ -184,7 +193,10 @@ export function ClipList({
           return toggleHidden.mutateAsync({ clipId: id, isHidden: clip.is_hidden ?? false });
         })
       );
-      toast.success(`${ids.length}개 클립이 홈에서 숨겨졌습니다.`);
+      toast.success(allSelectedHidden
+        ? `${ids.length}개 클립이 홈에 다시 표시됩니다.`
+        : `${ids.length}개 클립이 홈에서 숨겨졌습니다.`
+      );
       clearSelection();
     } catch {
       toast.error('일부 클립의 숨김 처리에 실패했습니다.');
@@ -288,10 +300,10 @@ export function ClipList({
             onClick={handleBulkHide}
             disabled={selectedCount === 0 || isBulkPending}
             className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="선택한 클립 홈에서 숨김"
+            aria-label={allSelectedHidden ? '선택한 클립 홈에서 표시' : '선택한 클립 홈에서 숨김'}
           >
-            <EyeOff className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">홈에서 숨김</span>
+            {allSelectedHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{allSelectedHidden ? '홈에서 표시' : '홈에서 숨김'}</span>
           </button>
 
           <button
