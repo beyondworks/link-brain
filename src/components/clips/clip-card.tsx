@@ -49,13 +49,8 @@ export const ClipCard = memo(function ClipCard({
   const gradient = getGradient(clip.id);
 
   const longPressHandlers = useLongPress({
-    onLongPress: (e) => {
-      if (!onLongPress) return;
-      const touch = 'touches' in e ? e.touches[0] ?? e.changedTouches[0] : null;
-      const pos = touch
-        ? { x: touch.clientX, y: touch.clientY }
-        : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
-      onLongPress(clip, pos);
+    onLongPress: (pos) => {
+      onLongPress?.(clip, pos);
     },
     isEnabled: !!onLongPress,
   });
@@ -119,8 +114,9 @@ export const ClipCard = memo(function ClipCard({
       onTouchStart={longPressHandlers.onTouchStart}
       onTouchMove={longPressHandlers.onTouchMove}
       onTouchEnd={longPressHandlers.onTouchEnd}
+      onContextMenu={longPressHandlers.onContextMenu}
       className={cn(
-        'card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card',
+        'card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card [&_*]:[-webkit-touch-callout:none] [&_*]:[user-select:none]',
         isSelected && 'ring-2 ring-primary ring-offset-2'
       )}
     >

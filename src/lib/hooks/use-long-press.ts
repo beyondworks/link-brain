@@ -6,7 +6,7 @@ const LONG_PRESS_DURATION = 500;
 const MOVE_THRESHOLD = 10;
 
 interface UseLongPressOptions {
-  onLongPress: (e: React.TouchEvent | React.MouseEvent) => void;
+  onLongPress: (position: { x: number; y: number }) => void;
   isEnabled?: boolean;
 }
 
@@ -35,13 +35,22 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
       if (!isEnabled) return;
       firedRef.current = false;
       const touch = e.touches[0];
-      startPos.current = { x: touch.clientX, y: touch.clientY };
+      // Capture position immediately — touch event data becomes stale after timeout
+      const pos = { x: touch.clientX, y: touch.clientY };
+      startPos.current = pos;
       timerRef.current = setTimeout(() => {
         firedRef.current = true;
-        onLongPress(e);
+        onLongPress(pos);
       }, LONG_PRESS_DURATION);
     },
     [isEnabled, onLongPress],
+  );
+
+  const onContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (isEnabled) e.preventDefault();
+    },
+    [isEnabled],
   );
 
   const onTouchMove = useCallback(
@@ -66,5 +75,5 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
     [clear],
   );
 
-  return { onTouchStart, onTouchMove, onTouchEnd, longPressFired: firedRef };
+  return { onTouchStart, onTouchMove, onTouchEnd, onContextMenu, longPressFired: firedRef };
 }

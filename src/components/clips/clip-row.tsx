@@ -47,13 +47,8 @@ export const ClipRow = memo(function ClipRow({
   const gradient = getGradient(clip.id);
 
   const longPressHandlers = useLongPress({
-    onLongPress: (e) => {
-      if (!onLongPress) return;
-      const touch = 'touches' in e ? e.touches[0] ?? e.changedTouches[0] : null;
-      const pos = touch
-        ? { x: touch.clientX, y: touch.clientY }
-        : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
-      onLongPress(clip, pos);
+    onLongPress: (pos) => {
+      onLongPress?.(clip, pos);
     },
     isEnabled: !!onLongPress,
   });
@@ -102,8 +97,9 @@ export const ClipRow = memo(function ClipRow({
       onTouchStart={longPressHandlers.onTouchStart}
       onTouchMove={longPressHandlers.onTouchMove}
       onTouchEnd={longPressHandlers.onTouchEnd}
+      onContextMenu={longPressHandlers.onContextMenu}
       className={cn(
-        'group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60',
+        'group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60 [&_*]:[-webkit-touch-callout:none] [&_*]:[user-select:none]',
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
