@@ -58,3 +58,4 @@ Logo/
 # screenshots
 *.png
 !public/icon-*.png
+video/demo/node_modules/
