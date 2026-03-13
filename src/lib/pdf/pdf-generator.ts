@@ -38,7 +38,7 @@ const FONT_URLS = {
 };
 
 // Module-level cache — survives across invocations in the same serverless instance
-let fontCache: { regular?: string; bold?: string } = {};
+const fontCache: { regular?: string; bold?: string } = {};
 
 async function loadFont(style: 'regular' | 'bold'): Promise<string> {
   if (fontCache[style]) return fontCache[style];
