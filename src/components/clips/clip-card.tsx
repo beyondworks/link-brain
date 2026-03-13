@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
 import { isProxiableImageUrl } from '@/lib/utils/clip-content';
+import { useLongPress } from '@/lib/hooks/use-long-press';
 import type { ClipData } from '@/types/database';
 
 interface ClipCardProps {
@@ -22,6 +23,7 @@ interface ClipCardProps {
   onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
+  onLongPress?: (clip: ClipData, position: { x: number; y: number }) => void;
   categoryName?: string;
   categoryColor?: string | null;
 }
@@ -35,6 +37,7 @@ export const ClipCard = memo(function ClipCard({
   onToggleSelect,
   onToggleFavorite,
   onArchive,
+  onLongPress,
   categoryName,
   categoryColor,
 }: ClipCardProps) {
@@ -45,7 +48,20 @@ export const ClipCard = memo(function ClipCard({
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
+  const longPressHandlers = useLongPress({
+    onLongPress: (e) => {
+      if (!onLongPress) return;
+      const touch = 'touches' in e ? e.touches[0] ?? e.changedTouches[0] : null;
+      const pos = touch
+        ? { x: touch.clientX, y: touch.clientY }
+        : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
+      onLongPress(clip, pos);
+    },
+    isEnabled: !!onLongPress,
+  });
+
   function handleCardClick() {
+    if (longPressHandlers.longPressFired.current) return;
     if (isSelectionMode && onToggleSelect) {
       onToggleSelect();
       return;
@@ -100,6 +116,9 @@ export const ClipCard = memo(function ClipCard({
   return (
     <Card
       onClick={handleCardClick}
+      onTouchStart={longPressHandlers.onTouchStart}
+      onTouchMove={longPressHandlers.onTouchMove}
+      onTouchEnd={longPressHandlers.onTouchEnd}
       className={cn(
         'card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card',
         isSelected && 'ring-2 ring-primary ring-offset-2'

@@ -1,6 +1,5 @@
 'use client';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EdgeSwipeIndicatorProps {
@@ -10,7 +9,7 @@ interface EdgeSwipeIndicatorProps {
 
 /**
  * Visual feedback for edge-swipe navigation.
- * Shows a rounded arrow indicator on the swiped edge.
+ * Shows a minimal bar indicator on the swiped edge (no arrows).
  */
 export function EdgeSwipeIndicator({ activeEdge, swipeOffset }: EdgeSwipeIndicatorProps) {
   if (!activeEdge || swipeOffset === 0) return null;
@@ -21,33 +20,21 @@ export function EdgeSwipeIndicator({ activeEdge, swipeOffset }: EdgeSwipeIndicat
   return (
     <div
       className={cn(
-        'pointer-events-none fixed top-1/2 z-overlay -translate-y-1/2 lg:hidden',
+        'pointer-events-none fixed top-1/2 z-[40] -translate-y-1/2 lg:hidden',
         isLeft ? 'left-0' : 'right-0',
       )}
       aria-hidden="true"
     >
       <div
         className={cn(
-          'flex h-10 w-10 items-center justify-center rounded-full bg-background/90 shadow-lg border border-border/60 transition-transform duration-100',
-          progress >= 1 && 'border-primary/40 bg-primary/10',
+          'h-16 w-1 rounded-full transition-all duration-100',
+          progress >= 1 ? 'bg-primary/60' : 'bg-muted-foreground/30',
         )}
         style={{
-          transform: `translateX(${isLeft ? Math.abs(swipeOffset) - 40 : -(Math.abs(swipeOffset) - 40)}px) scale(${0.6 + progress * 0.4})`,
+          transform: `translateX(${isLeft ? Math.abs(swipeOffset) * 0.15 : -(Math.abs(swipeOffset) * 0.15)}px) scaleY(${0.6 + progress * 0.4})`,
           opacity: Math.min(progress * 2, 1),
         }}
-      >
-        {isLeft ? (
-          <ChevronLeft
-            size={20}
-            className={cn('text-muted-foreground transition-colors', progress >= 1 && 'text-primary')}
-          />
-        ) : (
-          <ChevronRight
-            size={20}
-            className={cn('text-muted-foreground transition-colors', progress >= 1 && 'text-primary')}
-          />
-        )}
-      </div>
+      />
     </div>
   );
 }

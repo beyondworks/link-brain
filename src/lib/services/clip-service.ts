@@ -345,7 +345,7 @@ const PLATFORM_FALLBACK: Record<string, string> = {
 
 const DB_VALID_PLATFORMS = new Set([
   'web', 'twitter', 'youtube', 'github', 'medium', 'substack',
-  'reddit', 'linkedin', 'instagram', 'tiktok', 'threads', 'naver', 'pinterest', 'other',
+  'reddit', 'linkedin', 'instagram', 'tiktok', 'threads', 'naver', 'pinterest', 'image', 'other',
 ]);
 
 /** Resolve a detected platform string to a DB-safe value */
@@ -371,7 +371,7 @@ const isLowQualityThumb = (u: string) => {
   // Keyword-based (v1 BLOCKED_KEYWORDS)
   if (lower.includes('profile') || lower.includes('avatar')) return true;
   // Format-based
-  if (lower.endsWith('.svg') || lower.endsWith('.ico') || lower.endsWith('.gif')) return true;
+  if (lower.endsWith('.svg') || lower.endsWith('.ico')) return true;
   return false;
 };
 

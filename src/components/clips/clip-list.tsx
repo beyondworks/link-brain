@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BulkTagDialog } from '@/components/clips/bulk-tag-dialog';
 import { BulkCollectionDialog } from '@/components/clips/bulk-collection-dialog';
+import { MobileContextMenu, buildClipContextActions } from '@/components/clips/mobile-context-menu';
 
 interface ClipListProps {
   clips: ClipData[];
@@ -62,6 +63,13 @@ export function ClipList({
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [ariaMessage, setAriaMessage] = useState('');
+
+  // Mobile context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    clipId: string;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [singleDeleteTarget, setSingleDeleteTarget] = useState<string | null>(null);
 
   // clips 개수가 변할 때마다 스크린리더에 결과 수 안내
   const prevClipsLengthRef = useRef<number | null>(null);
@@ -104,6 +112,41 @@ export function ClipList({
     },
     [clips, toggleArchive]
   );
+
+  const handleLongPress = useCallback(
+    (clip: ClipData, position: { x: number; y: number }) => {
+      setContextMenu({ clipId: clip.id, position });
+    },
+    [],
+  );
+
+  const contextClip = contextMenu ? clips.find((c) => c.id === contextMenu.clipId) : null;
+  const contextActions = contextClip
+    ? buildClipContextActions({
+        clip: contextClip,
+        onSelect: () => {
+          toggleClipSelection(contextClip.id);
+        },
+        onToggleFavorite: () => {
+          toggleFavorite.mutate({ clipId: contextClip.id, isFavorite: contextClip.is_favorite ?? false });
+        },
+        onArchive: () => {
+          toggleArchive.mutate({ clipId: contextClip.id, isArchived: contextClip.is_archived ?? false });
+        },
+        onHide: () => {
+          toggleHidden.mutate({ clipId: contextClip.id, isHidden: contextClip.is_hidden ?? false });
+        },
+        onDelete: () => {
+          setSingleDeleteTarget(contextClip.id);
+          setDeleteDialogOpen(true);
+        },
+        onAddToCollection: () => {
+          // Select the clip and open collection dialog
+          useUIStore.getState().setSelectedClipIds(new Set([contextClip.id]));
+          setCollectionDialogOpen(true);
+        },
+      })
+    : [];
 
   const { focusedIndex } = useListKeyboardNav({ clips });
 
@@ -204,6 +247,18 @@ export function ClipList({
   }
 
   async function handleBulkDelete() {
+    // Single delete from context menu
+    if (singleDeleteTarget) {
+      try {
+        await deleteClip.mutateAsync({ clipId: singleDeleteTarget });
+        toast.success('클립이 삭제되었습니다.');
+      } catch {
+        toast.error('클립 삭제에 실패했습니다.');
+      }
+      setSingleDeleteTarget(null);
+      setDeleteDialogOpen(false);
+      return;
+    }
     const ids = Array.from(selectedClipIds);
     try {
       await Promise.all(ids.map((id) => deleteClip.mutateAsync({ clipId: id })));
@@ -402,6 +457,7 @@ export function ClipList({
                     onToggleSelect={() => toggleClipSelection(clip.id)}
                     onToggleFavorite={handleToggleFavorite}
                     onArchive={handleArchive}
+                    onLongPress={handleLongPress}
                     categoryName={clip.category_id ? categoryMap.get(clip.category_id)?.name : undefined}
                     categoryColor={clip.category_id ? categoryMap.get(clip.category_id)?.color : undefined}
                   />
@@ -442,6 +498,7 @@ export function ClipList({
                     isSelectionMode={isSelectionMode || selectedCount > 0}
                     onToggleSelect={() => toggleClipSelection(clip.id)}
                     onToggleFavorite={handleToggleFavorite}
+                    onLongPress={handleLongPress}
                     categoryName={clip.category_id ? categoryMap.get(clip.category_id)?.name : undefined}
                     categoryColor={clip.category_id ? categoryMap.get(clip.category_id)?.color : undefined}
                   />
@@ -453,13 +510,20 @@ export function ClipList({
         </div>
       )}
 
-      {/* Bulk delete confirm dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Delete confirm dialog (single from context menu or bulk) */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setSingleDeleteTarget(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>클립 {selectedCount}개를 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {singleDeleteTarget ? '클립을 삭제하시겠습니까?' : `클립 ${selectedCount}개를 삭제하시겠습니까?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              선택한 클립을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+              {singleDeleteTarget
+                ? '이 클립을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.'
+                : '선택한 클립을 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -470,6 +534,8 @@ export function ClipList({
             >
               {isBulkPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : singleDeleteTarget ? (
+                '삭제'
               ) : (
                 `${selectedCount}개 삭제`
               )}
@@ -477,6 +543,14 @@ export function ClipList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mobile long-press context menu */}
+      <MobileContextMenu
+        open={contextMenu !== null}
+        onClose={() => setContextMenu(null)}
+        position={contextMenu?.position ?? { x: 0, y: 0 }}
+        actions={contextActions}
+      />
 
       {/* Bulk tag dialog */}
       <BulkTagDialog

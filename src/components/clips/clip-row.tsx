@@ -10,6 +10,8 @@ import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
+import { isProxiableImageUrl } from '@/lib/utils/clip-content';
+import { useLongPress } from '@/lib/hooks/use-long-press';
 import type { ClipData } from '@/types/database';
 
 interface ClipRowProps {
@@ -20,6 +22,7 @@ interface ClipRowProps {
   onToggleSelect?: () => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string) => void;
+  onLongPress?: (clip: ClipData, position: { x: number; y: number }) => void;
   categoryName?: string;
   categoryColor?: string | null;
 }
@@ -32,6 +35,7 @@ export const ClipRow = memo(function ClipRow({
   onSelect,
   onToggleSelect,
   onToggleFavorite,
+  onLongPress,
   categoryName,
   categoryColor,
 }: ClipRowProps) {
@@ -42,7 +46,20 @@ export const ClipRow = memo(function ClipRow({
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
 
+  const longPressHandlers = useLongPress({
+    onLongPress: (e) => {
+      if (!onLongPress) return;
+      const touch = 'touches' in e ? e.touches[0] ?? e.changedTouches[0] : null;
+      const pos = touch
+        ? { x: touch.clientX, y: touch.clientY }
+        : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
+      onLongPress(clip, pos);
+    },
+    isEnabled: !!onLongPress,
+  });
+
   function handleRowClick() {
+    if (longPressHandlers.longPressFired.current) return;
     if (isSelectionMode && onToggleSelect) {
       onToggleSelect();
       return;
@@ -82,6 +99,9 @@ export const ClipRow = memo(function ClipRow({
   return (
     <div
       onClick={handleRowClick}
+      onTouchStart={longPressHandlers.onTouchStart}
+      onTouchMove={longPressHandlers.onTouchMove}
+      onTouchEnd={longPressHandlers.onTouchEnd}
       className={cn(
         'group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60',
         isSelected && 'border-primary/20 bg-primary/5'
@@ -111,6 +131,7 @@ export const ClipRow = memo(function ClipRow({
             src={clip.image}
             alt={clip.title ?? ''}
             fill
+            unoptimized={!isProxiableImageUrl(clip.image)}
             className="object-cover"
             sizes="72px"
           />

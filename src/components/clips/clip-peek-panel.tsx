@@ -24,6 +24,8 @@ import {
   MessageSquare,
   RotateCcw,
   BookmarkPlus,
+  Download,
+  ImageIcon,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -47,7 +49,7 @@ import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, 
 import { ClipCategorySelector } from '@/components/clips/clip-category-selector';
 import { ClipCollectionAssigner } from '@/components/clips/clip-collection-assigner';
 import { ClipNotes } from '@/components/clips/clip-notes';
-import type { ClipData, ClipContent } from '@/types/database';
+import type { ClipData, ClipContent, ClipImage } from '@/types/database';
 
 
 const MODE_OPTIONS: { mode: ClipPeekMode; icon: React.ElementType; label: string }[] = [
@@ -129,6 +131,7 @@ function ImageSlideshow({ images }: { images: string[] }) {
 function PeekContent({
   clip,
   clipContents,
+  clipImage,
   isSeed,
   onClose,
   categoryName,
@@ -136,6 +139,7 @@ function PeekContent({
 }: {
   clip: ClipData;
   clipContents?: ClipContent[];
+  clipImage?: ClipImage | null;
   isSeed: boolean;
   onClose: () => void;
   categoryName?: string;
@@ -364,8 +368,41 @@ function PeekContent({
             )}
           </div>
 
-          {/* YouTube embed or Image slideshow */}
+          {/* YouTube embed / Image upload / Image slideshow */}
           {(() => {
+            // Image upload clip — show source image + PDF download
+            if (clip.source_type === 'image_upload' && clipImage?.public_url) {
+              return (
+                <div className="mt-5 space-y-3">
+                  <div className="overflow-hidden rounded-xl border border-border/60 shadow-card">
+                    <div className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-3 py-2">
+                      <ImageIcon size={13} className="text-violet-500" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">원본 이미지</span>
+                      {clipImage.original_filename && (
+                        <span className="ml-auto truncate text-[10px] text-muted-foreground/60">{clipImage.original_filename}</span>
+                      )}
+                    </div>
+                    <img
+                      src={clipImage.public_url}
+                      alt={clip.title ?? '업로드된 이미지'}
+                      className="max-h-80 w-full object-contain bg-muted/10"
+                    />
+                  </div>
+                  {clipImage.pdf_storage_path && (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/clip-pdfs/${clipImage.pdf_storage_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-spring hover:border-primary/40 hover:glow-brand-sm hover-lift"
+                    >
+                      <Download size={14} className="text-primary" />
+                      PDF 다운로드
+                    </a>
+                  )}
+                </div>
+              );
+            }
+
             if (platform === 'youtube') {
               const videoId = extractYouTubeVideoId(clip.url);
               if (videoId) {
@@ -410,7 +447,9 @@ function PeekContent({
 
           {/* Personal notes */}
           {!isSeed && (
-            <ClipNotes clipId={clip.id} initialNotes={clip.notes} />
+            <div className="mt-5">
+              <ClipNotes clipId={clip.id} initialNotes={clip.notes} />
+            </div>
           )}
 
           {/* Full detail link */}
@@ -577,8 +616,10 @@ export function ClipPeekPanel() {
   );
 
   const clip = seedClip ?? apiClip;
-  const rawCC = !isSeed && apiClip ? (apiClip as ClipData & { clip_contents?: ClipContent[] | ClipContent }).clip_contents : undefined;
+  const rawCC = !isSeed && apiClip ? (apiClip as ClipData & { clip_contents?: ClipContent[] | ClipContent; clip_images?: ClipImage[] | ClipImage }).clip_contents : undefined;
   const clipContents = rawCC ? (Array.isArray(rawCC) ? rawCC : [rawCC]) : undefined;
+  const rawCI = !isSeed && apiClip ? (apiClip as ClipData & { clip_images?: ClipImage[] | ClipImage }).clip_images : undefined;
+  const clipImage = rawCI ? (Array.isArray(rawCI) ? rawCI[0] : rawCI) : null;
 
   const markAsRead = useMarkAsRead();
 
@@ -615,16 +656,15 @@ export function ClipPeekPanel() {
     isEnabled: clipPeekMode === 'side' && isOpen,
   });
 
-  if (!isOpen) return null;
-
-  const content =
+  const content = !isOpen ? null :
     !clip && isLoading ? (
       <PeekSkeleton />
     ) : clip ? (
-      <PeekContent clip={clip} clipContents={clipContents} isSeed={isSeed} onClose={closeClipPeek} categoryName={category?.name} categoryColor={category?.color} />
+      <PeekContent clip={clip} clipContents={clipContents} clipImage={clipImage} isSeed={isSeed} onClose={closeClipPeek} categoryName={category?.name} categoryColor={category?.color} />
     ) : null;
 
   /* ─── Side mode: Sheet from right ────────────────────────── */
+  /* Always render Sheet so Radix can play slide-out animation on close */
 
   if (clipPeekMode === 'side') {
     return (
@@ -660,6 +700,7 @@ export function ClipPeekPanel() {
   }
 
   /* ─── Full mode: Full overlay ────────────────────────────── */
+  if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in">
       {content}
