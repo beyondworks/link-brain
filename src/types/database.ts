@@ -3,7 +3,7 @@
 // =============================================================================
 
 export type UserRole = 'user' | 'admin';
-export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'team';
+export type SubscriptionTier = 'free' | 'pro' | 'master';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'paused';
 export type ClipPlatform =
   | 'web' | 'twitter' | 'youtube' | 'github'

@@ -20,6 +20,7 @@ import {
 } from '@/lib/api/validate';
 import { detectPlatform } from '@/lib/fetchers/platform-detector';
 import { resolveDbPlatform } from '@/lib/services/clip-service';
+import { checkClipLimit } from '@/lib/services/plan-service';
 import type { ClipData, Category } from '@/types/database';
 import { z } from 'zod';
 
@@ -157,6 +158,12 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
   const { url } = body;
 
   try {
+    // Check plan clip limit
+    const clipLimit = await checkClipLimit(auth.publicUserId);
+    if (!clipLimit.allowed) {
+      return errors.planLimitReached('clip', clipLimit.used ?? 0, clipLimit.limit ?? 0);
+    }
+
     // Check duplicate URL
     const { data: existing } = await db
       .from('clips')

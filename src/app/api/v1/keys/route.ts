@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, sendError, ErrorCodes, errors } from '@/lib/api/response';
 import { createApiKey, listApiKeys, KEY_LIMITS } from '@/lib/api/api-key-auth';
+import { checkApiKeyLimit } from '@/lib/services/plan-service';
 import type { ApiKey } from '@/types/database';
 
 // Safe API key view (key_hash 제외)
@@ -61,6 +62,12 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
   const name = ((body as Record<string, unknown>).name as string).trim();
   if (!name || name.length < 1 || name.length > 64) {
     return errors.invalidRequest('Field "name" must be between 1 and 64 characters.');
+  }
+
+  // Check plan API key limit
+  const apiKeyLimit = await checkApiKeyLimit(auth.publicUserId);
+  if (!apiKeyLimit.allowed) {
+    return errors.planLimitReached('api_key', apiKeyLimit.used ?? 0, apiKeyLimit.limit ?? 0);
   }
 
   // 플랜별 키 개수 제한

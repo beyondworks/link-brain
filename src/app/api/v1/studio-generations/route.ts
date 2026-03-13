@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { deductCredits } from '@/lib/services/plan-service';
+import { errors } from '@/lib/api/response';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -24,6 +26,11 @@ async function handler(req: Request, auth: AuthContext) {
   }
 
   if (req.method === 'POST') {
+    const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
+    if (!creditCheck.allowed) {
+      return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
+    }
+
     const body = await req.json() as Record<string, unknown>;
     const { content_type, tone, length, source_clip_ids, output } = body;
 

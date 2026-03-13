@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors } from '@/lib/api/response';
+import { checkFeatureAccess } from '@/lib/services/plan-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -63,6 +64,11 @@ function buildCsv(clips: ExportClip[]): string {
 }
 
 async function handleExport(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const featureCheck = await checkFeatureAccess(auth.publicUserId, 'export');
+  if (!featureCheck.allowed) {
+    return errors.featureNotAvailable('export');
+  }
+
   const format = req.nextUrl.searchParams.get('format') ?? 'json';
 
   if (format !== 'json' && format !== 'csv') {
