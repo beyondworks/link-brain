@@ -33,21 +33,30 @@ export type ApiRouteHandler = (
 const MASTER_EMAILS = ['beyondworks.br@gmail.com'];
 
 /**
- * Get subscription tier for a user from the subscriptions table.
+ * Get subscription tier from users.plan column (set by 017_plan_system migration).
+ * Falls back to subscriptions table, then to 'free'.
  */
 async function getUserTier(userId: string): Promise<SubscriptionTier> {
   try {
     const { data: userData } = await supabaseAdmin
       .from('users')
-      .select('email')
+      .select('email, plan')
       .eq('auth_id', userId)
       .single();
 
-    const userRow = userData as Pick<User, 'email'> | null;
+    const userRow = userData as Pick<User, 'email' | 'plan'> | null;
+
+    // Master email override
     if (userRow?.email && MASTER_EMAILS.includes(userRow.email)) {
       return 'master';
     }
 
+    // Use users.plan column if available
+    if (userRow?.plan && ['free', 'pro', 'master'].includes(userRow.plan)) {
+      return userRow.plan as SubscriptionTier;
+    }
+
+    // Fallback: check subscriptions table
     const { data: sub } = await supabaseAdmin
       .from('subscriptions')
       .select('tier, status')
@@ -55,8 +64,8 @@ async function getUserTier(userId: string): Promise<SubscriptionTier> {
       .single();
 
     const subRow = sub as Pick<Subscription, 'tier' | 'status'> | null;
-    if (subRow && subRow.tier === 'pro' && subRow.status === 'active') {
-      return 'pro';
+    if (subRow && subRow.status === 'active' && ['pro', 'master'].includes(subRow.tier)) {
+      return subRow.tier as SubscriptionTier;
     }
 
     return 'free';

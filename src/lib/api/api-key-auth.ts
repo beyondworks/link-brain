@@ -18,9 +18,9 @@ const db = supabaseAdmin as any;
 // API key format: lb_xxxxxxxxxxxxxxxxxxxxxxxx
 const API_KEY_PREFIX = 'lb_';
 
-// Key limits by tier
+// Key limits by tier (must match PLAN_LIMITS in src/config/credits.ts)
 export const KEY_LIMITS = {
-  free: 2,
+  free: 0,
   pro: 5,
   master: 10,
 } as const;

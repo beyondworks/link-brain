@@ -304,22 +304,29 @@ export const ClipCard = memo(function ClipCard({
         </div>
 
         {/* Processing status overlay — only when clip has no title (no pre-analyzed data) */}
-        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-            {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
-              <div className="flex flex-col items-center gap-1.5">
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
-                <span className="text-xs font-medium text-white/90">분석 중...</span>
-              </div>
-            )}
-            {clip.processing_status === 'failed' && (
-              <div className="flex flex-col items-center gap-1.5">
-                <AlertTriangle className="h-6 w-6 text-amber-400" />
-                <span className="text-xs font-medium text-white/90">추출 실패</span>
-              </div>
-            )}
-          </div>
-        )}
+        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (() => {
+          // Treat clips stuck in pending/processing for >5 min as failed
+          const isStale = (clip.processing_status === 'pending' || clip.processing_status === 'processing')
+            && clip.created_at
+            && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000;
+          const effectiveStatus = isStale ? 'failed' : clip.processing_status;
+          return (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+              {(effectiveStatus === 'pending' || effectiveStatus === 'processing') && (
+                <div className="flex flex-col items-center gap-1.5">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  <span className="text-xs font-medium text-white/90">분석 중...</span>
+                </div>
+              )}
+              {effectiveStatus === 'failed' && (
+                <div className="flex flex-col items-center gap-1.5">
+                  <AlertTriangle className="h-6 w-6 text-amber-400" />
+                  <span className="text-xs font-medium text-white/90">{isStale ? '처리 시간 초과' : '추출 실패'}</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Content */}
@@ -333,7 +340,11 @@ export const ClipCard = memo(function ClipCard({
           </p>
         )}
 
-        {clip.processing_status === 'failed' && (
+        {(clip.processing_status === 'failed' || (
+          (clip.processing_status === 'pending' || clip.processing_status === 'processing')
+          && clip.created_at
+          && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000
+        )) && (
           <button
             onClick={(e) => {
               e.stopPropagation();

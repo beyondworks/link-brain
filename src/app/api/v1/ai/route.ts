@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
+import { deductCredits } from '@/lib/services/plan-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database Insert 타입 비호환 우회
 const db = supabaseAdmin as any;
@@ -235,6 +236,11 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 // ─── Analyze 핸들러 ──────────────────────────────────────────────────────────
 
 async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const creditCheck = await deductCredits(auth.publicUserId, 'AI_SUMMARY');
+  if (!creditCheck.allowed) {
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  }
+
   let rawBody: unknown;
   try { rawBody = await req.json(); } catch {
     return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
@@ -305,6 +311,11 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
 // ─── Ask 핸들러 ──────────────────────────────────────────────────────────────
 
 async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const creditCheck = await deductCredits(auth.publicUserId, 'AI_CHAT');
+  if (!creditCheck.allowed) {
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  }
+
   let rawBody: unknown;
   try { rawBody = await req.json(); } catch {
     return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
@@ -353,6 +364,11 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
 // ─── Insights 핸들러 ─────────────────────────────────────────────────────────
 
 async function handleInsights(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const creditCheck = await deductCredits(auth.publicUserId, 'AI_INSIGHTS');
+  if (!creditCheck.allowed) {
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  }
+
   let rawBody: unknown;
   try { rawBody = await req.json(); } catch {
     return sendError(ErrorCodes.INVALID_REQUEST, '요청 본문이 올바른 JSON이 아닙니다.', 400);
@@ -472,6 +488,11 @@ async function handleInsights(req: NextRequest, auth: AuthContext): Promise<Next
 // ─── 핸들러 ───────────────────────────────────────────────────────────────────
 
 async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
+  if (!creditCheck.allowed) {
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  }
+
   // Body 파싱
   let rawBody: unknown;
   try {

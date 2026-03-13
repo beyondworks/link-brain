@@ -63,6 +63,14 @@ export const ErrorCodes = {
   INSUFFICIENT_CREDITS: 'INSUFFICIENT_CREDITS',
   AI_DAILY_LIMIT: 'AI_DAILY_LIMIT',
 
+  // Plan limits
+  CLIP_LIMIT_REACHED: 'CLIP_LIMIT_REACHED',
+  COLLECTION_LIMIT_REACHED: 'COLLECTION_LIMIT_REACHED',
+  API_KEY_LIMIT_REACHED: 'API_KEY_LIMIT_REACHED',
+  STUDIO_LIMIT_REACHED: 'STUDIO_LIMIT_REACHED',
+  FEATURE_NOT_AVAILABLE: 'FEATURE_NOT_AVAILABLE',
+  UPGRADE_REQUIRED: 'UPGRADE_REQUIRED',
+
   // Webhooks
   HTTPS_REQUIRED: 'HTTPS_REQUIRED',
   WEBHOOK_UNREACHABLE: 'WEBHOOK_UNREACHABLE',
@@ -177,6 +185,22 @@ export const errors = {
       `Insufficient credits. Required: ${required}, Available: ${available}`,
       402,
       { required, available }
+    ),
+
+  planLimitReached: (resource: string, used: number, limit: number) =>
+    sendError(
+      `${resource.toUpperCase()}_LIMIT_REACHED` as ErrorCode,
+      `${resource} limit reached. Used: ${used}, Limit: ${limit}. Upgrade your plan for more.`,
+      403,
+      { used, limit, upgradeUrl: '/pricing' }
+    ),
+
+  featureNotAvailable: (feature: string) =>
+    sendError(
+      ErrorCodes.FEATURE_NOT_AVAILABLE,
+      `This feature requires a higher plan. Upgrade to access: ${feature}`,
+      403,
+      { feature, upgradeUrl: '/pricing' }
     ),
 
   methodNotAllowed: (allowed: string[]) =>

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
+import { checkFeatureAccess } from '@/lib/services/plan-service';
 import type { ClipData } from '@/types/database';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +36,11 @@ interface GraphData {
 }
 
 async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+  const featureCheck = await checkFeatureAccess(auth.publicUserId, 'knowledge_graph');
+  if (!featureCheck.allowed) {
+    return errors.featureNotAvailable('knowledge_graph');
+  }
+
   // 1. 사용자 클립 최대 100개 조회 (아카이브 제외)
   const { data: clipsData, error: clipsErr } = await db
     .from('clips')

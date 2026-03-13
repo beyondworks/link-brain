@@ -12,6 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, sendError, ErrorCodes, errors } from '@/lib/api/response';
 import { validateBody, collectionSchema } from '@/lib/api/validate';
+import { checkCollectionLimit } from '@/lib/services/plan-service';
 import type { Collection } from '@/types/database';
 
 // Escape strict Supabase generics for tables not fully typed
@@ -63,6 +64,12 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
   const bodyResult = await validateBody(req, collectionSchema);
   if (!bodyResult.ok) return bodyResult.response;
   const { name, color, isPublic } = bodyResult.value;
+
+  // Check plan collection limit
+  const collectionLimit = await checkCollectionLimit(auth.publicUserId);
+  if (!collectionLimit.allowed) {
+    return errors.planLimitReached('collection', collectionLimit.used ?? 0, collectionLimit.limit ?? 0);
+  }
 
   const { data, error } = await db
     .from('collections')

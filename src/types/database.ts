@@ -3,7 +3,7 @@
 // =============================================================================
 
 export type UserRole = 'user' | 'admin';
-export type SubscriptionTier = 'free' | 'starter' | 'pro' | 'team';
+export type SubscriptionTier = 'free' | 'pro' | 'master';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'paused';
 export type ClipPlatform =
   | 'web' | 'twitter' | 'youtube' | 'github'
@@ -23,6 +23,7 @@ export interface User {
   bio: string | null;
   language: string;
   theme: 'light' | 'dark' | 'system';
+  plan: SubscriptionTier;
   role: UserRole;
   openai_api_key: string | null;
   google_ai_key: string | null;

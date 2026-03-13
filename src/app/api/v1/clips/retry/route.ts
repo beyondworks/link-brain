@@ -29,7 +29,7 @@ async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextRes
   // Verify ownership
   const { data: clip, error: fetchError } = await db
     .from('clips')
-    .select('id, url, platform, user_id, processing_status')
+    .select('id, url, platform, source_type, user_id, processing_status')
     .eq('id', clipId)
     .eq('user_id', auth.publicUserId)
     .single();
@@ -38,7 +38,7 @@ async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextRes
     return sendError(ErrorCodes.CLIP_NOT_FOUND, 'Clip not found', 404);
   }
 
-  const typedClip = clip as { id: string; url: string; platform: string; user_id: string; processing_status: string };
+  const typedClip = clip as { id: string; url: string; platform: string; source_type: string | null; user_id: string; processing_status: string };
 
   if (typedClip.processing_status === 'processing') {
     return sendError(ErrorCodes.INVALID_REQUEST, 'Clip is already being processed', 400);
@@ -59,22 +59,49 @@ async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextRes
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
   const internalSecret = process.env.INTERNAL_API_SECRET;
+  const isImageClip = typedClip.source_type === 'image_upload' || typedClip.platform === 'image';
 
   after(async () => {
     try {
-      await fetch(`${baseUrl}/api/internal/process-clip`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
-        },
-        body: JSON.stringify({
-          clipId: typedClip.id,
-          url: typedClip.url,
-          platform: typedClip.platform,
-          userId: typedClip.user_id,
-        }),
-      });
+      if (isImageClip) {
+        // Image clips: get storage path from clip_images table
+        const { data: imgRow } = await db
+          .from('clip_images')
+          .select('storage_path')
+          .eq('clip_id', typedClip.id)
+          .single();
+        const storagePath = (imgRow as { storage_path: string } | null)?.storage_path;
+        if (!storagePath) {
+          console.error(`[Retry] No storage_path found for image clip ${clipId}`);
+          return;
+        }
+        await fetch(`${baseUrl}/api/internal/process-image-clip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
+          },
+          body: JSON.stringify({
+            clipId: typedClip.id,
+            storagePath,
+            userId: typedClip.user_id,
+          }),
+        });
+      } else {
+        await fetch(`${baseUrl}/api/internal/process-clip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(internalSecret ? { 'x-internal-secret': internalSecret } : {}),
+          },
+          body: JSON.stringify({
+            clipId: typedClip.id,
+            url: typedClip.url,
+            platform: typedClip.platform,
+            userId: typedClip.user_id,
+          }),
+        });
+      }
     } catch (err) {
       console.error(`[Retry] Background trigger failed for ${clipId}:`, err);
     }
