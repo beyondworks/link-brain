@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { deductCredits } from '@/lib/services/plan-service';
-import { errors } from '@/lib/api/response';
+import { errors, sendError } from '@/lib/api/response';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -19,6 +19,10 @@ async function handler(req: Request, auth: AuthContext) {
       .limit(MAX_GENERATIONS);
 
     if (error) {
+      // 테이블 미생성(42P01) 시 빈 배열 반환 — 마이그레이션 미적용 상태 방어
+      if ((error as { code?: string }).code === '42P01') {
+        return NextResponse.json({ data: [] });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -28,6 +32,14 @@ async function handler(req: Request, auth: AuthContext) {
   if (req.method === 'POST') {
     const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
     if (!creditCheck.allowed) {
+      if (creditCheck.reason === 'STUDIO_LIMIT_REACHED') {
+        return sendError(
+          'STUDIO_LIMIT_REACHED',
+          '이번 달 스튜디오 생성 횟수를 초과했습니다.',
+          402,
+          { used: creditCheck.used, limit: creditCheck.limit }
+        );
+      }
       return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
     }
 
@@ -55,6 +67,13 @@ async function handler(req: Request, auth: AuthContext) {
       .single();
 
     if (error) {
+      // 테이블 미생성(42P01) 또는 RPC 미적용 시 명시적 에러 반환
+      if ((error as { code?: string }).code === '42P01') {
+        return NextResponse.json(
+          { error: { code: 'TABLE_NOT_FOUND', message: 'studio_generations 테이블이 존재하지 않습니다. DB 마이그레이션을 적용해 주세요.' } },
+          { status: 500 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

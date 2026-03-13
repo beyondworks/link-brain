@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CONTENT_STUDIO_TYPES } from '@/config/constants';
 import { useStudioGenerations, useSaveGeneration, useDeleteGeneration } from '@/lib/hooks/use-studio-generations';
@@ -183,6 +183,19 @@ export function StudioClient() {
       })),
     [generations]
   );
+
+  // Restore last generation output on page load
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!restoredRef.current && generations && generations.length > 0 && !output) {
+      const latest = generations[0]; // already sorted by created_at DESC
+      setOutput(latest.output);
+      setSelectedType((latest.content_type as ContentStudioType) ?? 'blog_post');
+      setTone(latest.tone ?? 'professional');
+      setLength(latest.length ?? 'medium');
+      restoredRef.current = true;
+    }
+  }, [generations, output]);
 
   const { data, isLoading: clipsLoading } = useClips();
   const allClips = useMemo(

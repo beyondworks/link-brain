@@ -24,6 +24,7 @@ import { WeeklyReport } from '@/components/dashboard/weekly-report';
 import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 import { DashboardSettings } from '@/components/dashboard/dashboard-settings';
 import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
+import { SearchResultsOverlay } from '@/components/layout/search-results-overlay';
 
 import { cn } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -494,6 +495,9 @@ export function DashboardClient() {
           </div>
         </div>
       )}
+
+      {/* Search results overlay — categories, collections, images */}
+      {debouncedSearch && <SearchResultsOverlay search={debouncedSearch} />}
 
       {/* Content */}
       <div className={['animate-fade-in-up animation-delay-200', isFetching && !isLoading ? 'opacity-60 transition-opacity duration-200' : ''].join(' ')}>
