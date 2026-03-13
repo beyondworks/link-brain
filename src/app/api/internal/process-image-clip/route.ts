@@ -79,7 +79,8 @@ export async function POST(req: NextRequest) {
       })
       .eq('clip_id', clipId);
 
-    // Step 5: Insert clip_contents row
+    // Step 5: Insert clip_contents row (delete first to make retry idempotent)
+    await db.from('clip_contents').delete().eq('clip_id', clipId);
     await db.from('clip_contents').insert({
       clip_id: clipId,
       content_markdown: visionResult.fullContent,

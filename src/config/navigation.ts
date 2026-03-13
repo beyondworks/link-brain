@@ -7,6 +7,7 @@ import {
   BarChart3,
   Globe,
   FolderOpen,
+  ImageIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export const MAIN_NAV: NavSection[] = [
     titleKo: '라이브러리',
     items: [
       { label: 'Collections', labelKo: '컬렉션', href: '/collections', icon: FolderOpen },
+      { label: 'Images', labelKo: '이미지', href: '/images', icon: ImageIcon },
     ],
   },
   {
