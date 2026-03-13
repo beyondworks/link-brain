@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import Image from 'next/image';
 import { Star, ExternalLink, Share2, Pin, Check, Loader2, AlertTriangle, RotateCcw, BookmarkPlus } from 'lucide-react';
 import { shareClip } from '@/lib/utils/share';
@@ -39,6 +39,7 @@ export const ClipRow = memo(function ClipRow({
   categoryName,
   categoryColor,
 }: ClipRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
   const openClipPeek = useUIStore((s) => s.openClipPeek);
   const togglePin = useTogglePin();
   const toggleReadLater = useToggleReadLater();
@@ -47,8 +48,10 @@ export const ClipRow = memo(function ClipRow({
   const gradient = getGradient(clip.id);
 
   const longPressHandlers = useLongPress({
-    onLongPress: (pos) => {
-      onLongPress?.(clip, pos);
+    onLongPress: () => {
+      if (!onLongPress || !rowRef.current) return;
+      const rect = rowRef.current.getBoundingClientRect();
+      onLongPress(clip, { x: rect.left + 16, y: rect.bottom + 4 });
     },
     isEnabled: !!onLongPress,
   });
@@ -93,6 +96,7 @@ export const ClipRow = memo(function ClipRow({
 
   return (
     <div
+      ref={rowRef}
       onClick={handleRowClick}
       onTouchStart={longPressHandlers.onTouchStart}
       onTouchMove={longPressHandlers.onTouchMove}
