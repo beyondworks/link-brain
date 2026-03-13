@@ -3,7 +3,6 @@ import { updateSession } from '@/lib/supabase/middleware';
 
 const PROTECTED_ROUTES = ['/dashboard', '/settings', '/studio', '/insights', '/admin', '/favorites', '/read-later', '/archive', '/collections', '/clip', '/graph', '/highlights'];
 const AUTH_ROUTES = ['/login', '/signup'];
-const ADMIN_ROUTES = ['/admin'];
 
 function matchesRoutes(pathname: string, routes: string[]) {
   return routes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -15,8 +14,6 @@ export async function middleware(request: NextRequest) {
 
   const isProtected = matchesRoutes(pathname, PROTECTED_ROUTES);
   const isAuthRoute = matchesRoutes(pathname, AUTH_ROUTES);
-  const isAdminRoute = matchesRoutes(pathname, ADMIN_ROUTES);
-
   // Unauthenticated user trying to access protected route
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
@@ -31,17 +28,6 @@ export async function middleware(request: NextRequest) {
     dashboardUrl.pathname = '/dashboard';
     dashboardUrl.search = '';
     return NextResponse.redirect(dashboardUrl);
-  }
-
-  // Admin route — check role via user metadata
-  if (isAdminRoute && user) {
-    const role = (user.user_metadata as { role?: string } | undefined)?.role;
-    if (role !== 'enterprise' && role !== 'admin') {
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = '/dashboard';
-      dashboardUrl.search = '';
-      return NextResponse.redirect(dashboardUrl);
-    }
   }
 
   return supabaseResponse;
