@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useImageClips, useImageAlbums } from '@/lib/hooks/use-image-albums';
 import {
   useCreateImageAlbum,
   useUpdateImageAlbum,
   useDeleteImageAlbum,
+  useAddClipToAlbum,
 } from '@/lib/hooks/use-image-album-mutations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,10 +27,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ClipCard } from '@/components/clips/clip-card';
 import { Plus, ImageIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
-import type { ImageAlbum } from '@/types/database';
+import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
+import type { ImageAlbum, ClipData } from '@/types/database';
 
 const COLOR_PRESETS = [
   '#21DBA4', '#3B82F6', '#8B5CF6', '#EC4899',
@@ -42,6 +45,7 @@ export function ImagesClient() {
   const createAlbum = useCreateImageAlbum();
   const updateAlbum = useUpdateImageAlbum();
   const deleteAlbumMut = useDeleteImageAlbum();
+  const addClipToAlbum = useAddClipToAlbum();
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -58,6 +62,101 @@ export function ImagesClient() {
   // Delete dialog
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ImageAlbum | null>(null);
+
+  // Drag and drop state
+  const [dragClipId, setDragClipId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  // Mobile long-touch drag state
+  const longTouchRef = useRef<{ clipId: string; timer: ReturnType<typeof setTimeout>; startY: number } | null>(null);
+  const [mobileDrag, setMobileDrag] = useState<{ clipId: string; x: number; y: number; title: string; imageUrl: string | null } | null>(null);
+  const mobileDragAlbumRef = useRef<string | null>(null);
+
+  // Desktop drag handlers
+  const handleDragStart = useCallback((e: React.DragEvent, clipId: string) => {
+    setDragClipId(clipId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', clipId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, albumId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(albumId);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDropTargetId(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, albumId: string) => {
+    e.preventDefault();
+    const clipId = e.dataTransfer.getData('text/plain');
+    if (clipId) {
+      addClipToAlbum.mutate({ albumId, clipId });
+    }
+    setDragClipId(null);
+    setDropTargetId(null);
+  }, [addClipToAlbum]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragClipId(null);
+    setDropTargetId(null);
+  }, []);
+
+  // Mobile long-touch drag handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent, clip: ClipData) => {
+    const touch = e.touches[0];
+    longTouchRef.current = {
+      clipId: clip.id,
+      startY: touch.clientY,
+      timer: setTimeout(() => {
+        setMobileDrag({
+          clipId: clip.id,
+          x: touch.clientX,
+          y: touch.clientY,
+          title: clip.title ?? 'Image',
+          imageUrl: clip.image || (clip.platform === 'image' ? clip.url : null),
+        });
+      }, 500),
+    };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    // Cancel long press if moved too much before activation
+    if (longTouchRef.current && !mobileDrag) {
+      const dy = Math.abs(touch.clientY - longTouchRef.current.startY);
+      if (dy > 10) {
+        clearTimeout(longTouchRef.current.timer);
+        longTouchRef.current = null;
+        return;
+      }
+    }
+    if (mobileDrag) {
+      e.preventDefault();
+      setMobileDrag((prev) => prev ? { ...prev, x: touch.clientX, y: touch.clientY } : null);
+      // Hit-test album cards
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const albumEl = el?.closest('[data-album-id]');
+      mobileDragAlbumRef.current = albumEl?.getAttribute('data-album-id') ?? null;
+      setDropTargetId(mobileDragAlbumRef.current);
+    }
+  }, [mobileDrag]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longTouchRef.current) {
+      clearTimeout(longTouchRef.current.timer);
+    }
+    if (mobileDrag && mobileDragAlbumRef.current) {
+      addClipToAlbum.mutate({ albumId: mobileDragAlbumRef.current, clipId: mobileDrag.clipId });
+    }
+    longTouchRef.current = null;
+    mobileDragAlbumRef.current = null;
+    setMobileDrag(null);
+    setDragClipId(null);
+    setDropTargetId(null);
+  }, [mobileDrag, addClipToAlbum]);
 
   const isLoading = clipsLoading || albumsLoading;
 
@@ -132,7 +231,16 @@ export function ImagesClient() {
             {albums.map((album) => (
               <div
                 key={album.id}
-                className="group card-glow relative overflow-hidden rounded-2xl border border-border bg-card transition-spring"
+                data-album-id={album.id}
+                onDragOver={(e) => handleDragOver(e, album.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, album.id)}
+                className={cn(
+                  'group card-glow relative overflow-hidden rounded-2xl border bg-card transition-spring',
+                  dropTargetId === album.id
+                    ? 'border-primary ring-2 ring-primary/30 scale-[1.02]'
+                    : 'border-border'
+                )}
               >
                 <Link href={`/images/${album.id}`} className="block p-5">
                   <div
@@ -212,11 +320,64 @@ export function ImagesClient() {
         <div>
           <h2 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             전체 이미지
+            {albums.length > 0 && (
+              <span className="ml-2 font-normal text-xs text-muted-foreground/50">
+                이미지를 앨범으로 드래그하여 정리하세요
+              </span>
+            )}
           </h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {imageClips?.map((clip) => (
-              <ClipCard key={clip.id} clip={clip} />
-            ))}
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6">
+            {imageClips?.map((clip) => {
+              const imgUrl = clip.image || (clip.platform === 'image' ? clip.url : null);
+              return (
+                <div
+                  key={clip.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, clip.id)}
+                  onDragEnd={handleDragEnd}
+                  onTouchStart={(e) => handleTouchStart(e, clip)}
+                  onTouchMove={(e) => handleTouchMove(e)}
+                  onTouchEnd={handleTouchEnd}
+                  className={cn(
+                    'relative aspect-square cursor-grab overflow-hidden rounded-xl border border-border bg-muted transition-spring hover:border-border-hover active:cursor-grabbing',
+                    dragClipId === clip.id && 'opacity-40 scale-95'
+                  )}
+                  onClick={() => {
+                    if (!mobileDrag) {
+                      useUIStore.getState().openClipPeek(clip.id);
+                    }
+                  }}
+                >
+                  {imgUrl ? (
+                    <Image
+                      src={imgUrl}
+                      alt={clip.title ?? ''}
+                      fill
+                      className="object-cover pointer-events-none"
+                      sizes="(max-width: 768px) 33vw, (max-width: 1200px) 25vw, 16vw"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <ImageIcon size={24} className="text-muted-foreground" />
+                    </div>
+                  )}
+                  {/* Processing overlay */}
+                  {clip.processing_status && clip.processing_status !== 'ready' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                      <span className="text-[10px] font-medium text-white/90">
+                        {clip.processing_status === 'failed' ? '실패' : '분석중...'}
+                      </span>
+                    </div>
+                  )}
+                  {/* Title overlay on hover */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100 pointer-events-none">
+                    <p className="line-clamp-1 text-[10px] font-medium text-white">
+                      {clip.title ?? 'Image'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : null}
@@ -341,6 +502,33 @@ export function ImagesClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile drag preview overlay */}
+      {mobileDrag && (
+        <div
+          className="pointer-events-none fixed z-[70]"
+          style={{
+            left: mobileDrag.x - 40,
+            top: mobileDrag.y - 40,
+          }}
+        >
+          <div className="h-20 w-20 overflow-hidden rounded-xl border-2 border-primary bg-muted shadow-2xl opacity-90">
+            {mobileDrag.imageUrl ? (
+              <Image
+                src={mobileDrag.imageUrl}
+                alt=""
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <ImageIcon size={24} className="text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Delete Album Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

@@ -67,7 +67,7 @@ export function AlbumDetailClient({ albumId }: Props) {
           <Skeleton className="mb-2 h-8 w-48 rounded-xl shimmer" />
           <Skeleton className="h-4 w-72 rounded-lg shimmer" />
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <ClipCardSkeleton key={i} />
           ))}
@@ -177,7 +177,7 @@ export function AlbumDetailClient({ albumId }: Props) {
       {/* Content */}
       <div className="p-6 lg:p-8">
         {clipsLoading ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <ClipCardSkeleton key={i} />
             ))}
@@ -204,7 +204,7 @@ export function AlbumDetailClient({ albumId }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 animate-blur-in animation-delay-100">
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6 animate-blur-in animation-delay-100">
             {validClips.map((clip) => (
               <div key={clip.id} className="relative group">
                 <ClipCard clip={clip} />

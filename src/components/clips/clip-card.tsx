@@ -123,12 +123,12 @@ export const ClipCard = memo(function ClipCard({
     >
       {/* Thumbnail */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
-        {clip.image ? (
+        {(clip.image || (clip.platform === 'image' && clip.url)) ? (
           <Image
-            src={clip.image}
+            src={clip.image || clip.url}
             alt={clip.title ?? ''}
             fill
-            unoptimized={!isProxiableImageUrl(clip.image)}
+            unoptimized={!isProxiableImageUrl(clip.image || clip.url)}
             className="img-zoom object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
