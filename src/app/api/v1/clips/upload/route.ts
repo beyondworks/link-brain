@@ -97,8 +97,11 @@ async function handleUpload(req: NextRequest, auth: AuthContext): Promise<NextRe
     if (baseUrl && internalSecret) {
       after(async () => {
         try {
-          await fetch(`${baseUrl}/api/internal/process-image-clip`, {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 55_000);
+          const res = await fetch(`${baseUrl}/api/internal/process-image-clip`, {
             method: 'POST',
+            signal: controller.signal,
             headers: {
               'Content-Type': 'application/json',
               'x-internal-secret': internalSecret,
@@ -109,10 +112,30 @@ async function handleUpload(req: NextRequest, auth: AuthContext): Promise<NextRe
               userId: auth.publicUserId,
             }),
           });
+          clearTimeout(timeout);
+          if (!res.ok) {
+            console.error(`[Upload API] Background processing failed: ${res.status} ${await res.text().catch(() => '')}`);
+          }
         } catch (err) {
           console.error('[Upload API] Background processing trigger failed:', err);
+          // Mark clip as failed so user sees error instead of infinite pending
+          try {
+            await db
+              .from('clips')
+              .update({
+                processing_status: 'failed',
+                processing_error: 'Background processing failed to start',
+              })
+              .eq('id', clipId);
+          } catch { /* best effort */ }
         }
       });
+    } else {
+      console.error('[Upload API] Missing NEXT_PUBLIC_APP_URL or INTERNAL_API_SECRET — skipping background processing');
+      await db.from('clips').update({
+        processing_status: 'failed',
+        processing_error: 'Server configuration missing for image processing',
+      }).eq('id', clipId);
     }
 
     // Return immediately with pending clip

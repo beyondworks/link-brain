@@ -56,6 +56,20 @@ export interface Collection {
   updated_at: string;
 }
 
+// ─── Image Albums ───────────────────────────────────────────────────────────
+
+export interface ImageAlbum {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  cover_image: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Clips ───────────────────────────────────────────────────────────────────
 
 export type ClipProcessingStatus = 'pending' | 'processing' | 'ready' | 'failed';
@@ -257,6 +271,8 @@ export interface Database {
       api_keys: { Row: ApiKey; Insert: Omit<ApiKey, 'id' | 'timestamp' | 'last_used_at'>; Update: Partial<ApiKey>; Relationships: []; };
       webhooks: { Row: Webhook; Insert: Omit<Webhook, 'id' | 'timestamp'>; Update: Partial<Webhook>; Relationships: []; };
       oauth_connections: { Row: OAuthConnection; Insert: Partial<OAuthConnection> & Pick<OAuthConnection, 'user_id' | 'provider' | 'provider_user_id' | 'access_token'>; Update: Partial<OAuthConnection>; Relationships: []; };
+      image_albums: { Row: ImageAlbum; Insert: Partial<ImageAlbum> & Pick<ImageAlbum, 'user_id' | 'name'>; Update: Partial<ImageAlbum>; Relationships: []; };
+      image_album_clips: { Row: { album_id: string; clip_id: string; added_at: string }; Insert: { album_id: string; clip_id: string }; Update: never; Relationships: []; };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -86,6 +86,11 @@ export function useClips(options: UseClipsOptions = {}) {
         query = query.eq('is_hidden', false);
       }
 
+      // Exclude image clips from main feed — they live in /images
+      if (!filters?.platform) {
+        query = query.neq('platform', 'image');
+      }
+
       // Date range filter
       if (filters?.dateRange?.from) {
         query = query.gte('created_at', filters.dateRange.from);
