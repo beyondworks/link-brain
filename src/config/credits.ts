@@ -20,7 +20,7 @@ export const PLAN_LIMITS = {
     maxClips: 100,
     maxCollections: 5,
     maxApiKeys: 0,
-    monthlyAiCredits: 50,
+    monthlyAiCredits: 100,
     monthlyStudioGenerations: 10,
     features: ['basic_search', 'basic_ai', 'community'] as const,
   },

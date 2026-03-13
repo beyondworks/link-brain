@@ -16,7 +16,7 @@ const PLANS = [
     features: [
       '클립 100개',
       '컬렉션 5개',
-      'AI 분석 월 50회',
+      'AI 분석 월 100회',
       'Content Studio 월 10회',
       '기본 검색',
       '커뮤니티 접근',

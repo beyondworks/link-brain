@@ -117,7 +117,7 @@ BEGIN
   IF v_plan = 'pro' THEN
     v_monthly_limit := 500;
   ELSE
-    v_monthly_limit := 50;
+    v_monthly_limit := 100;
   END IF;
 
   -- Count usage this month

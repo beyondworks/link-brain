@@ -55,7 +55,7 @@ describe('getCreditBalance', () => {
     expect(balance.userId).toBe('user-123');
     expect(balance.tier).toBe('free');
     expect(balance.creditsUsed).toBe(0);
-    expect(balance.creditsLimit).toBe(50);
+    expect(balance.creditsLimit).toBe(100);
     expect(balance.clipsUsed).toBe(0);
     expect(balance.clipsLimit).toBe(100);
     expect(balance.collectionsLimit).toBe(5);
@@ -147,7 +147,7 @@ describe('getCreditBalance', () => {
     const balance = await getCreditBalance('user-null');
 
     expect(balance.tier).toBe('free');
-    expect(balance.creditsLimit).toBe(50);
+    expect(balance.creditsLimit).toBe(100);
   });
 
   it('handles null credit_usage data gracefully', async () => {
