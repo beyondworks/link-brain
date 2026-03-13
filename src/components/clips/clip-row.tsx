@@ -142,16 +142,22 @@ export const ClipRow = memo(function ClipRow({
             {firstLetter}
           </div>
         )}
-        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px]">
-            {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
-              <Loader2 className="h-5 w-5 animate-spin text-white" />
-            )}
-            {clip.processing_status === 'failed' && (
-              <AlertTriangle className="h-5 w-5 text-amber-400" />
-            )}
-          </div>
-        )}
+        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (() => {
+          const isStale = (clip.processing_status === 'pending' || clip.processing_status === 'processing')
+            && clip.created_at
+            && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000;
+          const effectiveStatus = isStale ? 'failed' : clip.processing_status;
+          return (
+            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px]">
+              {(effectiveStatus === 'pending' || effectiveStatus === 'processing') && (
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              )}
+              {effectiveStatus === 'failed' && (
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Text */}
@@ -164,12 +170,18 @@ export const ClipRow = memo(function ClipRow({
             {clip.summary}
           </p>
         )}
-        {clip.processing_status === 'failed' && (
-          <p className="mt-0.5 text-[11px] font-medium text-amber-500">추출 실패 — 재시도 가능</p>
-        )}
-        {(clip.processing_status === 'pending' || clip.processing_status === 'processing') && (
-          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/60">분석 중...</p>
-        )}
+        {(() => {
+          const isStale = (clip.processing_status === 'pending' || clip.processing_status === 'processing')
+            && clip.created_at
+            && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000;
+          if (clip.processing_status === 'failed' || isStale) {
+            return <p className="mt-0.5 text-[11px] font-medium text-amber-500">{isStale ? '처리 시간 초과' : '추출 실패'} — 재시도 가능</p>;
+          }
+          if (clip.processing_status === 'pending' || clip.processing_status === 'processing') {
+            return <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/60">분석 중...</p>;
+          }
+          return null;
+        })()}
         <div className="mt-1.5 flex items-center gap-2">
           {clip.platform && (
             <div className="flex shrink-0 items-center gap-1">
