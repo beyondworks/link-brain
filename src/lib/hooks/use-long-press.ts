@@ -6,7 +6,7 @@ const LONG_PRESS_DURATION = 500;
 const MOVE_THRESHOLD = 10;
 
 interface UseLongPressOptions {
-  onLongPress: () => void;
+  onLongPress: (touchPosition: { x: number; y: number }) => void;
   isEnabled?: boolean;
 }
 
@@ -40,7 +40,7 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
       startPos.current = pos;
       timerRef.current = setTimeout(() => {
         firedRef.current = true;
-        onLongPress();
+        onLongPress(pos);
       }, LONG_PRESS_DURATION);
     },
     [isEnabled, onLongPress],

@@ -58,9 +58,14 @@ export function MobileContextMenu({ open, onClose, position, actions }: MobileCo
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — use onTouchStart to intercept before child elements receive touch */}
       <div
         className="fixed inset-0 z-[70] lg:hidden"
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
         onClick={onClose}
         aria-hidden="true"
       />
