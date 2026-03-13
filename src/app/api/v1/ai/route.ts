@@ -238,7 +238,7 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const creditCheck = await deductCredits(auth.publicUserId, 'AI_SUMMARY');
   if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
   }
 
   let rawBody: unknown;
@@ -313,7 +313,7 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
 async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const creditCheck = await deductCredits(auth.publicUserId, 'AI_CHAT');
   if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
   }
 
   let rawBody: unknown;
@@ -366,7 +366,7 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
 async function handleInsights(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const creditCheck = await deductCredits(auth.publicUserId, 'AI_INSIGHTS');
   if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
   }
 
   let rawBody: unknown;
@@ -490,7 +490,7 @@ async function handleInsights(req: NextRequest, auth: AuthContext): Promise<Next
 async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
   if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
+    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
   }
 
   // Body 파싱

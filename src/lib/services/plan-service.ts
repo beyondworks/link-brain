@@ -218,7 +218,7 @@ export async function deductCredits(
   const tier = await getUserPlan(publicUserId);
   const monthlyLimit = PLAN_LIMITS[tier].monthlyAiCredits;
 
-  // Unlimited
+  // Unlimited — insert directly, no limit check needed
   if (monthlyLimit === Infinity) {
     await db.from('credit_usage').insert({
       user_id: publicUserId,
@@ -229,7 +229,7 @@ export async function deductCredits(
     return { allowed: true };
   }
 
-  // Check studio-specific limit
+  // Check studio-specific limit before attempting deduction
   if (action === 'AI_STUDIO') {
     const studioLimit = PLAN_LIMITS[tier].monthlyStudioGenerations;
     if (studioLimit !== Infinity) {
@@ -257,40 +257,41 @@ export async function deductCredits(
     }
   }
 
-  // Check overall credit limit
-  const monthStart = getMonthStart();
-  const { data: creditRows } = await db
-    .from('credit_usage')
-    .select('cost')
-    .eq('user_id', publicUserId)
-    .gte('created_at', monthStart);
+  // Atomic deduction via SQL function (prevents TOCTOU race condition).
+  // deduct_credit() checks the limit and inserts in a single transaction.
+  // NOTE: Limits are hardcoded in 017_plan_system.sql — keep in sync with PLAN_LIMITS.
+  const { data: rpcResult, error: rpcError } = await db.rpc('deduct_credit', {
+    p_user_id: publicUserId,
+    p_action: action,
+    p_cost: cost,
+    p_clip_id: clipId ?? null,
+  });
 
-  const totalUsed = (creditRows ?? []).reduce(
-    (sum: number, row: { cost: number }) => sum + row.cost,
-    0
-  );
-
-  if (totalUsed + cost > monthlyLimit) {
+  if (rpcError) {
+    console.error('[deductCredits] rpc error:', rpcError);
     return {
       allowed: false,
       reason: 'INSUFFICIENT_CREDITS',
-      used: totalUsed,
+      used: 0,
       limit: monthlyLimit,
     };
   }
 
-  // Deduct
-  await db.from('credit_usage').insert({
-    user_id: publicUserId,
-    action,
-    cost,
-    clip_id: clipId ?? null,
-  });
+  const result = rpcResult as { allowed: boolean; used: number; limit: number } | null;
+
+  if (!result || !result.allowed) {
+    return {
+      allowed: false,
+      reason: 'INSUFFICIENT_CREDITS',
+      used: result?.used ?? 0,
+      limit: result?.limit ?? monthlyLimit,
+    };
+  }
 
   return {
     allowed: true,
-    used: totalUsed + cost,
-    limit: monthlyLimit,
+    used: result.used,
+    limit: result.limit,
   };
 }
 

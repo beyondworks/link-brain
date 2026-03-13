@@ -23,6 +23,7 @@ export interface User {
   bio: string | null;
   language: string;
   theme: 'light' | 'dark' | 'system';
+  plan: SubscriptionTier;
   role: UserRole;
   openai_api_key: string | null;
   google_ai_key: string | null;

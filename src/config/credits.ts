@@ -1,5 +1,8 @@
 // =============================================================================
 // Plan & Credit Configuration — Single Source of Truth
+// NOTE: Monthly credit limits are also hardcoded in the atomic SQL function
+// deduct_credit() in supabase/migrations/017_plan_system.sql (lines 117-121).
+// If you change limits here, update the SQL function as well.
 // =============================================================================
 
 export const CREDIT_COSTS = {

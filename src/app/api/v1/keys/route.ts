@@ -7,8 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
-import { sendSuccess, sendError, ErrorCodes, errors } from '@/lib/api/response';
-import { createApiKey, listApiKeys, KEY_LIMITS } from '@/lib/api/api-key-auth';
+import { sendSuccess, errors } from '@/lib/api/response';
+import { createApiKey, listApiKeys } from '@/lib/api/api-key-auth';
 import { checkApiKeyLimit } from '@/lib/services/plan-service';
 import type { ApiKey } from '@/types/database';
 
@@ -64,24 +64,10 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
     return errors.invalidRequest('Field "name" must be between 1 and 64 characters.');
   }
 
-  // Check plan API key limit
+  // Check plan API key limit (unified via plan-service)
   const apiKeyLimit = await checkApiKeyLimit(auth.publicUserId);
   if (!apiKeyLimit.allowed) {
     return errors.planLimitReached('api_key', apiKeyLimit.used ?? 0, apiKeyLimit.limit ?? 0);
-  }
-
-  // 플랜별 키 개수 제한
-  const tier = auth.tier === 'pro' || auth.tier === 'master' ? auth.tier : 'free';
-  const limit = KEY_LIMITS[tier as keyof typeof KEY_LIMITS] ?? KEY_LIMITS.free;
-  const existing = await listApiKeys(auth.publicUserId);
-
-  if (existing.length >= limit) {
-    return sendError(
-      ErrorCodes.KEY_LIMIT_REACHED,
-      `API key limit reached. Your plan allows up to ${limit} keys.`,
-      403,
-      { current: existing.length, limit }
-    );
   }
 
   const result = await createApiKey(auth.publicUserId, name);

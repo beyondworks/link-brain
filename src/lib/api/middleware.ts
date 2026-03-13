@@ -44,7 +44,7 @@ async function getUserTier(userId: string): Promise<SubscriptionTier> {
       .eq('auth_id', userId)
       .single();
 
-    const userRow = userData as Pick<User, 'email'> & { plan?: string } | null;
+    const userRow = userData as Pick<User, 'email' | 'plan'> | null;
 
     // Master email override
     if (userRow?.email && MASTER_EMAILS.includes(userRow.email)) {
