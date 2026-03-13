@@ -26,9 +26,7 @@ import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
-import { useScrollDirection } from '@/lib/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,7 +74,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const peekClipId = useUIStore((s) => s.peekClipId);
   const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile && !peekClipId, isSidebarOpen: sidebarOpen });
   useStatusBarScrollTop({ isEnabled: isMobile });
-  const { isHeaderVisible } = useScrollDirection({ isEnabled: isMobile });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -370,11 +367,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           stickyHeader={
             <header
               aria-label="앱 헤더"
-              className={cn(
-                'sticky top-0 z-40 flex flex-col border-b border-border/50 bg-background lg:hidden',
-                'transition-transform duration-300 ease-out',
-                !isHeaderVisible && '-translate-y-full',
-              )}
+              className="sticky top-0 z-40 flex flex-col border-b border-border/50 bg-background lg:hidden"
               style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
             >
               <div className="flex h-16 items-center px-4">

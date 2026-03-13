@@ -162,9 +162,9 @@ export default async function AdminDashboard() {
           return (
             <div
               key={card.label}
-              className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm"
+              className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm lg:p-5"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.bg}`}
                 >
