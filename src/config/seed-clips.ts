@@ -8,6 +8,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-1',
     user_id: '',
+    source_type: 'url',
     url: 'https://nextjs.org/blog/next-15',
     title: 'Next.js 15에서 달라진 점 총정리',
     summary:
@@ -41,6 +42,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-2',
     user_id: '',
+    source_type: 'url',
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     title: 'React Server Components 완전 정복',
     summary:
@@ -74,6 +76,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-3',
     user_id: '',
+    source_type: 'url',
     url: 'https://github.com/vercel/ai',
     title: 'Vercel AI SDK — 스트리밍 AI 앱 구축하기',
     summary:
@@ -107,6 +110,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-4',
     user_id: '',
+    source_type: 'url',
     url: 'https://twitter.com/dan_abramov/status/123456789',
     title: 'Dan Abramov: 상태 관리의 미래',
     summary:
@@ -140,6 +144,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-5',
     user_id: '',
+    source_type: 'url',
     url: 'https://medium.com/@kentcdodds/typescript-tips',
     title: 'TypeScript 실전 팁 10가지',
     summary:
@@ -173,6 +178,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-6',
     user_id: '',
+    source_type: 'url',
     url: 'https://www.reddit.com/r/webdev/comments/example',
     title: 'Tailwind CSS v4 출시 — 무엇이 달라졌나?',
     summary:
@@ -206,6 +212,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-7',
     user_id: '',
+    source_type: 'url',
     url: 'https://substack.com/@bytebytego/postgres-indexing',
     title: 'PostgreSQL 인덱싱 전략 완벽 가이드',
     summary:
@@ -239,6 +246,7 @@ export const SEED_CLIPS: ClipData[] = [
   {
     id: 'seed-8',
     user_id: '',
+    source_type: 'url',
     url: 'https://www.linkedin.com/posts/example-post',
     title: '2025년 프론트엔드 개발자 로드맵',
     summary:

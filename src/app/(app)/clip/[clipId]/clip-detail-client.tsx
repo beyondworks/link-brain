@@ -35,6 +35,8 @@ import {
   ChevronUp,
   History,
   FileText,
+  Download,
+  ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -61,7 +63,7 @@ import { getSeedClip, SEED_CONTENT } from '@/config/seed-clips';
 import { estimateReadingTime } from '@/lib/utils/reading-time';
 import { extractYouTubeVideoId, extractImagesFromContent, splitContentSections, cleanDisplayContent, isProxiableImageUrl } from '@/lib/utils/clip-content';
 import { MarkdownContent } from '@/components/clips/markdown-content';
-import type { ClipData, ClipContent } from '@/types/database';
+import type { ClipData, ClipContent, ClipImage } from '@/types/database';
 
 interface Props {
   clipId: string;
@@ -177,6 +179,25 @@ function PlatformHero({ clip }: { clip: ClipData }) {
           </div>
         </div>
       );
+
+    case 'image': {
+      // Image upload clips show the source image from clip.url (which is the public storage URL)
+      return (
+        <div className="mb-7 animate-fade-in-up">
+          <div className="overflow-hidden rounded-2xl border border-border/60 shadow-card">
+            <div className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-4 py-2.5">
+              <ImageIcon size={14} className="text-violet-500" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">원본 이미지</span>
+            </div>
+            <img
+              src={clip.url}
+              alt={clip.title ?? '업로드된 이미지'}
+              className="max-h-96 w-full object-contain bg-muted/10"
+            />
+          </div>
+        </div>
+      );
+    }
 
     default:
       return null;
@@ -883,8 +904,25 @@ export function ClipDetailClient({ clipId }: Props) {
           className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-5 py-3 text-sm font-semibold text-foreground shadow-card transition-spring hover:border-primary/40 hover:glow-brand-sm hover:shadow-elevated hover-lift"
         >
           <ArrowUpRight size={14} className="text-primary" />
-          원본 페이지 열기
+          {clip.source_type === 'image_upload' ? '원본 이미지 열기' : '원본 페이지 열기'}
         </a>
+        {/* PDF download for image clips */}
+        {clip.source_type === 'image_upload' && (() => {
+          const rawCI = (clip as ClipData & { clip_images?: ClipImage[] | ClipImage }).clip_images;
+          const ci = rawCI ? (Array.isArray(rawCI) ? rawCI[0] : rawCI) : null;
+          if (!ci?.pdf_storage_path) return null;
+          return (
+            <a
+              href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/clip-pdfs/${ci.pdf_storage_path}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-5 py-3 text-sm font-semibold text-foreground shadow-card transition-spring hover:border-primary/40 hover:glow-brand-sm hover:shadow-elevated hover-lift"
+            >
+              <Download size={14} className="text-primary" />
+              PDF 다운로드
+            </a>
+          );
+        })()}
       </div>
 
       {/* Reminder dialog */}

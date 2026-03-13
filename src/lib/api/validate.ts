@@ -102,7 +102,7 @@ export const dateRangeSchema = z.object({
 export const clipFiltersSchema = z.object({
   category: z.string().optional(),
   platform: z
-    .enum(['youtube', 'instagram', 'threads', 'web', 'linkedin'])
+    .enum(['youtube', 'instagram', 'threads', 'web', 'linkedin', 'image'])
     .optional(),
   collectionId: z.string().optional(),
   isFavorite: z.coerce.boolean().optional(),

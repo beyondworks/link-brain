@@ -13,6 +13,7 @@ export const PLATFORMS = [
   'twitter',
   'naver',
   'pinterest',
+  'image',
 ] as const;
 
 export type Platform = (typeof PLATFORMS)[number];
@@ -25,6 +26,7 @@ export const PLATFORM_LABELS: Record<Platform, { en: string; ko: string }> = {
   twitter: { en: 'X (Twitter)', ko: 'X (트위터)' },
   naver: { en: 'Naver', ko: '네이버' },
   pinterest: { en: 'Pinterest', ko: '핀터레스트' },
+  image: { en: 'Image', ko: '이미지' },
 };
 
 /* ─── Platform visual maps (extends beyond PLATFORMS tuple) ─────────── */
@@ -43,6 +45,7 @@ export const PLATFORM_COLORS: Record<string, string> = {
   threads: 'bg-gray-900',
   naver: 'bg-green-500',
   pinterest: 'bg-red-600',
+  image: 'bg-violet-500',
 };
 
 export const PLATFORM_ICONS: Record<string, string> = {
@@ -59,6 +62,7 @@ export const PLATFORM_ICONS: Record<string, string> = {
   threads: '🧵',
   naver: '📗',
   pinterest: '📌',
+  image: '🖼️',
 };
 
 export const PLATFORM_LABELS_EN: Record<string, string> = {
@@ -75,6 +79,7 @@ export const PLATFORM_LABELS_EN: Record<string, string> = {
   reddit: 'Reddit',
   naver: 'Naver',
   pinterest: 'Pinterest',
+  image: 'Image',
 };
 
 export const GRADIENT_COLORS = [

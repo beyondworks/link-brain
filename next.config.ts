@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'montage.wanted.co.kr' },
       { protocol: 'https', hostname: 'social.news.hada.io' },
+      { protocol: 'https', hostname: '*.giphy.com' },
     ],
   },
   trailingSlash: !!process.env.CAPACITOR_BUILD,

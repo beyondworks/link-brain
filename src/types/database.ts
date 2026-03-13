@@ -8,7 +8,9 @@ export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled
 export type ClipPlatform =
   | 'web' | 'twitter' | 'youtube' | 'github'
   | 'medium' | 'substack' | 'reddit' | 'linkedin'
-  | 'instagram' | 'tiktok' | 'threads' | 'naver' | 'pinterest' | 'other';
+  | 'instagram' | 'tiktok' | 'threads' | 'naver' | 'pinterest' | 'image' | 'other';
+
+export type ClipSourceType = 'url' | 'image_upload';
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ export interface ClipData {
   id: string;
   user_id: string;
   url: string;
+  source_type: ClipSourceType;
   title: string | null;
   summary: string | null;
   image: string | null;
@@ -159,6 +162,25 @@ export interface ClipAnnotation {
   created_at: string;
 }
 
+// ─── Clip Images ────────────────────────────────────────────────────────────
+
+export interface ClipImage {
+  id: string;
+  clip_id: string;
+  storage_path: string;
+  public_url: string | null;
+  original_filename: string | null;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  mime_type: string | null;
+  ocr_text: string | null;
+  structured_data: Record<string, unknown> | null;
+  pdf_storage_path: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── OAuth Connections ───────────────────────────────────────────────────────
 
 export type OAuthProvider = 'threads' | 'youtube';
@@ -221,6 +243,7 @@ export interface Database {
       categories: { Row: Category; Insert: Partial<Category> & Pick<Category, 'user_id' | 'name'>; Update: Partial<Category>; Relationships: []; };
       collections: { Row: Collection; Insert: Partial<Collection> & Pick<Collection, 'user_id' | 'name'>; Update: Partial<Collection>; Relationships: []; };
       clips: { Row: ClipData; Insert: Partial<ClipData> & Pick<ClipData, 'user_id' | 'url'>; Update: Partial<ClipData>; Relationships: []; };
+      clip_images: { Row: ClipImage; Insert: Partial<ClipImage> & Pick<ClipImage, 'clip_id' | 'storage_path'>; Update: Partial<ClipImage>; Relationships: []; };
       clip_contents: { Row: ClipContent; Insert: Partial<ClipContent> & Pick<ClipContent, 'clip_id'>; Update: Partial<ClipContent>; Relationships: []; };
       tags: { Row: Tag; Insert: Partial<Tag> & Pick<Tag, 'name'>; Update: Partial<Tag>; Relationships: []; };
       clip_tags: { Row: { clip_id: string; tag_id: string }; Insert: { clip_id: string; tag_id: string }; Update: never; Relationships: []; };

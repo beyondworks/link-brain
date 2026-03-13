@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, X, AlertTriangle } from 'lucide-react';
+import { Loader2, X, AlertTriangle, Link2, ImagePlus, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -76,8 +76,16 @@ export function AddClipDialog() {
   const { data: categories = [] } = useCategories();
   const { data: existingTags = [] } = useTags();
 
+  const [activeTab, setActiveTab] = useState<'url' | 'image'>('url');
   const [step, setStep] = useState<1 | 2>(1);
   const [url, setUrl] = useState('');
+
+  // Image upload state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [urlError, setUrlError] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [title, setTitle] = useState('');
@@ -178,6 +186,7 @@ export function AddClipDialog() {
   function handleClose() {
     closeModal();
     setTimeout(() => {
+      setActiveTab('url');
       setStep(1);
       setUrl('');
       setUrlError('');
@@ -193,6 +202,10 @@ export function AddClipDialog() {
       setDuplicateClip(null);
       setAllowDuplicate(false);
       setIsDuplicateChecking(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setIsUploading(false);
+      setDragOver(false);
     }, 200);
   }
 
@@ -369,6 +382,84 @@ export function AddClipDialog() {
     urlInputRef.current?.focus();
   }
 
+  // ─── Image upload handlers ──────────────────────────────────────────────────
+
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+
+  function handleImageSelect(file: File) {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast.error('지원하는 형식: JPEG, PNG, WebP, HEIC');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error('이미지 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageSelect(file);
+  }
+
+  async function handleImageUpload() {
+    if (!imageFile || !authUser) return;
+    setIsUploading(true);
+
+    try {
+      // Upload to Supabase Storage directly from client
+      const ext = imageFile.name.split('.').pop() ?? 'jpg';
+      const storagePath = `${authUser.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('clip-uploads')
+        .upload(storagePath, imageFile, {
+          contentType: imageFile.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // Call upload API
+      const res = await fetch('/api/v1/clips/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storagePath,
+          originalFilename: imageFile.name,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error?.message ?? body?.error ?? '업로드에 실패했습니다.');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
+      addNotification({
+        type: 'clip_saved',
+        title: '이미지 저장됨 — OCR 분석 중...',
+        message: imageFile.name,
+      });
+      toast.success('이미지가 업로드되었습니다. OCR 분석이 진행 중입니다.');
+      handleClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '업로드에 실패했습니다.';
+      toast.error(message);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   const addTag = useCallback(
     (name: string) => {
       const trimmed = name.trim();
@@ -443,134 +534,251 @@ export function AddClipDialog() {
 
         {step === 1 ? (
           <div className="space-y-4 animate-blur-in">
-            <div className="space-y-2">
-              <Label htmlFor="clip-url" className="text-sm font-medium">
-                URL
-              </Label>
-              <Input
-                id="clip-url"
-                ref={urlInputRef}
-                type="url"
-                placeholder="URL을 입력하세요..."
-                value={url}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  if (urlError) setUrlError('');
-                }}
-                onFocus={handleFocus}
-                onKeyDown={handleUrlKeyDown}
+            {/* Tab switcher: URL | Image */}
+            <div className="flex rounded-xl border border-border/60 bg-muted/30 p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('url')}
                 className={cn(
-                  'rounded-xl text-base transition-spring',
-                  'focus-visible:ring-primary/30',
-                  url && isValidUrl(url) && 'focus-visible:ring-primary/50 glow-brand-sm'
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-spring',
+                  activeTab === 'url'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
-                autoFocus
-                disabled={isAnalyzing}
-              />
-              {urlError && (
-                <p className="text-sm text-destructive animate-pop-in">{urlError}</p>
-              )}
-              {isDuplicateChecking && !urlError && (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pop-in">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  확인 중...
-                </p>
-              )}
-              {!isDuplicateChecking && duplicateClip && !allowDuplicate && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 animate-pop-in">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                        이미 저장된 URL입니다
+              >
+                <Link2 size={15} />
+                URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('image')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-spring',
+                  activeTab === 'image'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <ImagePlus size={15} />
+                이미지
+              </button>
+            </div>
+
+            {activeTab === 'image' ? (
+              /* ─── Image upload tab ───────────────────────────── */
+              <div className="space-y-4">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageSelect(file);
+                  }}
+                />
+
+                {!imagePreview ? (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => imageInputRef.current?.click()}
+                    className={cn(
+                      'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 transition-spring',
+                      dragOver
+                        ? 'border-primary bg-primary/5 scale-[1.02]'
+                        : 'border-border/60 bg-muted/20 hover:border-primary/40 hover:bg-muted/40'
+                    )}
+                  >
+                    <div className={cn(
+                      'flex h-12 w-12 items-center justify-center rounded-full transition-spring',
+                      dragOver ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+                    )}>
+                      <Upload size={22} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground">
+                        이미지를 드래그하거나 클릭하여 선택
                       </p>
-                      {duplicateClip.title && (
-                        <p className="mt-0.5 truncate text-xs text-amber-600/80 dark:text-amber-400/80">
-                          {duplicateClip.title}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        JPEG, PNG, WebP, HEIC · 최대 10MB
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative overflow-hidden rounded-xl border border-border/60">
+                    <img
+                      src={imagePreview}
+                      alt="미리보기"
+                      className="max-h-64 w-full object-contain bg-muted/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-spring hover:bg-black/70"
+                      aria-label="이미지 제거"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="border-t border-border/40 bg-surface px-3 py-2">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {imageFile?.name} · {imageFile ? (imageFile.size / 1024 / 1024).toFixed(1) : 0}MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleImageUpload}
+                    disabled={!imageFile || isUploading}
+                    className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        업로드 중...
+                      </>
+                    ) : (
+                      '저장'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+            /* ─── URL tab (existing) ───────────────────────────── */
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="clip-url" className="text-sm font-medium">
+                  URL
+                </Label>
+                <Input
+                  id="clip-url"
+                  ref={urlInputRef}
+                  type="url"
+                  placeholder="URL을 입력하세요..."
+                  value={url}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (urlError) setUrlError('');
+                  }}
+                  onFocus={handleFocus}
+                  onKeyDown={handleUrlKeyDown}
+                  className={cn(
+                    'rounded-xl text-base transition-spring',
+                    'focus-visible:ring-primary/30',
+                    url && isValidUrl(url) && 'focus-visible:ring-primary/50 glow-brand-sm'
+                  )}
+                  autoFocus
+                  disabled={isAnalyzing}
+                />
+                {urlError && (
+                  <p className="text-sm text-destructive animate-pop-in">{urlError}</p>
+                )}
+                {isDuplicateChecking && !urlError && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pop-in">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    확인 중...
+                  </p>
+                )}
+                {!isDuplicateChecking && duplicateClip && !allowDuplicate && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 animate-pop-in">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                          이미 저장된 URL입니다
                         </p>
-                      )}
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            router.push(`/clip/${duplicateClip.id}`);
-                            handleClose();
-                          }}
-                          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 dark:text-amber-400"
-                        >
-                          기존 클립 보기
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAllowDuplicate(true)}
-                          className="rounded-lg border border-border/60 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-spring hover:border-primary/30 hover:text-foreground"
-                        >
-                          그래도 저장
-                        </button>
+                        {duplicateClip.title && (
+                          <p className="mt-0.5 truncate text-xs text-amber-600/80 dark:text-amber-400/80">
+                            {duplicateClip.title}
+                          </p>
+                        )}
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              router.push(`/clip/${duplicateClip.id}`);
+                              handleClose();
+                            }}
+                            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 dark:text-amber-400"
+                          >
+                            기존 클립 보기
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAllowDuplicate(true)}
+                            className="rounded-lg border border-border/60 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-spring hover:border-primary/30 hover:text-foreground"
+                          >
+                            그래도 저장
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Auto-analyze preview */}
+              {isPreviewLoading && (
+                <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-surface px-3 py-2.5 animate-pop-in">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">미리보기 로드 중...</span>
                 </div>
               )}
-            </div>
-
-            {/* Auto-analyze preview */}
-            {isPreviewLoading && (
-              <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-surface px-3 py-2.5 animate-pop-in">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">미리보기 로드 중...</span>
-              </div>
-            )}
-            {previewData && !isPreviewLoading && (
-              <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface p-3 animate-pop-in">
-                {previewData.image && (
-                  <img
-                    src={previewData.image}
-                    alt=""
-                    className="h-14 w-14 rounded-lg object-cover flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{previewData.title}</p>
-                  {previewData.summary && (
-                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                      {previewData.summary}
-                    </p>
+              {previewData && !isPreviewLoading && (
+                <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-surface p-3 animate-pop-in">
+                  {previewData.image && (
+                    <img
+                      src={previewData.image}
+                      alt=""
+                      className="h-14 w-14 rounded-lg object-cover flex-shrink-0"
+                    />
                   )}
-                  <Badge
-                    variant="secondary"
-                    className="mt-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
-                  >
-                    {PLATFORM_LABELS[previewData.platform as keyof typeof PLATFORM_LABELS]?.ko ?? previewData.platform}
-                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{previewData.title}</p>
+                    {previewData.summary && (
+                      <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                        {previewData.summary}
+                      </p>
+                    )}
+                    <Badge
+                      variant="secondary"
+                      className="mt-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                    >
+                      {PLATFORM_LABELS[previewData.platform as keyof typeof PLATFORM_LABELS]?.ko ?? previewData.platform}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={handleQuickSave}
-                disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip)}
-                className="rounded-xl border-border transition-spring hover-lift sm:w-auto"
-              >
-                바로 저장
-              </Button>
-              <Button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    분석 중...
-                  </>
-                ) : (
-                  '분석'
-                )}
-              </Button>
-            </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={handleQuickSave}
+                  disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip)}
+                  className="rounded-xl border-border transition-spring hover-lift sm:w-auto"
+                >
+                  바로 저장
+                </Button>
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      분석 중...
+                    </>
+                  ) : (
+                    '분석'
+                  )}
+                </Button>
+              </div>
+            </>
+            )}
           </div>
         ) : (
           <div className="space-y-4 animate-blur-in">

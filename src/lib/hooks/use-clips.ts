@@ -147,12 +147,12 @@ export function useClip(clipId: string | null) {
 
       const { data, error } = await supabase
         .from('clips')
-        .select('*, clip_contents(*)')
+        .select('*, clip_contents(*), clip_images(*)')
         .eq('id', clipId)
         .single();
 
       if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
-      return data as ClipData & { clip_contents: ClipContent[] };
+      return data as ClipData & { clip_contents: ClipContent[]; clip_images: unknown[] };
     },
     enabled: !!clipId && !!user,
     staleTime: 60_000,
