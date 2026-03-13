@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search, Shield } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
@@ -308,6 +308,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <User size={16} />
                     프로필 및 설정
                   </DropdownMenuItem>
+                  {publicUser?.role === 'admin' && (
+                    <DropdownMenuItem
+                      onSelect={() => router.push('/admin')}
+                      className="flex items-center gap-2"
+                    >
+                      <Shield size={16} />
+                      관리자 대시보드
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className="flex items-center gap-2"
