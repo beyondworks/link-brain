@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { PLAN_LIMITS } from '@/config/credits';
 
 export const metadata: Metadata = {
   title: 'Linkbrain — AI 세컨드 브레인 | 웹 콘텐츠 저장 & 지식 관리',
@@ -96,7 +97,7 @@ const FAQ_ITEMS = [
   {
     question: 'Linkbrain은 무료인가요?',
     answer:
-      '기본 플랜은 영구 무료입니다. 최대 100개의 클립을 저장하고, AI 분석 월 100회, Content Studio 월 10회를 카드 등록 없이 즉시 사용할 수 있습니다. 더 많은 클립과 고급 AI 기능이 필요하다면 프리미엄 플랜으로 업그레이드하세요.',
+      `기본 플랜은 영구 무료입니다. 최대 ${PLAN_LIMITS.free.maxClips}개의 클립을 저장하고, AI 분석 월 ${PLAN_LIMITS.free.monthlyAiCredits}회, Content Studio 월 ${PLAN_LIMITS.free.monthlyStudioGenerations}회를 카드 등록 없이 즉시 사용할 수 있습니다. 더 많은 클립과 고급 AI 기능이 필요하다면 프리미엄 플랜으로 업그레이드하세요.`,
   },
   {
     question: '어떤 콘텐츠를 저장할 수 있나요?',
@@ -250,7 +251,7 @@ export default function LandingPage() {
 
           {/* Trust signal */}
           <p className="animate-fade-in animation-delay-400 fill-both mt-6 text-sm text-muted-foreground/60">
-            카드 등록 불필요 · 100개 클립 영구 무료 · 언제든 업그레이드
+            카드 등록 불필요 · {PLAN_LIMITS.free.maxClips}개 클립 영구 무료 · 언제든 업그레이드
           </p>
 
           {/* Product mockup */}
@@ -571,7 +572,7 @@ export default function LandingPage() {
             지식 관리를 다음 단계로
           </h2>
           <p className="reveal-on-scroll animation-delay-200 fill-both mt-5 text-xl text-white/70">
-            무료 플랜으로 최대 100개 클립을 저장할 수 있습니다.
+            무료 플랜으로 최대 {PLAN_LIMITS.free.maxClips}개 클립을 저장할 수 있습니다.
           </p>
           <div className="reveal-on-scroll animation-delay-300 fill-both mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button

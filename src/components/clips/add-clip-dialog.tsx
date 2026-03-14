@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { PLATFORM_LABELS } from '@/config/constants';
+import { usePlan } from '@/lib/hooks/use-plan';
+import { UpgradePrompt } from '@/components/plan/upgrade-prompt';
 
 
 interface AnalyzeResult {
@@ -73,6 +75,7 @@ export function AddClipDialog() {
   const router = useRouter();
   const { user: authUser } = useSupabase();
 
+  const { canCreateClip } = usePlan();
   const { data: categories = [] } = useCategories();
   const { data: existingTags = [] } = useTags();
 
@@ -532,6 +535,10 @@ export function AddClipDialog() {
           </p>
         </DialogHeader>
 
+        {!canCreateClip && (
+          <UpgradePrompt reason="clip" className="mb-4" />
+        )}
+
         {step === 1 ? (
           <div className="space-y-4 animate-blur-in">
             {/* Tab switcher: URL | Image */}
@@ -757,14 +764,14 @@ export function AddClipDialog() {
                 <Button
                   variant="outline"
                   onClick={handleQuickSave}
-                  disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip)}
+                  disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip) || !canCreateClip}
                   className="rounded-xl border-border transition-spring hover-lift sm:w-auto"
                 >
                   바로 저장
                 </Button>
                 <Button
                   onClick={handleAnalyze}
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || !canCreateClip}
                   className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
                 >
                   {isAnalyzing ? (

@@ -1,88 +1,86 @@
 # Session Handover
 
-## 날짜: 2026-03-11 (세션 4)
-
----
-
-## 커밋 히스토리 (이번 세션, `fix/mobile-header-scroll` 브랜치)
-
-| 해시 | 설명 |
-|------|------|
-| `e5a8307` | fix: disable pinch-to-zoom on mobile viewport |
-| `04a944d` | fix: remove unused imports in layout.tsx |
-| `89c4efa` | feat: simplify clip search with inline input on desktop and mobile |
-| `a11eea2` | feat: add Linkbrain MCP server v2.0.0 |
-| `0472681` | feat: add clips-detail backward-compat API route for MCP clients |
-| `32b1315` | feat: add Playwright mobile scroll E2E tests + extend AI route with action routing |
-
-**브랜치**: `fix/mobile-header-scroll` → GitHub push + Vercel production 배포 완료
-**main 미머지**: 브랜치가 main에 8+ 커밋 ahead, 아직 PR/merge 안 됨
+## 날짜: 2026-03-14 (세션 6)
 
 ---
 
 ## 완료
 
-### 1. MCP 서버 v2.0.0 (`mcp-server/`)
-- 23개 도구 (클립 CRUD, AI, 컬렉션, 카테고리, 태그, 벌크, 웹훅)
-- `@modelcontextprotocol/sdk` + Zod 검증, stdio 트랜스포트
-- v2 API 경로 매핑: `clips/[clipId]`, AI action routing, manage 쿼리 파라미터
-- `clips-detail/route.ts` 하위호환 alias 추가
-- **코드 리뷰 완료**: JSON 파싱 안전성, listTags 100건 제한 등 개선점 식별
+### 1. 플랜/크레딧 시스템 프론트엔드 연동
+- **설정 페이지 "플랜 & 사용량" 섹션 강화** (`settings-client.tsx`)
+  - 기존 단일 크레딧 바 → 플랜 티어 배지(Free/Pro/Master) + 4개 UsageBar(클립·AI 크레딧·Studio·컬렉션) + 초기화 날짜 + 업그레이드 CTA
+- **UpgradePrompt 연동** — 한도 초과 시 비차단 경고 배너
+  - `add-clip-dialog.tsx`: 클립 한도 초과 시 배너 + Quick Save/분석 버튼 비활성화
+  - `studio-client.tsx`: Studio 한도 초과 시 배너 + 생성 버튼 비활성화
+  - `usePlan()` 훅의 `canCreateClip`, `canUseStudio` 플래그 사용
 
-### 2. 클립 검색 단순화
-- **데스크탑**: OmniSearch 다이얼로그 트리거 → 인라인 텍스트 입력으로 교체
-- **모바일**: 헤더에 검색 아이콘 → 탭 시 인라인 검색창 펼침
-- `searchQuery` (ui-store) → 300ms 디바운스 → `useClips({ search })` 연결
-- Supabase FTS `textSearch('fts', ...)` 로 실시간 필터링
-- Cmd+K: 인라인 검색 포커스로 리바인딩
-- `useDebouncedValue` 범용 훅 신규 생성
+### 2. 마케팅 페이지 PLAN_LIMITS 동기화
+- **`src/config/plans.ts` 신규** — `PLAN_LIMITS`에서 마케팅 플랜 데이터를 동적 생성 (단일 소스)
+- **Pricing 페이지** (`pricing/page.tsx`): 하드코딩 `PLANS` 배열 제거 → `MARKETING_PLANS` 사용
+- **Landing 페이지** (`page.tsx`): FAQ 답변, CTA 텍스트, trust signal에서 `PLAN_LIMITS` config 값 동적 참조
 
-### 3. 모바일 핀치 줌 비활성화
-- `viewport` 설정: `maximumScale: 1`, `userScalable: false`
+### 3. Playwright 시각적 검증
+- Pricing 페이지: 3개 플랜 카드 수치 config 값과 일치 확인
+- Landing 페이지: FAQ/CTA 텍스트 config 값 반영 확인
+- 빌드: `tsc --noEmit` + `npm run build` 모두 통과
 
-### 4. Playwright 모바일 스크롤 E2E 테스트
-- 8개 테스트 (헤더 가시성, 스크롤 방향, over-scroll, 콘텐츠 겹침)
-- localhost 기반 (Vercel Deployment Protection 우회)
+### 4. 이전 세션(세션 5) 작업
+- 이미지 클립 썸네일 표시 (clip.url fallback)
+- 이미지 페이지 6열 그리드 + 드래그앤드롭 앨범 이동 (데스크탑 HTML5 + 모바일 롱터치)
+- 검색 강화: 카테고리/컬렉션/이미지 pill 오버레이
+- Studio 콘텐츠 새로고침 유지 (auto-restore + error toast)
+
+---
+
+## 미커밋 변경 사항
+
+```
+M  src/app/(app)/settings/settings-client.tsx  — 플랜 섹션 강화
+M  src/app/(app)/studio/studio-client.tsx       — UpgradePrompt 연동
+M  src/app/(marketing)/page.tsx                 — PLAN_LIMITS 동적 참조
+M  src/app/(marketing)/pricing/page.tsx         — MARKETING_PLANS 사용
+M  src/components/clips/add-clip-dialog.tsx     — UpgradePrompt 연동
+?? src/config/plans.ts                          — 마케팅 플랜 config (신규)
+```
+
+**브랜치**: `main` (커밋 전 — 사용자 확인 대기)
 
 ---
 
 ## 미완료
 
-### P0 — 머지 및 정리
-- [ ] `fix/mobile-header-scroll` → `main` PR 생성 및 머지
-- [ ] `clips-detail/route.ts:151` 구문 에러 수정 (리터럴 `\n` — 빌드는 현재 통과하지만 tsc에서 경고)
-- [ ] MCP 서버 실 API 키로 end-to-end 테스트
+### P0 — 즉시
+- [ ] 미커밋 변경 사항 커밋 (사용자 브랜치 결정 대기)
+- [ ] `src/app/api/v1/clips-detail/route 2.ts` — 공백 포함 중복 파일, 삭제 필요
 
-### P1 — MCP 서버 개선 (코드 리뷰 기반)
-- [ ] `api-client.ts:46` — `response.json()` 파싱 실패 시 try/catch + `response.text()` fallback
-- [ ] `api-client.ts:208` — `listTags` 100건 제한 → 서버 전용 태그 API 추가 또는 페이지네이션
-- [ ] `package.json` — `engines: { node: ">=18" }` 추가
+### P1 — 플랜 시스템 확장
+- [ ] Stripe/결제 연동 (현재 플랜 변경 UI만 있고 실제 결제 없음)
+- [ ] 사이드바 하단에 PlanUsageCard 렌더링 (컴포넌트 존재하지만 미사용)
+- [ ] 컬렉션 생성 시 `canCreateCollection` 체크 + UpgradePrompt
 
-### P1 — 기능
-- [ ] 로고 결정: 7개 SVG (`public/logo-concept-a~g.svg`) 중 선택 → 미사용 삭제
-- [ ] `008_platform_check_update.sql` + `009_oauth_connections.sql` DB 적용
-- [ ] Vercel 환경변수: `META_THREADS_APP_ID`, `META_THREADS_APP_SECRET`, `OAUTH_ENCRYPTION_KEY`
+### P1 — DB 마이그레이션
+- [ ] `016_image_upload_support.sql` — DB push 미적용
+- [ ] `017_plan_system.sql` — DB push 적용 여부 확인 (credit_usage 테이블)
+- [ ] `008`, `009` 마이그레이션 미적용
 
 ### P2 — 정리
-- [ ] stale 리모트 브랜치 정리
 - [ ] `supabase gen types typescript` → `as any` 30개 제거
-- [ ] OmniSearch 컴포넌트 — Cmd+K 제거됨, 트리거 UI 없음. 완전 제거 또는 재활용 결정
+- [ ] 로고 결정 (7개 SVG 중 선택)
+- [ ] stale 리모트 브랜치 정리
 
 ---
 
 ## 에러/학습
 
-1. **Vercel Deployment Protection**: Playwright 테스트가 배포 URL에서 실패 — 로그인 페이지 반환. 해결: localhost로 전환.
-2. **팀 에이전트 shutdown**: `TeamDelete`는 모든 멤버가 shutdown 확인 후에만 가능. 미응답 워커 수동 정리 필요할 수 있음.
-3. **`\n` 리터럴 구문 에러**: 에이전트가 코드 생성 시 멀티라인 문자열에서 `\n` 이스케이프가 리터럴로 삽입될 수 있음. `od -c`로 바이트 확인.
-4. **검색 디바운스**: `useDebouncedValue` — useClips queryKey에 search 포함되므로 300ms 후 자동 refetch. 추가 구독 불필요.
+1. **Turbopack dev 서버 hang**: 첫 요청 시 2분+ 타임아웃. `npm run build` + `next start` 프로덕션 모드로 Playwright 검증 진행
+2. **PLAN_LIMITS 동기화**: `Infinity` 값은 `formatLimit()` 헬퍼로 '무제한' 문자열 변환. pricing 페이지 JSON-LD도 config에서 동적 생성
 
 ---
 
 ## 다음 세션 시작 시
 
 1. `MEMORY.md` + `SESSION_HANDOVER.md` 읽기
-2. `fix/mobile-header-scroll` → `main` 머지 여부 확인
-3. 모바일 검색 + 핀치 줌 실기기 확인
-4. MCP 서버 실 API 키 테스트 (`LINKBRAIN_API_KEY` 설정 후 `npm run dev`)
-5. 로고 선정 + DB 마이그레이션 진행 여부 사용자 확인
+2. 미커밋 변경 사항 커밋 (feat 브랜치 or main 직접)
+3. DB 마이그레이션 적용 여부 확인 (`017_plan_system.sql` — credit_usage 테이블)
+4. Stripe 연동 또는 사이드바 PlanUsageCard 렌더링 진행
+5. `route 2.ts` 중복 파일 삭제
