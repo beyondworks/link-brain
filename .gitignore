@@ -64,5 +64,5 @@ video/demo/node_modules/
 e2e/.auth/
 
 # Video assets (large)
-public/video/
-video/
+/video/
+!public/video/
