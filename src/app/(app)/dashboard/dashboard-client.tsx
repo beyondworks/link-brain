@@ -316,8 +316,8 @@ export function DashboardClient() {
   [filters.categoryId, filters.collectionId, filters.platform, filters.isFavorite, filters.readStatus]);
 
   const handleFilterClick = useCallback((key: QuickFilter) => {
-    setQuickFilter(key);
-  }, [setQuickFilter]);
+    setQuickFilter(activeFilter === key ? 'all' : key);
+  }, [activeFilter, setQuickFilter]);
 
   return (
     <div className="animate-blur-in p-6 lg:p-8">
