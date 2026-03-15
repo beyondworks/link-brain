@@ -1,110 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-
-// ── PingPong Video (frame capture → canvas forward/backward loop) ──────────
-function PingPongVideo({ src, className = '' }: { src: string; className?: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !src) return;
-
-    let dead = false;
-    let raf = 0;
-    let frames: ImageBitmap[] = [];
-    const ctx = canvas.getContext('2d', { alpha: false })!;
-
-    // Hidden video for frame capture (separate from the visible one)
-    const vid = document.createElement('video');
-    vid.muted = true;
-    vid.playsInline = true;
-    vid.preload = 'auto';
-    vid.src = src;
-
-    const capture = (): Promise<number> =>
-      new Promise((done) => {
-        vid.addEventListener('loadedmetadata', () => {
-          const MAX_W = 960;
-          const scale = Math.min(1, MAX_W / vid.videoWidth);
-          canvas.width = Math.round(vid.videoWidth * scale);
-          canvas.height = Math.round(vid.videoHeight * scale);
-          const dur = vid.duration;
-          let settled = false;
-          const finish = () => { if (!settled) { settled = true; done(dur); } };
-
-          const FPS = 20;
-          const pending: Promise<ImageBitmap>[] = [];
-          const id = setInterval(() => {
-            if (dead) { clearInterval(id); finish(); return; }
-            ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
-            pending.push(createImageBitmap(canvas));
-          }, 1000 / FPS);
-          vid.addEventListener('ended', () => { clearInterval(id); Promise.all(pending).then((b) => { frames = b; finish(); }); }, { once: true });
-          vid.playbackRate = 2;
-          vid.play().catch(() => { clearInterval(id); finish(); });
-        }, { once: true });
-        vid.load();
-      });
-
-    const play = (dur: number) => {
-      if (dead || frames.length < 2) return;
-      // Hide the <video>, show canvas ping-pong
-      setReady(true);
-      const mspf = (dur * 1000) / frames.length;
-      let fi = 0;
-      let dir = 1;
-      let last = 0;
-      const loop = (ts: number) => {
-        if (dead) return;
-        raf = requestAnimationFrame(loop);
-        if (ts - last < mspf) return;
-        last = ts;
-        ctx.drawImage(frames[fi], 0, 0, canvas.width, canvas.height);
-        fi += dir;
-        if (fi >= frames.length) { fi = frames.length - 2; dir = -1; }
-        else if (fi < 0) { fi = 1; dir = 1; }
-      };
-      raf = requestAnimationFrame(loop);
-    };
-
-    capture().then((dur) => { vid.src = ''; if (!dead) play(dur); });
-
-    return () => {
-      dead = true;
-      cancelAnimationFrame(raf);
-      vid.pause();
-      vid.src = '';
-      frames.forEach((b) => b.close());
-      frames = [];
-    };
-  }, [src]);
-
-  return (
-    <div className={`relative overflow-hidden ${className}`}>
-      {/* Instant video playback (visible until ping-pong ready) */}
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted
-        playsInline
-        src={src}
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: ready ? 0 : 1, transition: 'opacity 0.5s' }}
-      />
-      {/* Canvas ping-pong (fades in when frames captured) */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ objectFit: 'cover', opacity: ready ? 1 : 0, transition: 'opacity 0.5s' }}
-      />
-    </div>
-  );
-}
 
 // ── Component ──────────────────────────────────────────────────────────────
 export function HeroSection() {
@@ -152,9 +49,16 @@ export function HeroSection() {
           style={{ background: mouseGlow }}
         />
 
-        {/* Ping-pong hero video */}
+        {/* Hero video */}
         <div className="absolute inset-0 w-full h-full z-10">
-          <PingPongVideo src="/video/main_hero.mp4" className="w-full h-full" />
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/video/main_hero.mp4"
+          />
           {/* Soft bottom fade into text section */}
           <div
             className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none z-10"
