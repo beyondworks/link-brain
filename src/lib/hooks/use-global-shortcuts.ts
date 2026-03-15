@@ -35,6 +35,9 @@ export function useGlobalShortcuts() {
   const closeClipPeek = useUIStore((s) => s.closeClipPeek);
   const peekClipId = useUIStore((s) => s.peekClipId);
   const setOmniSearchOpen = useUIStore((s) => s.setOmniSearchOpen);
+  const toggleChat = useUIStore((s) => s.toggleChat);
+  const isChatOpen = useUIStore((s) => s.isChatOpen);
+  const closeChat = useUIStore((s) => s.closeChat);
 
   useEffect(() => {
     let pendingKey: string | null = null;
@@ -73,6 +76,13 @@ export function useGlobalShortcuts() {
       // Skip remaining shortcuts when typing in inputs
       if (isInputFocused()) return;
 
+      // Cmd/Ctrl+J: Toggle chat panel
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        toggleChat();
+        return;
+      }
+
       // Cmd/Ctrl+N: Open add clip dialog
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
@@ -80,8 +90,12 @@ export function useGlobalShortcuts() {
         return;
       }
 
-      // Escape: Close modal or peek panel
+      // Escape: Close chat, modal, or peek panel
       if (e.key === 'Escape') {
+        if (isChatOpen) {
+          closeChat();
+          return;
+        }
         if (activeModal) {
           closeModal();
           return;
@@ -186,5 +200,8 @@ export function useGlobalShortcuts() {
     closeClipPeek,
     peekClipId,
     setOmniSearchOpen,
+    toggleChat,
+    isChatOpen,
+    closeChat,
   ]);
 }

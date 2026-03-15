@@ -14,8 +14,8 @@ describe('calcChangeRate', () => {
     expect(calcChangeRate(0, 0)).toBe(0);
   });
 
-  it('지난 주가 0이고 이번 주가 양수이면 100% 반환', () => {
-    expect(calcChangeRate(5, 0)).toBe(100);
+  it('지난 주가 0이고 이번 주가 양수이면 null 반환 (비교 불가)', () => {
+    expect(calcChangeRate(5, 0)).toBeNull();
   });
 
   it('동일한 값이면 0% 반환', () => {
@@ -69,8 +69,8 @@ describe('calcChangeRate', () => {
 describe('변화율에 따른 스타일 분기', () => {
   function getTrend(thisWeek: number, lastWeek: number): 'positive' | 'negative' | 'neutral' {
     const rate = calcChangeRate(thisWeek, lastWeek);
-    if (rate > 0) return 'positive';
-    if (rate < 0) return 'negative';
+    if (rate !== null && rate > 0) return 'positive';
+    if (rate !== null && rate < 0) return 'negative';
     return 'neutral';
   }
 
@@ -90,7 +90,7 @@ describe('변화율에 따른 스타일 분기', () => {
     expect(getTrend(0, 0)).toBe('neutral');
   });
 
-  it('지난 주 0, 이번 주 양수 시 positive 분기', () => {
-    expect(getTrend(3, 0)).toBe('positive');
+  it('지난 주 0, 이번 주 양수 시 neutral 분기 (비교 불가)', () => {
+    expect(getTrend(3, 0)).toBe('neutral');
   });
 });

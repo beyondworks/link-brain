@@ -10,9 +10,9 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
-// Mock supabase-provider
-vi.mock('@/components/providers/supabase-provider', () => ({
-  useSupabase: vi.fn(),
+// Mock useCurrentUser directly to avoid its internal useQuery call
+vi.mock('@/lib/hooks/use-current-user', () => ({
+  useCurrentUser: vi.fn(),
 }));
 
 // Mock supabase client (dashboard stats uses supabase directly, not fetch)
@@ -23,17 +23,17 @@ vi.mock('@/lib/supabase/client', () => ({
 }));
 
 import { useQuery } from '@tanstack/react-query';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { supabase } from '@/lib/supabase/client';
 import { useDashboardStats } from './use-dashboard-stats';
 
 const mockUseQuery = useQuery as ReturnType<typeof vi.fn>;
-const mockUseSupabase = useSupabase as ReturnType<typeof vi.fn>;
+const mockUseCurrentUser = useCurrentUser as ReturnType<typeof vi.fn>;
 
 describe('useDashboardStats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseSupabase.mockReturnValue({ user: { id: 'user-123' } });
+    mockUseCurrentUser.mockReturnValue({ user: { id: 'user-123' }, isLoading: false });
   });
 
   it('calls useQuery with ["dashboard-stats", userId] query key', () => {
@@ -50,7 +50,7 @@ describe('useDashboardStats', () => {
   });
 
   it('is disabled when user is null', () => {
-    mockUseSupabase.mockReturnValue({ user: null });
+    mockUseCurrentUser.mockReturnValue({ user: null, isLoading: false });
     useDashboardStats();
     const opts = mockUseQuery.mock.calls[0][0];
     expect(opts.enabled).toBe(false);
@@ -63,7 +63,7 @@ describe('useDashboardStats', () => {
   });
 
   it('queryFn returns totalClips, thisMonthClips, favoriteCount from supabase counts', async () => {
-    mockUseSupabase.mockReturnValue({ user: { id: 'user-abc' } });
+    mockUseCurrentUser.mockReturnValue({ user: { id: 'user-abc' }, isLoading: false });
 
     // Build a chainable supabase mock that resolves with count
     const makeChain = (count: number) => {

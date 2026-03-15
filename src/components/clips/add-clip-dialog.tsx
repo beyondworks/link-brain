@@ -317,6 +317,11 @@ export function AddClipDialog() {
         queryClient.invalidateQueries({ queryKey: ['clips'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['credits'] });
+        // 백그라운드 AI 분석 완료 후 크레딧 재반영 (약 10초 소요)
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['credits'] });
+        }, 12_000);
         addNotification({
           type: 'clip_saved',
           title: hasPreview ? '저장되었습니다' : '저장됨 — 콘텐츠 분석 중...',
@@ -448,6 +453,7 @@ export function AddClipDialog() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
       addNotification({
         type: 'clip_saved',
         title: '이미지 저장됨 — OCR 분석 중...',
