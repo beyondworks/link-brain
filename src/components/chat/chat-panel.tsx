@@ -255,15 +255,31 @@ export function ChatPanel() {
                     />
                   ))}
 
-                  {/* Streaming assistant message */}
-                  {isStreaming && streamingContent && (
-                    <ChatMessage
-                      role="assistant"
-                      content={streamingContent}
-                      clipReferences={referencedClipIds}
-                      isStreaming
-                      onClipClick={handleClipClick}
-                    />
+                  {/* Streaming assistant message or loading indicator */}
+                  {isStreaming && (
+                    streamingContent ? (
+                      <ChatMessage
+                        role="assistant"
+                        content={streamingContent}
+                        clipReferences={referencedClipIds}
+                        isStreaming
+                        onClipClick={handleClipClick}
+                      />
+                    ) : (
+                      <div className="flex gap-3 px-4 py-3">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
+                          <Sparkles size={14} className="animate-pulse text-emerald-500" />
+                        </div>
+                        <div className="flex items-center gap-2 rounded-2xl rounded-tl-md bg-muted/60 px-3.5 py-2.5">
+                          <div className="flex gap-1">
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '0ms' }} />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '150ms' }} />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: '300ms' }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground">클립을 검색하고 있습니다...</span>
+                        </div>
+                      </div>
+                    )
                   )}
 
                   <div ref={messagesEndRef} />
