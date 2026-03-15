@@ -869,7 +869,8 @@ async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<Next
     `요구사항:\n` +
     `- 한국어로 작성\n` +
     `- ${typeInstructions}\n` +
-    `- 소스 자료의 핵심 내용을 충실히 반영할 것`;
+    `- 소스 자료의 핵심 내용을 충실히 반영할 것\n` +
+    '- 마크다운 문법(#, **, - 등)을 사용하지 말 것. 순수 플레인 텍스트로만 작성할 것';
 
   const userPrompt = `[소스 자료]\n\n${sourceMaterial}`;
 

@@ -599,7 +599,6 @@ export function StudioClient() {
           {/* ── 5. 결과 + 이전 생성 기록 ─────────────────────────────── */}
           <StudioOutputPanel
             output={output}
-            onOutputChange={setOutput}
             onCopy={() => {
               void navigator.clipboard.writeText(output);
               toast.success('클립보드에 복사되었습니다.');
@@ -610,7 +609,6 @@ export function StudioClient() {
             isGenerating={isGenerating}
             contentTypeLabel={STUDIO_META[selectedType].label}
             history={history}
-            onHistorySelect={(item) => setOutput(item.output)}
             onHistoryDelete={(item) => {
               if (item.id) deleteGeneration.mutate(item.id);
             }}

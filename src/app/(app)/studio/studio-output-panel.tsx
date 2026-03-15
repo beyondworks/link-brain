@@ -18,7 +18,6 @@ export type HistoryItem = {
 
 type OutputPanelProps = {
   output: string;
-  onOutputChange: (value: string) => void;
   onCopy: () => void;
   onReset: () => void;
   onSave: () => void;
@@ -26,7 +25,6 @@ type OutputPanelProps = {
   isGenerating: boolean;
   contentTypeLabel: string;
   history: HistoryItem[];
-  onHistorySelect: (item: HistoryItem) => void;
   onHistoryDelete?: (item: HistoryItem) => void;
 };
 
@@ -42,9 +40,8 @@ function formatRelativeTime(date: Date): string {
 
 // ─── History Item (Collapsible) ──────────────────────────────────────────────
 
-function HistoryItemRow({ item, onSelect, onDelete, onOpenModal }: {
+function HistoryItemRow({ item, onDelete, onOpenModal }: {
   item: HistoryItem;
-  onSelect: (item: HistoryItem) => void;
   onDelete?: (item: HistoryItem) => void;
   onOpenModal: (item: HistoryItem) => void;
 }) {
@@ -116,14 +113,6 @@ function HistoryItemRow({ item, onSelect, onDelete, onOpenModal }: {
               <Maximize2 size={10} />
               전체 보기
             </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onSelect(item); }}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-primary transition-spring hover:bg-primary/10"
-            >
-              <Sparkles size={10} />
-              편집기에 불러오기
-            </button>
           </div>
         </div>
       )}
@@ -133,11 +122,10 @@ function HistoryItemRow({ item, onSelect, onDelete, onOpenModal }: {
 
 // ─── Full View Modal ─────────────────────────────────────────────────────────
 
-function OutputModal({ item, onClose, onCopy, onSelect }: {
+function OutputModal({ item, onClose, onCopy }: {
   item: HistoryItem;
   onClose: () => void;
   onCopy: () => void;
-  onSelect: (item: HistoryItem) => void;
 }) {
   return (
     <>
@@ -184,14 +172,6 @@ function OutputModal({ item, onClose, onCopy, onSelect }: {
               <Copy size={12} className="mr-1.5" />
               복사
             </Button>
-            <Button
-              size="sm"
-              className="rounded-xl text-xs bg-gradient-brand"
-              onClick={() => { onSelect(item); onClose(); }}
-            >
-              <Sparkles size={12} className="mr-1.5" />
-              편집기에 불러오기
-            </Button>
           </div>
         </div>
       </div>
@@ -203,7 +183,6 @@ function OutputModal({ item, onClose, onCopy, onSelect }: {
 
 export function StudioOutputPanel({
   output,
-  onOutputChange,
   onCopy,
   onReset,
   onSave,
@@ -211,7 +190,6 @@ export function StudioOutputPanel({
   isGenerating,
   contentTypeLabel,
   history,
-  onHistorySelect,
   onHistoryDelete,
 }: OutputPanelProps) {
   const [modalItem, setModalItem] = useState<HistoryItem | null>(null);
@@ -314,7 +292,6 @@ export function StudioOutputPanel({
               <HistoryItemRow
                 key={idx}
                 item={item}
-                onSelect={onHistorySelect}
                 onDelete={onHistoryDelete}
                 onOpenModal={setModalItem}
               />
@@ -331,11 +308,6 @@ export function StudioOutputPanel({
           onCopy={() => {
             void navigator.clipboard.writeText(modalItem.output);
             toast.success('복사되었습니다');
-          }}
-          onSelect={(item) => {
-            onHistorySelect(item);
-            // Also update the output in the editor via onOutputChange
-            onOutputChange(item.output);
           }}
         />
       )}
