@@ -1,7 +1,124 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
+
+// ── PingPong Video (frame capture → canvas forward/backward loop) ──────────
+function PingPongVideo({ src, className = '' }: { src: string; className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [pct, setPct] = useState(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !src) return;
+
+    let dead = false;
+    let raf = 0;
+    let frames: ImageBitmap[] = [];
+    const ctx = canvas.getContext('2d', { alpha: false })!;
+
+    const vid = document.createElement('video');
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.preload = 'auto';
+    vid.src = src;
+
+    // Phase 1: Capture frames
+    const capture = (): Promise<number> =>
+      new Promise((done) => {
+        vid.addEventListener('loadedmetadata', () => {
+          const MAX_W = 960;
+          const scale = Math.min(1, MAX_W / vid.videoWidth);
+          canvas.width = Math.round(vid.videoWidth * scale);
+          canvas.height = Math.round(vid.videoHeight * scale);
+          const dur = vid.duration;
+          let settled = false;
+          const finish = () => { if (!settled) { settled = true; done(dur); } };
+
+          if ('requestVideoFrameCallback' in (vid as HTMLVideoElement & { requestVideoFrameCallback?: unknown })) {
+            const pending: Promise<ImageBitmap>[] = [];
+            const onFrame = () => {
+              if (dead) { finish(); return; }
+              ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+              pending.push(createImageBitmap(canvas));
+              setPct(Math.round((vid.currentTime / dur) * 100));
+              if (vid.ended || vid.currentTime >= dur - 0.05) {
+                Promise.all(pending).then((b) => { frames = b; finish(); });
+              } else {
+                (vid as HTMLVideoElement & { requestVideoFrameCallback: (cb: () => void) => void }).requestVideoFrameCallback(onFrame);
+              }
+            };
+            vid.addEventListener('ended', () => Promise.all(pending).then((b) => { frames = b; finish(); }), { once: true });
+            (vid as HTMLVideoElement & { requestVideoFrameCallback: (cb: () => void) => void }).requestVideoFrameCallback(onFrame);
+            vid.playbackRate = 2;
+            vid.play().catch(finish);
+          } else {
+            const FPS = 20;
+            const pending: Promise<ImageBitmap>[] = [];
+            const id = setInterval(() => {
+              if (dead) { clearInterval(id); finish(); return; }
+              ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+              pending.push(createImageBitmap(canvas));
+              setPct(Math.round((vid.currentTime / dur) * 100));
+            }, 1000 / FPS);
+            vid.addEventListener('ended', () => { clearInterval(id); Promise.all(pending).then((b) => { frames = b; finish(); }); }, { once: true });
+            vid.play().catch(() => { clearInterval(id); finish(); });
+          }
+        }, { once: true });
+        vid.load();
+      });
+
+    // Phase 2: Ping-pong playback
+    const play = (dur: number) => {
+      if (dead || frames.length < 2) return;
+      setLoading(false);
+      const mspf = (dur * 1000) / frames.length;
+      let fi = 0;
+      let dir = 1;
+      let last = 0;
+      const loop = (ts: number) => {
+        if (dead) return;
+        raf = requestAnimationFrame(loop);
+        if (ts - last < mspf) return;
+        last = ts;
+        ctx.drawImage(frames[fi], 0, 0, canvas.width, canvas.height);
+        fi += dir;
+        if (fi >= frames.length) { fi = frames.length - 2; dir = -1; }
+        else if (fi < 0) { fi = 1; dir = 1; }
+      };
+      raf = requestAnimationFrame(loop);
+    };
+
+    capture().then((dur) => { vid.src = ''; if (!dead) play(dur); });
+
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      vid.pause();
+      vid.src = '';
+      frames.forEach((b) => b.close());
+      frames = [];
+    };
+  }, [src]);
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+      {loading && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3"
+          style={{ background: 'rgba(230,243,248,0.7)', backdropFilter: 'blur(14px)' }}>
+          <p style={{ color: '#21DBA4', fontSize: 13, fontWeight: 500, fontFamily: "'Pretendard Variable', sans-serif" }}>
+            준비 중&nbsp;&nbsp;{pct}%
+          </p>
+          <div style={{ width: 140, height: 2, borderRadius: 9, background: 'rgba(33,219,164,0.15)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, borderRadius: 9, background: 'linear-gradient(90deg, #21DBA4, #5BC8E8)', transition: 'width 80ms linear' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Component ──────────────────────────────────────────────────────────────
 export function HeroSection() {
@@ -49,16 +166,9 @@ export function HeroSection() {
           style={{ background: mouseGlow }}
         />
 
-        {/* Static hero video */}
+        {/* Ping-pong hero video */}
         <div className="absolute inset-0 w-full h-full z-10">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-            src="/video/main_hero.mp4"
-          />
+          <PingPongVideo src="/video/main_hero.mp4" className="w-full h-full" />
           {/* Soft bottom fade into text section */}
           <div
             className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none z-10"
