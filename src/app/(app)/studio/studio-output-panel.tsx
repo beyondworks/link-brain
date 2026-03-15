@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Loader2, Sparkles, Clock, Trash2, Copy, ChevronDown } from 'lucide-react';
+import { Save, Loader2, Sparkles, Clock, Trash2, Copy, ChevronDown, X, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,18 +40,18 @@ function formatRelativeTime(date: Date): string {
   return `${Math.floor(diff / 86400)}일 전`;
 }
 
-// ─── HistoryItem ──────────────────────────────────────────────────────────────
+// ─── History Item (Collapsible) ──────────────────────────────────────────────
 
-function HistoryItem({ item, onSelect, onDelete }: {
+function HistoryItemRow({ item, onSelect, onDelete, onOpenModal }: {
   item: HistoryItem;
   onSelect: (item: HistoryItem) => void;
   onDelete?: (item: HistoryItem) => void;
+  onOpenModal: (item: HistoryItem) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="border-b border-border/30 last:border-b-0">
-      {/* Header - always visible, click to toggle */}
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -90,10 +90,9 @@ function HistoryItem({ item, onSelect, onDelete }: {
         </div>
       </button>
 
-      {/* Expandable content */}
       {isExpanded && (
         <div className="px-4 pb-3 animate-fade-in">
-          <div className="max-h-[200px] overflow-y-auto rounded-xl bg-muted/30 p-3 text-xs leading-relaxed text-foreground">
+          <div className="max-h-[160px] overflow-y-auto rounded-xl bg-muted/30 p-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap">
             {item.output}
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -102,11 +101,20 @@ function HistoryItem({ item, onSelect, onDelete }: {
               onClick={(e) => {
                 e.stopPropagation();
                 void navigator.clipboard.writeText(item.output);
+                toast.success('복사되었습니다');
               }}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground"
             >
               <Copy size={10} />
               복사
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenModal(item); }}
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground"
+            >
+              <Maximize2 size={10} />
+              전체 보기
             </button>
             <button
               type="button"
@@ -120,6 +128,74 @@ function HistoryItem({ item, onSelect, onDelete }: {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Full View Modal ─────────────────────────────────────────────────────────
+
+function OutputModal({ item, onClose, onCopy, onSelect }: {
+  item: HistoryItem;
+  onClose: () => void;
+  onCopy: () => void;
+  onSelect: (item: HistoryItem) => void;
+}) {
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[50] bg-black/50 animate-fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-4 z-[50] flex items-center justify-center sm:inset-8 lg:inset-16">
+        <div className="relative flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl animate-scale-in">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{item.prompt}</p>
+              <p className="text-[11px] text-muted-foreground" suppressHydrationWarning>
+                {formatRelativeTime(item.createdAt)}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 shrink-0 rounded-lg"
+            >
+              <X size={16} />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+              {item.output}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs"
+              onClick={onCopy}
+            >
+              <Copy size={12} className="mr-1.5" />
+              복사
+            </Button>
+            <Button
+              size="sm"
+              className="rounded-xl text-xs bg-gradient-brand"
+              onClick={() => { onSelect(item); onClose(); }}
+            >
+              <Sparkles size={12} className="mr-1.5" />
+              편집기에 불러오기
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -138,69 +214,71 @@ export function StudioOutputPanel({
   onHistorySelect,
   onHistoryDelete,
 }: OutputPanelProps) {
+  const [modalItem, setModalItem] = useState<HistoryItem | null>(null);
+
   return (
     <div className="space-y-4">
-      {/* ── 결과 영역 ────────────────────────────────────────────── */}
+      {/* ── 생성 결과 (간결한 알림 바) ─────────────────────────────── */}
       {output ? (
-        <div className="card-glow card-inner-glow animate-blur-in animation-delay-100 overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex items-center gap-2 border-b border-border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3">
-            <div className="icon-glow relative rounded-lg bg-primary/10 p-1.5">
-              <Sparkles size={12} className="text-primary" />
+        <div className="card-glow animate-blur-in overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="rounded-lg bg-primary/10 p-1.5">
+              <Sparkles size={14} className="text-primary" />
             </div>
-            <span className="text-sm font-semibold text-foreground">생성 결과</span>
-            <Badge
-              variant="secondary"
-              className="ml-1 rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] text-primary"
-            >
-              {contentTypeLabel}
-            </Badge>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">생성 완료</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {contentTypeLabel} · {output.length.toLocaleString()}자
+              </p>
+            </div>
             {isGenerating && (
-              <div className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
             )}
-          </div>
-          <Textarea
-            value={output}
-            onChange={(e) => onOutputChange(e.target.value)}
-            className="min-h-[280px] resize-none border-0 bg-transparent p-5 text-sm leading-relaxed focus-visible:ring-0"
-            placeholder="생성된 콘텐츠가 여기에 표시됩니다..."
-          />
-          <div className="flex items-center justify-end gap-2 border-t border-border/60 px-4 py-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs transition-spring hover:border-primary/30 hover:glow-brand-sm"
-              onClick={onCopy}
-            >
-              복사
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs transition-spring hover:border-destructive/30"
-              onClick={onReset}
-            >
-              초기화
-            </Button>
-            {!isGenerating && (
+            <div className="flex items-center gap-1.5">
               <Button
+                variant="outline"
                 size="sm"
-                className="rounded-xl text-xs bg-gradient-brand glow-brand-sm transition-spring"
-                onClick={onSave}
-                disabled={isSaving}
+                className="h-8 rounded-xl text-xs"
+                onClick={() => {
+                  setModalItem({ prompt: contentTypeLabel, output, createdAt: new Date() });
+                }}
               >
-                {isSaving ? (
-                  <>
-                    <Loader2 size={12} className="mr-1.5 animate-spin" />
-                    저장 중...
-                  </>
-                ) : (
-                  <>
-                    <Save size={12} className="mr-1.5" />
-                    클립으로 저장
-                  </>
-                )}
+                <Maximize2 size={12} className="mr-1" />
+                보기
               </Button>
-            )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-xl text-xs"
+                onClick={onCopy}
+              >
+                <Copy size={12} className="mr-1" />
+                복사
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-xl text-xs"
+                onClick={onReset}
+              >
+                초기화
+              </Button>
+              {!isGenerating && (
+                <Button
+                  size="sm"
+                  className="h-8 rounded-xl text-xs bg-gradient-brand glow-brand-sm"
+                  onClick={onSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <Loader2 size={12} className="mr-1 animate-spin" />
+                  ) : (
+                    <Save size={12} className="mr-1" />
+                  )}
+                  {isSaving ? '저장 중' : '클립으로 저장'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ) : (
@@ -233,15 +311,33 @@ export function StudioOutputPanel({
           </div>
           <div className="divide-y divide-border/40">
             {history.map((item, idx) => (
-              <HistoryItem
+              <HistoryItemRow
                 key={idx}
                 item={item}
                 onSelect={onHistorySelect}
                 onDelete={onHistoryDelete}
+                onOpenModal={setModalItem}
               />
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── 전체 보기 모달 ──────────────────────────────────────── */}
+      {modalItem && (
+        <OutputModal
+          item={modalItem}
+          onClose={() => setModalItem(null)}
+          onCopy={() => {
+            void navigator.clipboard.writeText(modalItem.output);
+            toast.success('복사되었습니다');
+          }}
+          onSelect={(item) => {
+            onHistorySelect(item);
+            // Also update the output in the editor via onOutputChange
+            onOutputChange(item.output);
+          }}
+        />
       )}
     </div>
   );
