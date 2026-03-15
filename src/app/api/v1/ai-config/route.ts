@@ -5,7 +5,6 @@
  * DELETE /api/v1/ai-config/keys?id= — API 키 삭제
  */
 
-import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth } from '@/lib/api/middleware';
 import { errors, sendSuccess, sendError, ErrorCodes } from '@/lib/api/response';
