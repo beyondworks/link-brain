@@ -57,7 +57,7 @@ export function HeroSection() {
             muted
             playsInline
             className="absolute inset-0 w-full h-full object-cover"
-            src="/video/main_hero.mp4"
+            src="/video/hero_pingpong.mp4"
           />
           {/* Soft bottom fade into text section */}
           <div
