@@ -17,6 +17,7 @@ import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
 import { CHAT_TOOL_DEFINITIONS, executeTool } from '@/lib/ai/chat-tools';
+import { resolveAIConfig } from '@/lib/ai/model-resolver';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database Insert 타입 비호환 우회
 const db = supabaseAdmin as any;
@@ -135,9 +136,9 @@ interface OpenAIStreamChunk {
   }>;
 }
 
-async function* streamOpenAI(systemPrompt: string, userPrompt: string): AsyncGenerator<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+async function* streamOpenAI(systemPrompt: string, userPrompt: string, apiKey?: string, model?: string): AsyncGenerator<string> {
+  const key = apiKey ?? process.env.OPENAI_API_KEY;
+  if (!key) {
     throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
   }
 
@@ -145,10 +146,10 @@ async function* streamOpenAI(systemPrompt: string, userPrompt: string): AsyncGen
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: model ?? 'gpt-4o-mini',
       stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -202,18 +203,18 @@ async function* streamOpenAI(systemPrompt: string, userPrompt: string): AsyncGen
 
 // ─── OpenAI 비스트리밍 헬퍼 ─────────────────────────────────────────────────
 
-async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
+async function callOpenAI(systemPrompt: string, userPrompt: string, apiKey?: string, model?: string): Promise<string> {
+  const key = apiKey ?? process.env.OPENAI_API_KEY;
+  if (!key) throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: model ?? 'gpt-4o-mini',
       stream: false,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -237,9 +238,12 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 // ─── Analyze 핸들러 ──────────────────────────────────────────────────────────
 
 async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const creditCheck = await deductCredits(auth.publicUserId, 'AI_SUMMARY');
-  if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  const aiConfig = await resolveAIConfig(auth.publicUserId, 'default');
+  if (!aiConfig.isUserKey) {
+    const creditCheck = await deductCredits(auth.publicUserId, 'AI_SUMMARY');
+    if (!creditCheck.allowed) {
+      return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+    }
   }
 
   let rawBody: unknown;
@@ -291,7 +295,7 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
       '}\n' +
       '반드시 유효한 JSON만 응답하세요.';
 
-    const content = await callOpenAI(systemPrompt, `[소스 자료]\n\n${sourceMaterial}`);
+    const content = await callOpenAI(systemPrompt, `[소스 자료]\n\n${sourceMaterial}`, aiConfig.apiKey, aiConfig.model);
 
     let parsed: unknown;
     try {
@@ -312,9 +316,12 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
 // ─── Ask 핸들러 (Function Calling) ──────────────────────────────────────────
 
 async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const creditCheck = await deductCredits(auth.publicUserId, 'AI_CHAT');
-  if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  const aiConfig = await resolveAIConfig(auth.publicUserId, 'chat');
+  if (!aiConfig.isUserKey) {
+    const creditCheck = await deductCredits(auth.publicUserId, 'AI_CHAT');
+    if (!creditCheck.allowed) {
+      return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+    }
   }
 
   let rawBody: unknown;
@@ -332,7 +339,7 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
 
   // ─── Legacy mode: if clipIds provided, use direct context (no function calling) ──
   if (clipIds.length > 0) {
-    return handleAskLegacy(auth, message, clipIds, conversationId, language);
+    return handleAskLegacy(auth, message, clipIds, conversationId, language, aiConfig.apiKey, aiConfig.model);
   }
 
   // ─── Load conversation history ──────────────────────────────────────
@@ -378,9 +385,6 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
   messages.push({ role: 'user', content: message });
 
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
-
     // ─── Function calling loop (max 5 iterations) ──────────────────
     const collectedClipIds: string[] = [];
     let finalResponse = '';
@@ -391,10 +395,10 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${aiConfig.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: aiConfig.model,
           messages,
           tools: CHAT_TOOL_DEFINITIONS,
           tool_choice: 'auto',
@@ -548,7 +552,9 @@ async function handleAskLegacy(
   message: string,
   clipIds: string[],
   conversationId: string | null,
-  language: string
+  language: string,
+  apiKey?: string,
+  model?: string
 ): Promise<NextResponse> {
   let context = '';
   const { data: clips, error: dbErr } = await db
@@ -592,7 +598,7 @@ async function handleAskLegacy(
         try {
           const meta = JSON.stringify({ conversationId: activeConversationId, clipIds, usedRag: false });
           controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
-          for await (const chunk of streamOpenAI(systemPrompt, message)) {
+          for await (const chunk of streamOpenAI(systemPrompt, message, apiKey, model)) {
             fullAnswer += chunk;
             controller.enqueue(encoder.encode(chunk));
           }
@@ -633,9 +639,12 @@ async function handleAskLegacy(
 // ─── Insights 핸들러 ─────────────────────────────────────────────────────────
 
 async function handleInsights(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const creditCheck = await deductCredits(auth.publicUserId, 'AI_INSIGHTS');
-  if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  const aiConfig = await resolveAIConfig(auth.publicUserId, 'default');
+  if (!aiConfig.isUserKey) {
+    const creditCheck = await deductCredits(auth.publicUserId, 'AI_INSIGHTS');
+    if (!creditCheck.allowed) {
+      return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+    }
   }
 
   let rawBody: unknown;
@@ -759,7 +768,7 @@ async function handleInsights(req: NextRequest, auth: AuthContext): Promise<Next
       `}\n` +
       `반드시 유효한 JSON만 응답하세요.`;
 
-    const aiContent = await callOpenAI(systemPrompt, statsSummary);
+    const aiContent = await callOpenAI(systemPrompt, statsSummary, aiConfig.apiKey, aiConfig.model);
 
     let aiAnalysis: unknown;
     try {
@@ -787,9 +796,12 @@ async function handleInsights(req: NextRequest, auth: AuthContext): Promise<Next
 // ─── 핸들러 ───────────────────────────────────────────────────────────────────
 
 async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
-  const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
-  if (!creditCheck.allowed) {
-    return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+  const aiConfig = await resolveAIConfig(auth.publicUserId, 'default');
+  if (!aiConfig.isUserKey) {
+    const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
+    if (!creditCheck.allowed) {
+      return errors.insufficientCredits(1, Math.max(0, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0)));
+    }
   }
 
   // Body 파싱
@@ -866,7 +878,7 @@ async function handleGenerate(req: NextRequest, auth: AuthContext): Promise<Next
     async start(controller) {
       const encoder = new TextEncoder();
       try {
-        for await (const chunk of streamOpenAI(systemPrompt, userPrompt)) {
+        for await (const chunk of streamOpenAI(systemPrompt, userPrompt, aiConfig.apiKey, aiConfig.model)) {
           controller.enqueue(encoder.encode(chunk));
         }
         controller.close();

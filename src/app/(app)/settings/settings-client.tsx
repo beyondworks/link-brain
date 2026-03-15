@@ -57,6 +57,7 @@ import { ProfileEditor } from '@/components/settings/profile-editor';
 import { ConnectedAccounts } from '@/components/settings/connected-accounts';
 import { TagManager } from '@/components/settings/tag-manager';
 import { WebhookManager } from '@/components/settings/webhook-manager';
+import { AIModelSettings } from '@/components/settings/ai-model-settings';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { useDuplicates } from '@/lib/hooks/use-duplicates';
 import type { DuplicateGroup } from '@/lib/hooks/use-duplicates';
@@ -751,6 +752,11 @@ export function SettingsClient() {
               )}
             </div>
           ) : null}
+        </section>
+
+        {/* AI Model Settings section */}
+        <section className="animate-fade-in-up animation-delay-560">
+          <AIModelSettings />
         </section>
 
         {/* Tag management section */}
