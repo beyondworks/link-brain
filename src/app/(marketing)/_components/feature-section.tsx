@@ -1,259 +1,205 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
+import { useRef } from 'react';
+import Image from 'next/image';
+import { motion, useInView } from 'motion/react';
 
-gsap.registerPlugin(ScrollTrigger);
+const FEATURES = [
+  {
+    step: '01',
+    title: 'AI가 자동으로 요약하고 분류합니다',
+    description:
+      'URL을 저장하는 순간, AI가 콘텐츠를 분석해 핵심 요약, 태그, 카테고리를 자동 생성합니다. 복잡한 정리 작업 없이 바로 지식이 됩니다.',
+    image: '/images/landing/80d5989adc131321cac0e9143d0082a725148f56.png',
+    alt: 'Dashboard',
+  },
+  {
+    step: '02',
+    title: '클릭 한 번으로 어디서든 저장',
+    description:
+      '브라우저에서 발견한 콘텐츠를 바로 저장하세요. YouTube, Twitter, 블로그, PDF — 플랫폼에 상관없이 최적의 메타데이터를 자동으로 추출합니다.',
+    image: '/images/landing/4b4aa1d6da0f8a98387e9977bff027bd22b3886a.png',
+    alt: 'Modal',
+  },
+  {
+    step: '03',
+    title: 'Content Studio로 콘텐츠 재창조',
+    description:
+      '저장한 지식을 바탕으로 새로운 콘텐츠를 만드세요. AI가 요약, 번역, 블로그 초안까지 자동으로 생성해줍니다.',
+    image: '/images/landing/64139d47fa461ddc2a639cbb0ba032dd513ddc29.png',
+    alt: 'Studio',
+  },
+  {
+    step: '04',
+    title: 'AI 인사이트로 지식을 연결합니다',
+    description:
+      '저장한 콘텐츠 사이의 숨겨진 연결고리를 AI가 찾아냅니다. 관련 클립 추천, 트렌드 분석, 지식 그래프로 더 깊은 이해를 도와줍니다.',
+    image: '/images/landing/0010a39611eeb7f66bc1602eb4a2f62a633b96e4.png',
+    alt: 'Insight',
+  },
+  {
+    step: '05',
+    title: '클립 상세 — 모든 정보를 한눈에',
+    description:
+      '원본 콘텐츠, AI 요약, 태그, 메모를 하나의 화면에서 확인하세요. 필요한 정보를 빠르게 찾고, 메모를 추가해 나만의 맥락을 더할 수 있습니다.',
+    image: '/images/landing/116ecbcc977d6f8005e7b1c6385a16dea5ec4615.png',
+    alt: 'Clip Detail',
+  },
+  {
+    step: '06',
+    title: '깔끔한 홈, 나만의 지식 허브',
+    description:
+      '대시보드에서 최근 저장, 즐겨찾기, 카테고리별 현황을 한눈에 파악하세요. 직관적인 인터페이스로 수백 개의 클립도 쉽게 관리할 수 있습니다.',
+    image: '/images/landing/87e8e38104d1f12860b2561cbf2ff4aeaac840f8.png',
+    alt: 'Home',
+  },
+];
 
-export interface FeatureData {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-  mockupType: 'clip-card' | 'categories' | 'knowledge-graph' | 'multi-device';
-}
-
-interface FeatureSectionProps {
-  features: FeatureData[];
-  reducedMotion: boolean;
-}
-
-function ClipCardMockup() {
+function SectionBadge({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-[#2DD4BF]/15" />
-        <div className="flex-1">
-          <div className="h-3 w-3/4 rounded bg-[#0F172A]/10" />
-          <div className="mt-1.5 h-2 w-1/2 rounded bg-[#64748B]/10" />
-        </div>
-      </div>
-      <div className="mt-4 rounded-xl bg-[#F8FFFE] p-4">
-        <div className="mb-2 flex items-center gap-1.5">
-          <span className="text-sm">✦</span>
-          <span className="text-xs font-semibold text-[#0D9488]">AI 요약</span>
-        </div>
-        <div className="space-y-1.5">
-          <div className="h-2 w-full rounded bg-[#64748B]/8" />
-          <div className="h-2 w-5/6 rounded bg-[#64748B]/8" />
-          <div className="h-2 w-2/3 rounded bg-[#64748B]/8" />
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <span className="rounded-full bg-[#2DD4BF]/10 px-2.5 py-1 text-[10px] font-medium text-[#0D9488]">기술</span>
-        <span className="rounded-full bg-[#67E8F9]/15 px-2.5 py-1 text-[10px] font-medium text-[#0891B2]">AI</span>
-        <span className="rounded-full bg-[#A7F3D0]/20 px-2.5 py-1 text-[10px] font-medium text-[#059669]">생산성</span>
-      </div>
+    <div className="relative inline-flex items-center justify-center">
+      <div
+        className="absolute inset-0 rounded-full opacity-60 blur-sm"
+        style={{
+          background:
+            'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
+        }}
+      />
+      <span
+        className="relative rounded-full px-5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] text-white"
+        style={{
+          fontFamily: "'Pretendard Variable', sans-serif",
+          background:
+            'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
+        }}
+      >
+        {label}
+      </span>
     </div>
   );
 }
 
-function CategoriesMockup() {
-  const categories = ['기술', 'AI/ML', '디자인', '비즈니스', '개발'];
+function MacWindowChrome({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      {categories.map((cat, i) => (
-        <div key={cat} className="flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-white px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `hsl(${170 + i * 15}, 70%, 92%)` }}>
-              <span className="text-xs">◈</span>
-            </div>
-            <span className="text-sm font-medium text-[#0F172A]">{cat}</span>
-          </div>
-          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs text-[#64748B]">{12 + i * 7}</span>
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a] shadow-2xl">
+      {/* Title bar */}
+      <div className="flex items-center gap-2 border-b border-white/5 bg-[#2a2a2a] px-4 py-3">
+        <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+        <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
+        <div className="h-3 w-3 rounded-full bg-[#28c840]" />
+        <div className="ml-4 flex-1 text-center text-[11px] font-medium text-white/30">
+          linkbrain.cloud
         </div>
-      ))}
+      </div>
+      {/* Content */}
+      <div className="relative">{children}</div>
     </div>
   );
 }
 
-function KnowledgeGraphMockup() {
+function FeatureRow({
+  feature,
+  index,
+}: {
+  feature: (typeof FEATURES)[number];
+  index: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const isReversed = index % 2 === 1;
+
   return (
-    <div className="relative flex h-64 items-center justify-center">
-      {/* Central node */}
-      <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[#2DD4BF] shadow-lg">
-        <span className="text-lg text-white">◎</span>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+      className={`flex flex-col items-center gap-10 md:gap-16 ${
+        isReversed ? 'md:flex-row-reverse' : 'md:flex-row'
+      }`}
+    >
+      {/* Text */}
+      <div className="flex-1 text-center md:text-left">
+        <span className="text-sm font-bold text-[#21DBA4]">
+          Step {feature.step}
+        </span>
+        <h3
+          className="mt-3 text-2xl font-extrabold leading-snug tracking-tight text-white md:text-3xl"
+          style={{
+            fontFamily: "'Pretendard Variable', sans-serif",
+            wordBreak: 'keep-all',
+          }}
+        >
+          {feature.title}
+        </h3>
+        <p
+          className="mt-4 text-base leading-relaxed text-white/50"
+          style={{
+            fontFamily: "'Pretendard Variable', sans-serif",
+            wordBreak: 'keep-all',
+          }}
+        >
+          {feature.description}
+        </p>
       </div>
-      {/* Connected nodes */}
-      {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-        const x = Math.cos((angle * Math.PI) / 180) * 90;
-        const y = Math.sin((angle * Math.PI) / 180) * 70;
-        return (
-          <div key={i}>
-            {/* Connection line */}
-            <svg className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" width="200" height="160" style={{ overflow: 'visible' }}>
-              <line x1="0" y1="0" x2={x} y2={y} stroke="#2DD4BF" strokeWidth="1" strokeOpacity="0.3" />
-            </svg>
-            <div
-              className="absolute left-1/2 top-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-[#E2E8F0] bg-white shadow-sm"
-              style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
-            >
-              <div className="h-3 w-3 rounded-full" style={{ background: `hsl(${170 + i * 20}, 60%, 75%)` }} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
+
+      {/* Screenshot */}
+      <div className="w-full flex-1">
+        <MacWindowChrome>
+          <Image
+            src={feature.image}
+            alt={feature.alt}
+            width={800}
+            height={500}
+            unoptimized
+            className="block w-full"
+          />
+        </MacWindowChrome>
+      </div>
+    </motion.div>
   );
 }
 
-function MultiDeviceMockup() {
-  return (
-    <div className="flex items-end justify-center gap-4">
-      {/* Desktop */}
-      <div className="w-48 rounded-lg border border-[#E2E8F0] bg-white shadow-sm">
-        <div className="flex items-center gap-1 border-b border-[#E2E8F0] px-2 py-1.5">
-          <div className="h-1.5 w-1.5 rounded-full bg-red-300" />
-          <div className="h-1.5 w-1.5 rounded-full bg-yellow-300" />
-          <div className="h-1.5 w-1.5 rounded-full bg-green-300" />
-        </div>
-        <div className="p-3">
-          <div className="h-2 w-3/4 rounded bg-[#0F172A]/10" />
-          <div className="mt-2 space-y-1.5">
-            {[1, 2, 3].map((j) => (
-              <div key={j} className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-[#2DD4BF]/10" />
-                <div className="flex-1">
-                  <div className="h-1.5 w-full rounded bg-[#64748B]/10" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Mobile */}
-      <div className="w-20 rounded-xl border-2 border-[#E2E8F0] bg-white p-1.5 shadow-sm">
-        <div className="h-1 w-6 mx-auto rounded-full bg-[#E2E8F0] mb-1.5" />
-        <div className="space-y-1.5 px-1">
-          {[1, 2].map((j) => (
-            <div key={j} className="rounded bg-[#F8FFFE] p-1.5">
-              <div className="h-1 w-full rounded bg-[#64748B]/10" />
-              <div className="mt-1 h-1 w-2/3 rounded bg-[#64748B]/8" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const MOCKUP_MAP: Record<FeatureData['mockupType'], React.FC> = {
-  'clip-card': ClipCardMockup,
-  'categories': CategoriesMockup,
-  'knowledge-graph': KnowledgeGraphMockup,
-  'multi-device': MultiDeviceMockup,
-};
-
-export function FeatureSection({ features, reducedMotion }: FeatureSectionProps) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useGSAP(
-    () => {
-      if (reducedMotion) return;
-      const section = sectionRef.current;
-      if (!section) return;
-
-      const isMobile = window.innerWidth < 768;
-      if (isMobile) return;
-
-      // Each feature occupies 1 "page" of scrolling
-      features.forEach((_, i) => {
-        ScrollTrigger.create({
-          trigger: section,
-          start: `${(i / features.length) * 100}% top`,
-          end: `${((i + 1) / features.length) * 100}% top`,
-          onEnter: () => setActiveIndex(i),
-          onEnterBack: () => setActiveIndex(i),
-        });
-      });
-    },
-    { scope: sectionRef, dependencies: [reducedMotion, features.length] },
-  );
+export function FeatureSection() {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
 
   return (
-    <section ref={sectionRef} className="bg-white py-24 md:min-h-[400vh] md:py-0">
+    <section
+      ref={ref}
+      className="relative py-24 md:py-32"
+      style={{ background: '#090909' }}
+    >
       {/* Section header */}
-      <div className="mx-auto max-w-5xl px-4 py-16 text-center md:py-24">
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#2DD4BF]">핵심 기능</span>
-        <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-[#0F172A] md:text-5xl" style={{ wordBreak: 'keep-all' }}>
-          왜 LinkBrain인가요?
+      <motion.div
+        className="mx-auto mb-20 max-w-3xl px-4 text-center md:px-6"
+        initial={{ opacity: 0, y: 30 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <SectionBadge label="Features" />
+        <h2
+          className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl"
+          style={{
+            fontFamily: "'Pretendard Variable', sans-serif",
+            wordBreak: 'keep-all',
+          }}
+        >
+          왜 Linkbrain인가요?
         </h2>
-        <p className="mt-4 text-lg text-[#64748B]">저장에서 활용까지, 지식의 전 과정을 자동화합니다</p>
-      </div>
+        <p
+          className="mt-4 text-lg text-white/40"
+          style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+        >
+          저장에서 활용까지, 지식의 전 과정을 자동화합니다
+        </p>
+      </motion.div>
 
-      {/* Desktop: sticky layout */}
-      <div className="mx-auto hidden max-w-6xl md:block">
-        <div className="flex gap-16 px-6">
-          {/* Left: sticky text */}
-          <div className="w-1/2" style={{ position: 'sticky', top: '20vh', alignSelf: 'flex-start' }}>
-            {features.map((feature, i) => (
-              <div
-                key={feature.id}
-                className="transition-all duration-500"
-                style={{
-                  opacity: activeIndex === i ? 1 : 0.2,
-                  transform: activeIndex === i ? 'translateY(0)' : 'translateY(8px)',
-                  position: activeIndex === i ? 'relative' : 'absolute',
-                  pointerEvents: activeIndex === i ? 'auto' : 'none',
-                }}
-              >
-                <span className="text-3xl">{feature.icon}</span>
-                <h3 className="mt-4 text-3xl font-extrabold tracking-tight text-[#0F172A]" style={{ wordBreak: 'keep-all' }}>
-                  {feature.title}
-                </h3>
-                <p className="mt-3 text-base leading-relaxed text-[#64748B]" style={{ wordBreak: 'keep-all' }}>
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Right: mockup */}
-          <div className="w-1/2" style={{ position: 'sticky', top: '15vh', alignSelf: 'flex-start' }}>
-            <div className="rounded-3xl border border-[#E2E8F0] bg-[#F8FFFE] p-8 shadow-sm">
-              {features.map((feature, i) => {
-                const MockupComponent = MOCKUP_MAP[feature.mockupType];
-                return (
-                  <div
-                    key={feature.id}
-                    className="transition-all duration-500"
-                    style={{
-                      opacity: activeIndex === i ? 1 : 0,
-                      transform: activeIndex === i ? 'scale(1)' : 'scale(0.95)',
-                      display: activeIndex === i ? 'block' : 'none',
-                    }}
-                  >
-                    <MockupComponent />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile: stacked cards */}
-      <div className="mx-auto max-w-lg space-y-8 px-4 md:hidden">
-        {features.map((feature) => {
-          const MockupComponent = MOCKUP_MAP[feature.mockupType];
-          return (
-            <div key={feature.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
-              <span className="text-2xl">{feature.icon}</span>
-              <h3 className="mt-3 text-xl font-extrabold text-[#0F172A]" style={{ wordBreak: 'keep-all' }}>
-                {feature.title}
-              </h3>
-              <p className="mt-2 text-sm text-[#64748B]" style={{ wordBreak: 'keep-all' }}>
-                {feature.description}
-              </p>
-              <div className="mt-5 rounded-xl bg-[#F8FFFE] p-4">
-                <MockupComponent />
-              </div>
-            </div>
-          );
-        })}
+      {/* Feature rows */}
+      <div className="mx-auto max-w-6xl space-y-24 px-4 md:space-y-32 md:px-6">
+        {FEATURES.map((feature, i) => (
+          <FeatureRow key={feature.step} feature={feature} index={i} />
+        ))}
       </div>
     </section>
   );
