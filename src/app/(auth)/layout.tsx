@@ -13,75 +13,54 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel - animated brand visual */}
-      <div className="hidden md:flex md:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden bg-gradient-animated">
-
-        {/* Noise texture overlay */}
-        <div className="absolute inset-0 bg-noise pointer-events-none z-[1]" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-
-        {/* Glow orbs */}
+    <div className="min-h-screen flex" style={{ fontFamily: "'Pretendard Variable', sans-serif" }}>
+      {/* Left panel - light gradient brand visual */}
+      <div
+        className="hidden md:flex md:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(to bottom, #e6f3f8 0%, #edf7fb 20%, #f4fafc 55%, #ffffff 100%)",
+        }}
+      >
+        {/* Subtle teal orbs */}
         <div
-          className="glow-orb animate-float w-96 h-96 -top-24 -left-24"
-          style={{ background: "oklch(0.90 0.14 168 / 30%)" }}
-        />
-        <div
-          className="glow-orb animate-float-slow w-80 h-80 bottom-0 right-0 translate-x-1/3 translate-y-1/3"
-          style={{ background: "oklch(0.70 0.12 200 / 25%)" }}
-        />
-        <div
-          className="glow-orb animate-float-reverse w-64 h-64 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ background: "oklch(0.65 0.18 155 / 20%)" }}
-        />
-
-        {/* Floating geometric shapes */}
-        <div
-          className="absolute top-16 right-16 w-12 h-12 rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm animate-float"
-          style={{ animationDelay: "0ms" }}
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 420,
+            height: 420,
+            top: -80,
+            left: -80,
+            background: "radial-gradient(circle, rgba(33,219,164,0.12) 0%, transparent 70%)",
+          }}
           aria-hidden="true"
         />
         <div
-          className="absolute top-1/3 right-8 w-8 h-8 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm animate-float-reverse"
-          style={{ animationDelay: "1200ms" }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute bottom-32 left-12 w-16 h-16 rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm animate-float-slow"
-          style={{ animationDelay: "600ms" }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute bottom-16 right-24 w-10 h-10"
-          style={{ animationDelay: "900ms" }}
-          aria-hidden="true"
-        >
-          {/* Triangle shape */}
-          <svg viewBox="0 0 40 40" className="w-full h-full animate-orbit opacity-30">
-            <polygon points="20,4 36,34 4,34" fill="none" stroke="white" strokeWidth="1.5" />
-          </svg>
-        </div>
-        <div
-          className="absolute top-1/4 left-8 w-6 h-6 rounded border border-white/30 bg-white/5 animate-spin-slow"
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 320,
+            height: 320,
+            bottom: -60,
+            right: -60,
+            background: "radial-gradient(circle, rgba(93,213,195,0.10) 0%, transparent 70%)",
+          }}
           aria-hidden="true"
         />
 
         {/* Brand content */}
         <div className="relative z-10 flex flex-col items-center text-center gap-10">
           {/* Logo */}
-          <div className="flex flex-col items-center gap-6 animate-fade-in-up">
+          <div className="flex flex-col items-center gap-5 animate-fade-in-up">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/linkbrain-symbol.svg" alt="" width={83} height={45} className="drop-shadow-lg" aria-hidden="true" />
+            <img src="/linkbrain-symbol.svg" alt="" width={72} height={40} aria-hidden="true" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/linkbrain-typo.svg" alt="Linkbrain" width={187} height={34} className="drop-shadow-md" />
+            <img src="/linkbrain-typo.svg" alt="Linkbrain" width={160} height={29} />
           </div>
 
           {/* Tagline */}
           <div className="flex flex-col gap-2 animate-fade-in-up animation-delay-200">
-            <p className="text-2xl font-bold text-white leading-snug">
+            <p className="text-2xl font-bold leading-snug" style={{ color: "#1a2e2a" }}>
               웹의 모든 지식을<br />연결하세요
             </p>
-            <p className="text-sm text-white/80 max-w-xs leading-relaxed">
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: "#5a7a72" }}>
               북마크를 저장하고, AI로 분류하고,<br />필요할 때 바로 찾아보세요.
             </p>
           </div>
@@ -125,15 +104,22 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             ].map(({ icon, title, desc }, i) => (
               <div
                 key={title}
-                className="flex items-start gap-3 text-left rounded-xl p-3 bg-white/10 backdrop-blur-sm border border-white/20 transition-all duration-300 hover:bg-white/15 group"
-                style={{ animationDelay: `${500 + i * 100}ms` }}
+                className="flex items-start gap-3 text-left rounded-2xl p-3 transition-all duration-300 group"
+                style={{
+                  background: "rgba(255,255,255,0.7)",
+                  border: "1px solid rgba(33,219,164,0.15)",
+                  animationDelay: `${500 + i * 100}ms`,
+                }}
               >
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 text-white icon-glow group-hover:bg-white/30 transition-colors duration-300">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300"
+                  style={{ background: "rgba(33,219,164,0.12)", color: "#21DBA4" }}
+                >
                   {icon}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="text-xs text-white/80 leading-relaxed">{desc}</p>
+                  <p className="text-sm font-semibold" style={{ color: "#1a2e2a" }}>{title}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: "#5a7a72" }}>{desc}</p>
                 </div>
               </div>
             ))}
@@ -141,8 +127,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </div>
 
-      {/* Right panel - auth card */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-background px-4 py-12">
+      {/* Right panel - white auth card */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-white px-4 py-12">
         {/* Mobile logo */}
         <div className="md:hidden mb-8 flex flex-col items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -150,12 +136,19 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
 
         {/* Auth card */}
-        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-sm animate-blur-in card-inner-glow">
+        <div
+          className="w-full max-w-md rounded-2xl p-8 animate-blur-in"
+          style={{
+            background: "#ffffff",
+            border: "1px solid rgba(0,0,0,0.07)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+          }}
+        >
           {children}
         </div>
 
         {/* Footer */}
-        <p className="mt-6 text-xs text-muted-foreground">
+        <p className="mt-6 text-xs" style={{ color: "#9aada9" }}>
           &copy; {new Date().getFullYear()} LinkBrain. All rights reserved.
         </p>
       </div>
