@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CheckSquare,
   Star,
@@ -32,33 +32,39 @@ interface MobileContextMenuProps {
  */
 export function MobileContextMenu({ open, onClose, position, actions }: MobileContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [adjustedPos, setAdjustedPos] = useState(position);
 
-  // Adjust position to stay within viewport
   useEffect(() => {
-    if (!open || !menuRef.current) return;
-    const menu = menuRef.current;
-    const rect = menu.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    if (!open) return;
+    // Start with touch coordinates
+    let x = position.x;
+    let y = position.y;
 
-    // Horizontal: keep menu within screen
-    if (rect.right > vw - 8) {
-      menu.style.left = `${vw - rect.width - 8}px`;
-    }
-    if (rect.left < 8) {
-      menu.style.left = '8px';
-    }
-    // Vertical: if menu would go below viewport, show above touch point
-    if (rect.bottom > vh - 8) {
-      menu.style.top = `${position.y - rect.height - 8}px`;
-    }
+    // Wait for menu to render to get its size
+    requestAnimationFrame(() => {
+      if (!menuRef.current) {
+        setAdjustedPos({ x, y });
+        return;
+      }
+      const rect = menuRef.current.getBoundingClientRect();
+      const PADDING = 16;
+
+      // Center horizontally on touch point
+      x = x - rect.width / 2;
+
+      // Clamp to viewport
+      x = Math.max(PADDING, Math.min(x, window.innerWidth - rect.width - PADDING));
+      y = Math.max(PADDING, Math.min(y, window.innerHeight - rect.height - PADDING));
+
+      setAdjustedPos({ x, y });
+    });
   }, [open, position]);
 
   if (!open) return null;
 
   return (
     <>
-      {/* Backdrop — use onTouchStart to intercept before child elements receive touch */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[70] lg:hidden"
         onTouchStart={(e) => {
@@ -73,7 +79,7 @@ export function MobileContextMenu({ open, onClose, position, actions }: MobileCo
       <div
         ref={menuRef}
         className="fixed z-[70] min-w-[180px] overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-elevated animate-fade-in lg:hidden"
-        style={{ top: position.y, left: position.x }}
+        style={{ top: adjustedPos.y, left: adjustedPos.x }}
         role="menu"
       >
         {actions.map((action) => {

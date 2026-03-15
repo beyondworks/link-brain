@@ -9,7 +9,7 @@ import { useTogglePin, useToggleReadLater } from '@/lib/hooks/use-clip-mutations
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import { PLATFORM_COLORS, PLATFORM_LABELS_EN, getGradient } from '@/config/constants';
+import { PLATFORM_COLORS, PLATFORM_LABELS_EN } from '@/config/constants';
 import { isProxiableImageUrl } from '@/lib/utils/clip-content';
 import { useLongPress } from '@/lib/hooks/use-long-press';
 import type { ClipData } from '@/types/database';
@@ -44,12 +44,11 @@ export const ClipRow = memo(function ClipRow({
   const toggleReadLater = useToggleReadLater();
   const retryClip = useRetryClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
-  const gradient = getGradient(clip.id);
 
   const longPressHandlers = useLongPress({
     onLongPress: (touchPos) => {
       if (!onLongPress) return;
-      onLongPress(clip, { x: touchPos.x - 40, y: touchPos.y + 12 });
+      onLongPress(clip, touchPos);
     },
     isEnabled: !!onLongPress,
   });
@@ -133,13 +132,8 @@ export const ClipRow = memo(function ClipRow({
             sizes="72px"
           />
         ) : (
-          <div
-            className={cn(
-              'flex h-full w-full items-center justify-center bg-gradient-to-br text-lg font-black text-white',
-              gradient
-            )}
-          >
-            {firstLetter}
+          <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: 'var(--thumbnail-fallback)' }}>
+            <span className="text-lg font-black text-muted-foreground/30">{firstLetter}</span>
           </div>
         )}
         {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (() => {
