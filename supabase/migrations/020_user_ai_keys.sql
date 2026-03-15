@@ -9,7 +9,7 @@
 CREATE TABLE IF NOT EXISTS public.user_ai_keys (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  provider        TEXT        NOT NULL CHECK (provider IN ('openai')),
+  provider        TEXT        NOT NULL CHECK (provider IN ('openai', 'google', 'anthropic')),
   name            TEXT        NOT NULL,
   encrypted_api_key TEXT      NOT NULL,  -- AES-256-GCM encrypted
   key_prefix      TEXT        NOT NULL,  -- First 8 chars + encrypted hash for identification
