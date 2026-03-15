@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, Loader2, Sparkles, Clock, Trash2, Copy, RotateCcw } from 'lucide-react';
+import { Save, Loader2, Sparkles, Clock, Trash2, Copy, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -40,69 +40,60 @@ function formatRelativeTime(date: Date): string {
   return `${Math.floor(diff / 86400)}일 전`;
 }
 
-// ─── FlipCard ─────────────────────────────────────────────────────────────────
+// ─── HistoryItem ──────────────────────────────────────────────────────────────
 
-function FlipCard({ item, onSelect, onDelete }: {
+function HistoryItem({ item, onSelect, onDelete }: {
   item: HistoryItem;
   onSelect: (item: HistoryItem) => void;
   onDelete?: (item: HistoryItem) => void;
 }) {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div
-      className="group relative w-full"
-      style={{ perspective: '1000px' }}
-    >
-      <div
-        className={cn(
-          'relative w-full transition-transform duration-500',
-          '[transform-style:preserve-3d]',
-          isFlipped && '[transform:rotateY(180deg)]'
-        )}
+    <div className="border-b border-border/30 last:border-b-0">
+      {/* Header - always visible, click to toggle */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40"
       >
-        {/* Front */}
-        <div
-          className="w-full cursor-pointer px-4 py-3 [backface-visibility:hidden]"
-          onClick={() => setIsFlipped(true)}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-foreground">
-                {item.prompt}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                {item.output}
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground/40">
-                탭하여 내용 보기
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground/60" suppressHydrationWarning>
-                {formatRelativeTime(item.createdAt)}
-              </span>
-              {onDelete && item.id && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(item);
-                  }}
-                  className="rounded-md p-1 text-muted-foreground/40 transition-spring hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 size={11} />
-                </button>
-              )}
-            </div>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-foreground">
+            {item.prompt}
+          </p>
+          {!isExpanded && (
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+              {item.output}
+            </p>
+          )}
         </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground/60" suppressHydrationWarning>
+            {formatRelativeTime(item.createdAt)}
+          </span>
+          <ChevronDown
+            size={12}
+            className={cn(
+              'text-muted-foreground/40 transition-transform duration-200',
+              isExpanded && 'rotate-180'
+            )}
+          />
+          {onDelete && item.id && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+              className="rounded-md p-1 text-muted-foreground/40 transition-spring hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
+        </div>
+      </button>
 
-        {/* Back */}
-        <div
-          className="absolute inset-0 w-full overflow-hidden px-4 py-3 [backface-visibility:hidden] [transform:rotateY(180deg)]"
-        >
-          <div className="max-h-[160px] overflow-y-auto text-xs leading-relaxed text-foreground">
+      {/* Expandable content */}
+      {isExpanded && (
+        <div className="px-4 pb-3 animate-fade-in">
+          <div className="max-h-[200px] overflow-y-auto rounded-xl bg-muted/30 p-3 text-xs leading-relaxed text-foreground">
             {item.output}
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -119,29 +110,15 @@ function FlipCard({ item, onSelect, onDelete }: {
             </button>
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(item);
-              }}
+              onClick={(e) => { e.stopPropagation(); onSelect(item); }}
               className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-primary transition-spring hover:bg-primary/10"
             >
               <Sparkles size={10} />
               편집기에 불러오기
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsFlipped(false);
-              }}
-              className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-muted-foreground transition-spring hover:bg-accent"
-            >
-              <RotateCcw size={10} />
-              닫기
-            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -256,7 +233,7 @@ export function StudioOutputPanel({
           </div>
           <div className="divide-y divide-border/40">
             {history.map((item, idx) => (
-              <FlipCard
+              <HistoryItem
                 key={idx}
                 item={item}
                 onSelect={onHistorySelect}
