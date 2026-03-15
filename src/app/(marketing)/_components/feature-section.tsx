@@ -7,199 +7,196 @@ import { motion, useInView } from 'motion/react';
 const FEATURES = [
   {
     step: '01',
-    title: 'AI가 자동으로 요약하고 분류합니다',
+    title: 'AI가 알아서 요약',
     description:
-      'URL을 저장하는 순간, AI가 콘텐츠를 분석해 핵심 요약, 태그, 카테고리를 자동 생성합니다. 복잡한 정리 작업 없이 바로 지식이 됩니다.',
+      'Open AI로 제목 추출, 요약 생성, 자동 태깅, 카테고리 분류를 자동으로 처리합니다.',
     image: '/images/landing/80d5989adc131321cac0e9143d0082a725148f56.png',
-    alt: 'Dashboard',
+    alt: 'Linkbrain 대시보드 — 클립 목록',
   },
   {
     step: '02',
-    title: '클릭 한 번으로 어디서든 저장',
+    title: '멀티 플랫폼 클리핑',
     description:
-      '브라우저에서 발견한 콘텐츠를 바로 저장하세요. YouTube, Twitter, 블로그, PDF — 플랫폼에 상관없이 최적의 메타데이터를 자동으로 추출합니다.',
+      'YouTube, X/Twitter, Instagram, Threads, 네이버 블로그 등 주요 플랫폼의 콘텐츠를 URL 하나로 저장합니다.\n각 플랫폼 전용 페처가 최적의 메타데이터를 추출합니다.',
     image: '/images/landing/4b4aa1d6da0f8a98387e9977bff027bd22b3886a.png',
-    alt: 'Modal',
+    alt: '클립 추가 모달',
   },
   {
     step: '03',
-    title: 'Content Studio로 콘텐츠 재창조',
+    title: '클립 상세 & AI 리더',
     description:
-      '저장한 지식을 바탕으로 새로운 콘텐츠를 만드세요. AI가 요약, 번역, 블로그 초안까지 자동으로 생성해줍니다.',
-    image: '/images/landing/64139d47fa461ddc2a639cbb0ba032dd513ddc29.png',
-    alt: 'Studio',
+      '저장된 콘텐츠를 열면 AI가 핵심 요약·액션 스냅을 바로 제시합니다. 긴 아티클도 몇 초 만에 핵심만 파악하세요.',
+    image: '/images/landing/116ecbcc977d6f8005e7b1c6385a16dea5ec4615.png',
+    alt: '클립 상세 뷰 — AI 요약',
   },
   {
     step: '04',
-    title: 'AI 인사이트로 지식을 연결합니다',
+    title: '콘텐츠 스튜디오',
     description:
-      '저장한 콘텐츠 사이의 숨겨진 연결고리를 AI가 찾아냅니다. 관련 클립 추천, 트렌드 분석, 지식 그래프로 더 깊은 이해를 도와줍니다.',
-    image: '/images/landing/0010a39611eeb7f66bc1602eb4a2f62a633b96e4.png',
-    alt: 'Insight',
+      '저장한 클립을 기반으로 블로그 포스트, 뉴스레터, SNS 포스트, 요약문 등 11가지 콘텐츠를 생성하세요.',
+    image: '/images/landing/64139d47fa461ddc2a639cbb0ba032dd513ddc29.png',
+    alt: '콘텐츠 스튜디오',
   },
   {
     step: '05',
-    title: '클립 상세 — 모든 정보를 한눈에',
+    title: 'AI 인사이트',
     description:
-      '원본 콘텐츠, AI 요약, 태그, 메모를 하나의 화면에서 확인하세요. 필요한 정보를 빠르게 찾고, 메모를 추가해 나만의 맥락을 더할 수 있습니다.',
-    image: '/images/landing/116ecbcc977d6f8005e7b1c6385a16dea5ec4615.png',
-    alt: 'Clip Detail',
+      '저장된 콘텐츠에서 발견한 패턴과 인사이트를 자동으로 분석합니다. 클러스터, 트렌드, 행동 패턴을 한눈에 확인하세요.',
+    image: '/images/landing/0010a39611eeb7f66bc1602eb4a2f62a633b96e4.png',
+    alt: 'AI 인사이트',
   },
   {
     step: '06',
-    title: '깔끔한 홈, 나만의 지식 허브',
+    title: '홈 대시보드',
     description:
-      '대시보드에서 최근 저장, 즐겨찾기, 카테고리별 현황을 한눈에 파악하세요. 직관적인 인터페이스로 수백 개의 클립도 쉽게 관리할 수 있습니다.',
+      '총 클립 수, 즐겨찾기, 이번 주 활동, 그래이드 현황을 한 화면에서 확인합니다. 나중에 읽기와 최근 활동도 놓치지 마세요.',
     image: '/images/landing/87e8e38104d1f12860b2561cbf2ff4aeaac840f8.png',
-    alt: 'Home',
+    alt: '홈 대시보드 — 통계 및 활동',
   },
 ];
 
-function SectionBadge({ label }: { label: string }) {
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <div
-        className="absolute inset-0 rounded-full opacity-60 blur-sm"
-        style={{
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
-        }}
-      />
-      <span
-        className="relative rounded-full px-5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] text-white"
-        style={{
-          fontFamily: "'Pretendard Variable', sans-serif",
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function MacWindowChrome({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1a] shadow-2xl">
-      {/* Title bar */}
-      <div className="flex items-center gap-2 border-b border-white/5 bg-[#2a2a2a] px-4 py-3">
-        <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-        <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
-        <div className="h-3 w-3 rounded-full bg-[#28c840]" />
-        <div className="ml-4 flex-1 text-center text-[11px] font-medium text-white/30">
-          linkbrain.cloud
-        </div>
-      </div>
-      {/* Content */}
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
 function FeatureRow({
-  feature,
-  index,
-}: {
-  feature: (typeof FEATURES)[number];
-  index: number;
-}) {
+  step,
+  title,
+  description,
+  image,
+  alt,
+  index: _index,
+}: (typeof FEATURES)[0] & { index: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  const isReversed = index % 2 === 1;
+  const inView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex flex-col items-center gap-10 md:gap-16 ${
-        isReversed ? 'md:flex-row-reverse' : 'md:flex-row'
-      }`}
-    >
+    <div ref={ref} className="grid grid-cols-1 lg:grid-cols-[1fr_1.7fr] gap-8 lg:gap-16 items-center">
       {/* Text */}
-      <div className="flex-1 text-center md:text-left">
-        <span className="text-sm font-bold text-[#21DBA4]">
-          Step {feature.step}
+      <motion.div
+        initial={{ opacity: 0, x: -36 }}
+        animate={inView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+        className="space-y-4 lg:pr-4"
+      >
+        <span
+          className="inline-block text-[11px] tracking-[1.2px] uppercase"
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 600,
+            color: '#21DBA4',
+          }}
+        >
+          {step}
         </span>
         <h3
-          className="mt-3 text-2xl font-extrabold leading-snug tracking-tight text-white md:text-3xl"
-          style={{
-            fontFamily: "'Pretendard Variable', sans-serif",
-            wordBreak: 'keep-all',
-          }}
+          className="text-[clamp(22px,2.8vw,36px)] text-[#111] tracking-[-0.8px] leading-[1.2] text-[28px]"
+          style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 700 }}
         >
-          {feature.title}
+          {title}
         </h3>
         <p
-          className="mt-4 text-base leading-relaxed text-white/50"
+          className="text-[15px] text-[#888] leading-[1.75] tracking-[-0.25px]"
+          style={{ fontFamily: "'Pretendard Variable', sans-serif", whiteSpace: 'pre-line' }}
+        >
+          {description}
+        </p>
+        {/* Accent line */}
+        <motion.div
+          initial={{ width: 0 }}
+          animate={inView ? { width: 32 } : {}}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="h-[2px] rounded-full"
+          style={{ background: 'linear-gradient(90deg, #21DBA4, #C3EBF8)' }}
+        />
+      </motion.div>
+
+      {/* Screenshot card */}
+      <motion.div
+        initial={{ opacity: 0, x: 40, scale: 0.97 }}
+        animate={inView ? { opacity: 1, x: 0, scale: 1 } : {}}
+        transition={{ duration: 0.85, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className="relative"
+      >
+        {/* Card glow */}
+        <div
+          className="absolute -inset-4 rounded-[32px] opacity-0 group-hover:opacity-100 pointer-events-none"
           style={{
-            fontFamily: "'Pretendard Variable', sans-serif",
-            wordBreak: 'keep-all',
+            background:
+              'radial-gradient(ellipse at 50% 50%, rgba(33,219,164,0.08) 0%, transparent 70%)',
+            filter: 'blur(20px)',
+          }}
+        />
+
+        <motion.div
+          whileHover={{ y: -6 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-[20px] overflow-hidden"
+          style={{
+            boxShadow:
+              '0 0 0 1px rgba(0,0,0,0.07), 0 4px 24px rgba(0,0,0,0.09), 0 16px 56px rgba(0,0,0,0.07)',
           }}
         >
-          {feature.description}
-        </p>
-      </div>
+          {/* macOS window chrome */}
+          <div
+            className="flex items-center gap-2 px-4 py-[10px]"
+            style={{ background: '#1c1c1e' }}
+          >
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+              <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+              <div className="w-3 h-3 rounded-full bg-[#28CA41]" />
+            </div>
+            <div
+              className="flex-1 mx-3 h-[22px] rounded-md flex items-center px-3 gap-2"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
+            >
+              <div
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ background: 'rgba(255,255,255,0.18)' }}
+              />
+              <span
+                className="text-[11px] truncate"
+                style={{
+                  fontFamily: "'Inter', monospace",
+                  color: 'rgba(255,255,255,0.32)',
+                }}
+              >
+                link-brain-omega.vercel.app
+              </span>
+            </div>
+            <div className="w-5" />
+          </div>
 
-      {/* Screenshot */}
-      <div className="w-full flex-1">
-        <MacWindowChrome>
-          <Image
-            src={feature.image}
-            alt={feature.alt}
-            width={800}
-            height={500}
-            unoptimized
-            className="block w-full"
-          />
-        </MacWindowChrome>
-      </div>
-    </motion.div>
+          {/* Screenshot */}
+          <motion.div
+            initial={{ scale: 1.04 }}
+            animate={inView ? { scale: 1 } : {}}
+            transition={{ duration: 1.1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Image
+              src={image}
+              alt={alt}
+              width={800}
+              height={500}
+              unoptimized
+              className="w-full block"
+              style={{ display: 'block' }}
+              draggable={false}
+            />
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }
 
 export function FeatureSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-
   return (
-    <section
-      ref={ref}
-      className="relative py-24 md:py-32"
-      style={{ background: '#090909' }}
-    >
-      {/* Section header */}
-      <motion.div
-        className="mx-auto mb-20 max-w-3xl px-4 text-center md:px-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <SectionBadge label="Features" />
-        <h2
-          className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl"
-          style={{
-            fontFamily: "'Pretendard Variable', sans-serif",
-            wordBreak: 'keep-all',
-          }}
-        >
-          왜 Linkbrain인가요?
-        </h2>
-        <p
-          className="mt-4 text-lg text-white/40"
-          style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
-        >
-          저장에서 활용까지, 지식의 전 과정을 자동화합니다
-        </p>
-      </motion.div>
-
-      {/* Feature rows */}
-      <div className="mx-auto max-w-6xl space-y-24 px-4 md:space-y-32 md:px-6">
-        {FEATURES.map((feature, i) => (
-          <FeatureRow key={feature.step} feature={feature} index={i} />
-        ))}
+    <section className="py-24 md:py-36 bg-white overflow-hidden">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12">
+        {/* Feature rows */}
+        <div className="space-y-24 md:space-y-36">
+          {FEATURES.map((feature, index) => (
+            <FeatureRow key={feature.step} {...feature} index={index} />
+          ))}
+        </div>
       </div>
     </section>
   );

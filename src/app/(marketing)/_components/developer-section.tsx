@@ -1,25 +1,24 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, ReactNode } from 'react';
 import { motion, useInView } from 'motion/react';
-import { Smartphone, Globe, Terminal } from 'lucide-react';
 
+// ── Inlined SectionBadge ───────────────────────────────────────────────────
 function SectionBadge({ label }: { label: string }) {
   return (
     <div className="relative inline-flex items-center justify-center">
       <div
-        className="absolute inset-0 rounded-full opacity-60 blur-sm"
+        className="absolute inset-0 rounded-full blur-sm opacity-60"
         style={{
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
+          background: 'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
         }}
       />
       <span
-        className="relative rounded-full px-5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] text-white"
+        className="relative px-5 py-1.5 rounded-full text-white text-[11px] tracking-[0.8px] uppercase"
         style={{
           fontFamily: "'Pretendard Variable', sans-serif",
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
+          fontWeight: 600,
+          background: 'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
         }}
       >
         {label}
@@ -28,137 +27,216 @@ function SectionBadge({ label }: { label: string }) {
   );
 }
 
-const API_ENDPOINTS = [
-  { method: 'GET', path: '/api/v1/clips', color: '#22c55e', description: '클립 목록 조회' },
-  { method: 'POST', path: '/api/v1/clips', color: '#3b82f6', description: '새 클립 생성' },
-  { method: 'PUT', path: '/api/v1/clips/:id', color: '#f59e0b', description: '클립 수정' },
-  { method: 'DELETE', path: '/api/v1/clips/:id', color: '#ef4444', description: '클립 삭제' },
-];
+// ── Inlined AnimatedSection ────────────────────────────────────────────────
+function AnimatedSection({
+  children,
+  className = '',
+  delay = 0,
+  direction = 'up',
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'left' | 'right' | 'none';
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
 
-function ApiEndpointCard() {
+  const initial = {
+    opacity: 0,
+    y: direction === 'up' ? 40 : 0,
+    x: direction === 'left' ? -40 : direction === 'right' ? 40 : 0,
+  };
+
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111]">
-      <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-        <Terminal className="h-4 w-4 text-[#21DBA4]" />
-        <span className="text-xs font-medium text-white/50">REST API</span>
-      </div>
-      <div className="divide-y divide-white/5 p-1">
-        {API_ENDPOINTS.map((ep) => (
-          <div key={`${ep.method}-${ep.path}`} className="flex items-center gap-3 px-4 py-3">
-            <span
-              className="w-16 rounded-md px-2 py-0.5 text-center text-[10px] font-bold"
-              style={{ backgroundColor: `${ep.color}20`, color: ep.color }}
-            >
-              {ep.method}
-            </span>
-            <code className="flex-1 text-xs text-white/60">{ep.path}</code>
-            <span className="hidden text-[11px] text-white/30 sm:block">
-              {ep.description}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <motion.div
+      ref={ref}
+      initial={initial}
+      animate={inView ? { opacity: 1, y: 0, x: 0 } : initial}
+      transition={{
+        duration: 0.75,
+        delay,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
-function MobileCard() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111]">
-      <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
-        <Smartphone className="h-4 w-4 text-[#21DBA4]" />
-        <span className="text-xs font-medium text-white/50">PWA & Mobile</span>
+// ── Card data ──────────────────────────────────────────────────────────────
+const cards = [
+  {
+    title: 'API 연동',
+    desc: ['REST API v1으로 iPhone 단축어, Slack, Notion 등의 외부 서비스와', 'Claude, ChatGPT, Gemini 등 LLM 서비스와 연동합니다.'],
+    tag: 'Developer',
+    visual: (
+      <div className="w-full h-full flex items-center justify-center p-6">
+        <div className="w-full max-w-[260px] space-y-2.5">
+          {[
+            { method: 'GET', path: '/clips', color: '#21DBA4' },
+            { method: 'POST', path: '/clips/create', color: '#5DD5C3' },
+            { method: 'PUT', path: '/clips/:id/tag', color: '#90E0DD' },
+            { method: 'DELETE', path: '/clips/:id', color: '#C3EBF8' },
+          ].map((api, i) => (
+            <motion.div
+              key={api.path}
+              initial={{ opacity: 0, x: -15 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 + 0.3 }}
+              className="flex items-center gap-3 py-2 border-b border-white/10"
+            >
+              <span
+                className="text-[10px] font-mono px-2 py-0.5 rounded"
+                style={{ color: api.color, background: `${api.color}22`, fontWeight: 600 }}
+              >
+                {api.method}
+              </span>
+              <span className="text-[12px] text-white/50 font-mono">{api.path}</span>
+            </motion.div>
+          ))}
+        </div>
       </div>
-      <div className="flex items-center justify-center p-8">
-        {/* Phone mockup */}
-        <div className="relative h-[200px] w-[100px] rounded-2xl border-2 border-white/15 bg-[#1a1a1a] p-2">
-          {/* Notch */}
-          <div className="mx-auto mb-2 h-1 w-8 rounded-full bg-white/20" />
-          {/* Screen content */}
-          <div className="space-y-2 rounded-lg bg-[#0d0d0d] p-2">
-            {[1, 2, 3].map((j) => (
-              <div key={j} className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-[#21DBA4]/15" />
-                <div className="flex-1 space-y-1">
-                  <div className="h-1.5 w-full rounded bg-white/10" />
-                  <div className="h-1 w-2/3 rounded bg-white/5" />
-                </div>
-              </div>
+    ),
+  },
+  {
+    title: 'PWA + 모바일',
+    desc: ['PWA로 설치하여 로컬에서도 클립을 확인하세요.', 'iOS / Android에서 공유 메뉴로 바로 저장합니다.'],
+    tag: 'Mobile',
+    visual: (
+      <div className="w-full h-full flex items-center justify-center p-6">
+        <div className="w-[100px] h-[180px] rounded-[20px] border-2 border-white/20 relative overflow-hidden bg-white/5">
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full bg-white/20" />
+          <div className="absolute inset-x-2 top-8 bottom-2 rounded-[12px] bg-white/[0.08] overflow-hidden">
+            {[0, 1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 + 0.5 }}
+                className="m-2 h-6 rounded-md bg-white/10 flex items-center px-2 gap-1.5"
+              >
+                <div className="w-3 h-3 rounded-sm bg-[#21DBA4]/50" />
+                <div className="flex-1 h-1.5 rounded-full bg-white/[0.15]" />
+              </motion.div>
             ))}
           </div>
-          {/* Bottom bar */}
-          <div className="mt-2 flex justify-center gap-4">
-            <div className="h-1 w-1 rounded-full bg-white/20" />
-            <div className="h-1 w-1 rounded-full bg-[#21DBA4]/50" />
-            <div className="h-1 w-1 rounded-full bg-white/20" />
-          </div>
-        </div>
-        {/* Labels */}
-        <div className="ml-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-[#21DBA4]/60" />
-            <span className="text-xs text-white/40">오프라인 지원</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4 text-[#21DBA4]/60" />
-            <span className="text-xs text-white/40">홈 화면 추가</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-[#21DBA4]/60" />
-            <span className="text-xs text-white/40">푸시 알림</span>
-          </div>
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border border-white/30 flex items-center justify-center"
+          >
+            <div className="w-3 h-3 rounded-sm border border-white/40" />
+          </motion.div>
         </div>
       </div>
-    </div>
-  );
-}
+    ),
+  },
+];
 
+// ── Component ──────────────────────────────────────────────────────────────
 export function DeveloperSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
     <section
       ref={ref}
-      className="relative py-24 md:py-32"
-      style={{ background: '#050505' }}
+      className="relative py-28 overflow-hidden"
+      style={{ background: 'linear-gradient(160deg, #111 0%, #1a1a1a 100%)' }}
     >
-      <motion.div
-        className="mx-auto mb-16 max-w-3xl px-4 text-center md:px-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <SectionBadge label="For Developers" />
-        <h2
-          className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl"
-          style={{
-            fontFamily: "'Pretendard Variable', sans-serif",
-            wordBreak: 'keep-all',
-          }}
-        >
-          개발자를 위한 확장성
-        </h2>
-        <p className="mt-4 text-lg text-white/40">
-          REST API와 PWA로 어디서든 연결하세요
-        </p>
-      </motion.div>
+      {/* Background glow */}
+      <div
+        className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse, rgba(33,219,164,0.08) 0%, transparent 70%)',
+        }}
+      />
 
-      <div className="mx-auto grid max-w-5xl gap-6 px-4 md:grid-cols-2 md:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <ApiEndpointCard />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <MobileCard />
-        </motion.div>
+      <div className="max-w-[1200px] mx-auto px-6 md:px-12">
+        {/* Section Header */}
+        <AnimatedSection className="flex flex-col items-center gap-5 mb-20">
+          <SectionBadge label="Platform" />
+          <h2
+            className="text-[clamp(28px,4vw,48px)] text-transparent bg-clip-text text-center tracking-[-1px] leading-[1.15]"
+            style={{
+              backgroundImage: 'linear-gradient(110deg, #5DD5C3 0%, #C3EBF8 50%, #5DD5C3 100%)',
+              fontFamily: "'Pretendard Variable', sans-serif",
+              fontWeight: 800,
+            }}
+          >
+            세컨드 브레인을 만드세요<br />
+            링크가 쌓이면 지식이 복리가 됩니다
+          </h2>
+          <p
+            className="text-[16px] text-white/50 text-center tracking-[-0.3px] max-w-[480px] leading-[1.8]"
+            style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+          >
+            저장에서 창작까지, 지식의 전 과정을 하나의 도구로 완성하세요.<br />
+            웹의 모든 콘텐츠를 저장하고, AI로 정리하고, 지식으로 연결하세요.
+          </p>
+        </AnimatedSection>
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {cards.map((card, i) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 40 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.75, delay: i * 0.15 + 0.2, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -4 }}
+              className="relative rounded-[24px] overflow-hidden group"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(20px)',
+              }}
+            >
+              {/* Hover glow */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[24px]"
+                style={{
+                  background: 'radial-gradient(ellipse at 50% 0%, rgba(33,219,164,0.06) 0%, transparent 70%)',
+                }}
+              />
+
+              {/* Visual area */}
+              <div className="h-[220px] relative overflow-hidden">
+                {card.visual}
+              </div>
+
+              {/* Content */}
+              <div className="px-7 pb-7 pt-1">
+                <div className="h-[1px] bg-white/[0.08] mb-6" />
+                <span
+                  className="text-[11px] tracking-[1px] uppercase text-[#21DBA4] mb-2 block"
+                  style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+                >
+                  {card.tag}
+                </span>
+                <h3
+                  className="text-[20px] text-white mb-3 tracking-[-0.4px]"
+                  style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 600 }}
+                >
+                  {card.title}
+                </h3>
+                {card.desc.map((line, j) => (
+                  <p
+                    key={j}
+                    className="text-[14px] text-white/50 leading-[1.7] tracking-[-0.2px]"
+                    style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
