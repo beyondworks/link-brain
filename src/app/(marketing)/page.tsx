@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { PLAN_LIMITS } from '@/config/credits';
 import { LandingContent } from './_components/landing-content';
-import type { FaqItem } from './_components/landing-content';
 
 export const metadata: Metadata = {
   title: 'Linkbrain — AI 세컨드 브레인 | 웹 콘텐츠 저장 & 지식 관리',
@@ -25,40 +24,10 @@ export const metadata: Metadata = {
   },
 };
 
-const FEATURES = [
-  {
-    id: 'ai-summary',
-    icon: '✦',
-    title: '저장하면 AI가 알아서 요약',
-    description:
-      'URL 하나만 붙여넣으면 제목, 핵심 내용, 태그를 자동으로 추출해 정리합니다',
-    mockupType: 'clip-card' as const,
-  },
-  {
-    id: 'smart-classify',
-    icon: '◈',
-    title: '카테고리와 컬렉션으로 자동 분류',
-    description:
-      'AI가 콘텐츠 유형을 파악하고 적절한 카테고리에 자동 배치합니다',
-    mockupType: 'categories' as const,
-  },
-  {
-    id: 'second-brain',
-    icon: '◎',
-    title: '내 지식이 연결되는 순간',
-    description:
-      '저장한 콘텐츠들이 서로 연결되며 나만의 지식 네트워크가 만들어집니다',
-    mockupType: 'knowledge-graph' as const,
-  },
-  {
-    id: 'anywhere',
-    icon: '⊕',
-    title: '모바일, 데스크탑, 어디서나',
-    description:
-      '브라우저 익스텐션으로 즉시 저장하고 모바일 앱으로 언제든 확인하세요',
-    mockupType: 'multi-device' as const,
-  },
-];
+interface FaqItem {
+  question: string;
+  answer: string;
+}
 
 const FAQ_ITEMS: FaqItem[] = [
   {
@@ -120,7 +89,11 @@ const JSON_LD = [
     applicationCategory: 'ProductivityApplication',
     operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
-    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '1200' },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '1200',
+    },
   },
   {
     '@context': 'https://schema.org',
@@ -133,15 +106,18 @@ const JSON_LD = [
   },
 ];
 
+/**
+ * JSON-LD uses only hardcoded constants (no user input) — safe for inline script.
+ */
 export default function LandingPage() {
   return (
     <>
-      {/* Static JSON-LD structured data - hardcoded constants only, no user input */}
       <script
         type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
-      <LandingContent features={FEATURES} faqItems={FAQ_ITEMS} />
+      <LandingContent />
     </>
   );
 }
