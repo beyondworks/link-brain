@@ -59,3 +59,10 @@ Logo/
 *.png
 !public/icon-*.png
 video/demo/node_modules/
+
+# E2E auth state
+e2e/.auth/
+
+# Video assets (large)
+public/video/
+video/

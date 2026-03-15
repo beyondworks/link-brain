@@ -5,69 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const PLANS = [
-  {
-    name: 'Free',
-    nameKo: '무료',
-    price: { monthly: '₩0', yearly: '₩0' },
-    period: '영구 무료',
-    description: '개인 사용에 딱 맞는 기본 플랜',
-    features: [
-      '클립 100개',
-      '컬렉션 5개',
-      'AI 분석 월 100회',
-      'Content Studio 월 10회',
-      '기본 검색',
-      '커뮤니티 접근',
-    ],
-    cta: '무료로 시작하기',
-    href: '/signup',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    nameKo: '프로',
-    price: { monthly: '₩9,900', yearly: '₩7,920' },
-    period: '월',
-    description: '파워 유저를 위한 프리미엄 기능',
-    features: [
-      '클립 무제한',
-      '컬렉션 무제한',
-      'AI 분석 월 500회',
-      'Content Studio 월 100회',
-      '시맨틱 검색 + 지식 그래프',
-      '하이라이트 + 주석',
-      'API 키 5개',
-      '컬렉션 공유',
-      '내보내기',
-      '우선 지원',
-    ],
-    cta: 'Pro 시작하기',
-    href: '/signup?plan=pro',
-    highlighted: true,
-  },
-  {
-    name: 'Master',
-    nameKo: '마스터',
-    price: { monthly: '₩29,900', yearly: '₩23,920' },
-    period: '월',
-    description: '팀과 크리에이터를 위한 최상위 플랜',
-    features: [
-      'Pro의 모든 기능',
-      'AI 분석 무제한',
-      'Content Studio 무제한',
-      '팀 워크스페이스',
-      'API 키 10개',
-      'MCP 서버 연동',
-      '전용 지원',
-      '조기 접근',
-    ],
-    cta: 'Master 시작하기',
-    href: '/signup?plan=master',
-    highlighted: false,
-  },
-];
+import { MARKETING_PLANS } from '@/config/plans';
 
 const FAQ_ITEMS = [
   {
@@ -129,47 +67,20 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
 
-  const pricingJsonLd = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: 'Linkbrain Free',
-      description: '개인 사용에 딱 맞는 기본 플랜',
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'KRW',
-        priceValidUntil: '2026-12-31',
-        availability: 'https://schema.org/InStock',
-      },
+  const PRICE_NUMERIC: Record<string, string> = { Free: '0', Pro: '9900', Master: '29900' };
+  const pricingJsonLd = MARKETING_PLANS.map((plan) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `Linkbrain ${plan.name}`,
+    description: plan.description,
+    offers: {
+      '@type': 'Offer',
+      price: PRICE_NUMERIC[plan.name] ?? '0',
+      priceCurrency: 'KRW',
+      priceValidUntil: '2026-12-31',
+      availability: 'https://schema.org/InStock',
     },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: 'Linkbrain Pro',
-      description: '파워 유저를 위한 프리미엄 기능',
-      offers: {
-        '@type': 'Offer',
-        price: '9900',
-        priceCurrency: 'KRW',
-        priceValidUntil: '2026-12-31',
-        availability: 'https://schema.org/InStock',
-      },
-    },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: 'Linkbrain Master',
-      description: '팀과 크리에이터를 위한 최상위 플랜',
-      offers: {
-        '@type': 'Offer',
-        price: '29900',
-        priceCurrency: 'KRW',
-        priceValidUntil: '2026-12-31',
-        availability: 'https://schema.org/InStock',
-      },
-    },
-  ];
+  }));
 
   return (
     <div className="bg-gradient-mesh bg-noise min-h-screen relative">
@@ -249,7 +160,7 @@ export default function PricingPage() {
       <div className="relative container mx-auto px-4 py-14">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-6 md:grid-cols-3 items-center">
-            {PLANS.map((plan, index) => {
+            {MARKETING_PLANS.map((plan, index) => {
               if (plan.highlighted) {
                 return (
                   <div

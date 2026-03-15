@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search, Shield } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search, Shield, MessageSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
@@ -23,6 +23,7 @@ import { AdvancedFilters } from '@/components/layout/advanced-filters';
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
+import { ChatPanel } from '@/components/chat/chat-panel';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
@@ -49,7 +50,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user, isLoading } = useSupabase();
   const { user: publicUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
-  const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse, searchQuery, setSearchQuery } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, openModal, isSidebarCollapsed, toggleSidebarCollapse, searchQuery, setSearchQuery, openChat } = useUIStore();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const mobileSearchRef = useRef<HTMLInputElement>(null);
   const { data: navCounts } = useNavCounts();
@@ -232,6 +233,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Bottom section — collapse toggle + user profile */}
         <div className="border-t border-border/50 p-3">
+          {/* AI Chat button */}
+          <button
+            type="button"
+            onClick={openChat}
+            title={isSidebarCollapsed ? 'AI 채팅' : undefined}
+            className={[
+              'mb-1 flex w-full items-center rounded-xl text-xs font-medium text-muted-foreground transition-spring hover:bg-accent/60 hover:text-foreground',
+              isSidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
+            ].join(' ')}
+            aria-label="AI 채팅 열기"
+          >
+            <MessageSquare size={16} className="shrink-0" />
+            {!isSidebarCollapsed && (
+              <>
+                <span>AI 채팅</span>
+                <kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/70">
+                  ⌘J
+                </kbd>
+              </>
+            )}
+          </button>
+
           {/* Collapse toggle button — desktop only */}
           <button
             type="button"
@@ -361,6 +384,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Add clip dialog — available on all pages */}
         <AddClipDialog />
+
+        {/* AI Chat panel — right sidebar slide-in */}
+        <ChatPanel />
 
         {/* Page content — mobile header as stickyHeader inside scroll container */}
         <PullToRefreshWrapper

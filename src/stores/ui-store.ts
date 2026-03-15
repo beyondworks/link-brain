@@ -33,6 +33,7 @@ interface UIState {
   clipPeekMode: ClipPeekMode;
   pendingSaveCount: number;
   completedSaveCount: number;
+  isChatOpen: boolean;
 }
 
 interface UIActions {
@@ -63,6 +64,9 @@ interface UIActions {
   completePendingSave: () => void;
   failPendingSave: () => void;
   resetSaveProgress: () => void;
+  openChat: () => void;
+  closeChat: () => void;
+  toggleChat: () => void;
 }
 
 const DEFAULT_FILTERS: UIFilters = {
@@ -97,6 +101,7 @@ export const useUIStore = create<UIState & UIActions>()(
       clipPeekMode: 'side',
       pendingSaveCount: 0,
       completedSaveCount: 0,
+      isChatOpen: false,
 
       // Actions
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -184,6 +189,10 @@ export const useUIStore = create<UIState & UIActions>()(
 
       resetSaveProgress: () =>
         set({ pendingSaveCount: 0, completedSaveCount: 0 }),
+
+      openChat: () => set({ isChatOpen: true }),
+      closeChat: () => set({ isChatOpen: false }),
+      toggleChat: () => set((s) => ({ isChatOpen: !s.isChatOpen })),
     }),
     {
       name: 'linkbrain-ui',

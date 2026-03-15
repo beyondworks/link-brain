@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useInsights } from '@/lib/hooks/use-insights';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 const DonutChart = dynamic(
   () => import('@/components/charts/donut-chart').then((m) => m.DonutChart),
@@ -22,6 +23,10 @@ import {
   BookOpen,
   Sparkles,
   Tag,
+  Brain,
+  BookOpenCheck,
+  ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 const PLATFORM_COLORS = [
@@ -160,6 +165,9 @@ export function InsightsClient() {
           );
         })}
       </div>
+
+      {/* AI Insights CTA */}
+      <AiInsightsSection />
 
       {/* Detailed insights grid */}
       <div className="relative grid gap-4 sm:grid-cols-2">
@@ -337,6 +345,196 @@ export function InsightsClient() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── AI Insights Section ────────────────────────────────────────────────────
+
+interface AiInsightResult {
+  summary: string;
+  trends: string[];
+  recommendations: string[];
+  topicFocus: string;
+  knowledgeClusters?: Array<{ name: string; clipCount: number; description: string }>;
+  readingDebt?: { count: number; suggestion: string };
+  actionItems?: string[];
+}
+
+function AiInsightsSection() {
+  const [result, setResult] = useState<AiInsightResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateInsights = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/v1/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'insights', period: 'month', language: 'ko' }),
+      });
+      if (!res.ok) {
+        const errJson = (await res.json()) as { error?: { message?: string } };
+        throw new Error(errJson.error?.message ?? 'AI 인사이트 생성 실패');
+      }
+      const json = (await res.json()) as { data: { aiAnalysis: AiInsightResult } };
+      setResult(json.data.aiAnalysis);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  if (!result && !loading) {
+    return (
+      <div className="relative mb-4 animate-fade-in-up animation-delay-300 overflow-hidden rounded-2xl border border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent p-6">
+        <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+          <div className="rounded-2xl bg-primary/10 p-3">
+            <Brain size={22} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-foreground">AI 콘텐츠 분석</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+              저장된 클립의 콘텐츠를 분석하여 지식 클러스터, 트렌드, 행동 제안을 받아보세요
+            </p>
+          </div>
+          <Button
+            onClick={generateInsights}
+            disabled={loading}
+            className="rounded-xl bg-gradient-brand text-white shadow-brand hover:shadow-brand-lg"
+            size="sm"
+          >
+            {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Sparkles size={14} className="mr-1.5" />}
+            분석 시작
+          </Button>
+        </div>
+        {error && (
+          <p className="mt-3 text-xs text-destructive">{error}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="relative mb-4 space-y-3">
+        <Skeleton className="h-24 rounded-2xl shimmer" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Skeleton className="h-32 rounded-2xl shimmer" />
+          <Skeleton className="h-32 rounded-2xl shimmer" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) return null;
+
+  return (
+    <div className="relative mb-4 space-y-4 animate-blur-in">
+      {/* Summary */}
+      <div className="overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
+        <div className="mb-3 flex items-center gap-2.5">
+          <div className="icon-glow rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 p-2 ring-1 ring-primary/20">
+            <Brain size={15} className="text-primary" />
+          </div>
+          <span className="text-xs font-medium text-muted-foreground">AI 분석 요약</span>
+        </div>
+        <p className="text-sm leading-relaxed text-foreground">{result.summary}</p>
+        {result.topicFocus && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            주요 관심사: <span className="font-medium text-primary">{result.topicFocus}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Trends */}
+        {result.trends.length > 0 && (
+          <div className="overflow-hidden rounded-2xl border border-border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="icon-glow rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 p-2 ring-1 ring-white/10">
+                <TrendingUp size={15} className="text-blue-500" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">트렌드</span>
+            </div>
+            <ul className="space-y-1.5">
+              {result.trends.map((trend, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                  {trend}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Action Items */}
+        {(result.actionItems ?? result.recommendations).length > 0 && (
+          <div className="overflow-hidden rounded-2xl border border-border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="icon-glow rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 p-2 ring-1 ring-white/10">
+                <ArrowRight size={15} className="text-emerald-500" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">행동 제안</span>
+            </div>
+            <ul className="space-y-1.5">
+              {(result.actionItems ?? result.recommendations).map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Knowledge Clusters */}
+      {result.knowledgeClusters && result.knowledgeClusters.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2.5">
+            <div className="icon-glow rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-500/5 p-2 ring-1 ring-white/10">
+              <Sparkles size={15} className="text-violet-500" />
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">지식 클러스터</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {result.knowledgeClusters.map((cluster, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2"
+              >
+                <p className="text-xs font-semibold text-foreground">{cluster.name}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {cluster.clipCount}개 클립 · {cluster.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reading Debt */}
+      {result.readingDebt && result.readingDebt.count > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-5">
+          <div className="flex items-center gap-2.5">
+            <div className="icon-glow rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 p-2 ring-1 ring-amber-500/20">
+              <BookOpenCheck size={15} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">
+                읽기 부채: {result.readingDebt.count}개 미읽음
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                {result.readingDebt.suggestion}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

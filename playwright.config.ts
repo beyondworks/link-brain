@@ -7,23 +7,32 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: 30000,
+  globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    storageState: 'e2e/.auth/state.json',
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /smoke\.spec\.ts/,
+      use: { storageState: undefined },
+    },
+    {
+      name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'mobile',
+      use: {
+        ...devices['iPhone 13'],
+        viewport: { width: 375, height: 812 },
+      },
+      dependencies: ['setup'],
     },
   ],
-  // Dev server should be running externally: npm run dev
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 30_000,
-    ignoreHTTPSErrors: true,
-  },
 });

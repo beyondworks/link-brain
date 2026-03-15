@@ -13,6 +13,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { fetchUrlContent } from '@/lib/fetchers/orchestrator';
 import { enrichClipContent } from '@/lib/services/clip-service';
 import { getValidToken } from '@/lib/oauth/token-manager';
+import { upsertClipEmbedding } from '@/lib/services/embedding-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -100,6 +101,14 @@ export async function POST(req: NextRequest) {
       authorHandle: fetchedContent.authorHandle,
       embeddedLinks: fetchedContent.embeddedLinks,
     });
+
+    // Generate embedding (fire-and-forget, non-blocking)
+    try {
+      await upsertClipEmbedding(clipId, userId);
+    } catch (embErr) {
+      console.warn(`[ProcessClip] Embedding failed for clip ${clipId}:`, embErr);
+      // Non-fatal: clip processing succeeded even if embedding fails
+    }
 
     return NextResponse.json({ success: true, clipId });
   } catch (err) {

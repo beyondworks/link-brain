@@ -177,16 +177,27 @@ function ActiveCategoryBadge({ categoryId }: { categoryId: string }) {
   );
 }
 
+function getCreditColor(credits: { creditsUsed: number; creditsLimit: number } | undefined): string {
+  if (!credits || credits.creditsLimit === -1) return 'text-foreground';
+  const remaining = credits.creditsLimit - credits.creditsUsed;
+  const ratio = remaining / credits.creditsLimit;
+  if (ratio <= 0) return 'text-red-500';
+  if (ratio <= 0.2) return 'text-amber-500';
+  return 'text-foreground';
+}
+
 function StatCard({
   icon: Icon,
   value,
   label,
   loading,
+  valueClassName,
 }: {
   icon: React.ElementType;
   value: string;
   label: string;
   loading: boolean;
+  valueClassName?: string;
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-5 shadow-card">
@@ -196,7 +207,7 @@ function StatCard({
       {loading ? (
         <div className="mb-1.5 h-8 w-16 animate-pulse rounded-md bg-muted" />
       ) : (
-        <p className="mb-1 text-3xl font-black tracking-tight text-foreground">{value}</p>
+        <p className={cn('mb-1 text-3xl font-black tracking-tight', valueClassName ?? 'text-foreground')}>{value}</p>
       )}
       <p className="text-sm text-muted-foreground">{label}</p>
     </div>
@@ -208,11 +219,13 @@ function CompactStat({
   value,
   label,
   loading,
+  valueClassName,
 }: {
   icon: React.ElementType;
   value: string;
   label: string;
   loading: boolean;
+  valueClassName?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -220,7 +233,7 @@ function CompactStat({
       {loading ? (
         <div className="h-4 w-8 animate-pulse rounded bg-muted" />
       ) : (
-        <span className="text-sm font-bold text-foreground">{value}</span>
+        <span className={cn('text-sm font-bold', valueClassName ?? 'text-foreground')}>{value}</span>
       )}
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
@@ -388,6 +401,7 @@ export function DashboardClient() {
             value={formatCredits()}
             label="크레딧 잔여"
             loading={creditsLoading}
+            valueClassName={getCreditColor(credits)}
           />
         </div>
       )}
@@ -399,7 +413,7 @@ export function DashboardClient() {
           <div className="h-4 w-px bg-border/40" />
           <CompactStat icon={Star} value={statsLoading ? '—' : String(stats?.favoriteCount ?? 0)} label="즐겨찾기" loading={statsLoading} />
           <div className="h-4 w-px bg-border/40" />
-          <CompactStat icon={Gauge} value={formatCredits()} label="크레딧" loading={creditsLoading} />
+          <CompactStat icon={Gauge} value={formatCredits()} label="크레딧" loading={creditsLoading} valueClassName={getCreditColor(credits)} />
         </div>
       )}
 

@@ -41,6 +41,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { usePlan } from '@/lib/hooks/use-plan';
+import { UpgradePrompt } from '@/components/plan/upgrade-prompt';
 import type { HistoryItem } from './studio-output-panel';
 import dynamic from 'next/dynamic';
 
@@ -159,6 +161,7 @@ const LENGTH_OPTIONS = [
 
 export function StudioClient() {
   const queryClient = useQueryClient();
+  const { canUseStudio } = usePlan();
 
   const [selectedType, setSelectedType] = useState<ContentStudioType>('blog_post');
   const [selectedClipIds, setSelectedClipIds] = useState<Set<string>>(new Set());
@@ -564,10 +567,13 @@ export function StudioClient() {
           </section>
 
           {/* ── 4. 생성 버튼 ─────────────────────────────────────────── */}
+          {!canUseStudio && (
+            <UpgradePrompt reason="studio" className="mb-4" />
+          )}
           <div className="animate-fade-in-up animation-delay-300 flex items-center gap-3">
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || !canUseStudio}
               className="bg-gradient-brand glow-brand hover:glow-brand hover-scale rounded-xl px-6 font-semibold shadow-none transition-spring"
             >
               {isGenerating ? (

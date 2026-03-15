@@ -16,6 +16,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
+import { searchSimilarClips } from '@/lib/services/embedding-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database Insert 타입 비호환 우회
 const db = supabaseAdmin as any;
@@ -308,7 +309,7 @@ async function handleAnalyze(req: NextRequest, auth: AuthContext): Promise<NextR
   }
 }
 
-// ─── Ask 핸들러 ──────────────────────────────────────────────────────────────
+// ─── Ask 핸들러 (RAG) ────────────────────────────────────────────────────────
 
 async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const creditCheck = await deductCredits(auth.publicUserId, 'AI_CHAT');
@@ -326,33 +327,158 @@ async function handleAsk(req: NextRequest, auth: AuthContext): Promise<NextRespo
   if (!message) return sendError(ErrorCodes.INVALID_REQUEST, '"message" 필드가 필요합니다.', 400);
 
   const clipIds = Array.isArray(obj.clipIds) ? (obj.clipIds as string[]) : [];
+  const conversationId = typeof obj.conversationId === 'string' ? obj.conversationId : null;
   const language = obj.language === 'en' ? 'en' : 'ko';
 
+  // ─── Resolve context clips ───────────────────────────────────────────
+  let resolvedClipIds: string[] = clipIds;
+  let usedRag = false;
+
+  // If no clipIds provided, use RAG (embedding similarity search)
+  if (clipIds.length === 0) {
+    try {
+      const similar = await searchSimilarClips(auth.publicUserId, message, 8);
+      resolvedClipIds = similar.map((s) => s.clipId);
+      usedRag = true;
+    } catch (ragErr) {
+      console.warn('[API v1 AI Ask] RAG search failed, continuing without context:', ragErr);
+    }
+  }
+
+  // Fetch clip content for context
   let context = '';
-  if (clipIds.length > 0) {
+  if (resolvedClipIds.length > 0) {
     const { data: clips, error: dbErr } = await db
       .from('clips')
       .select('id, title, summary, url, clip_contents(content_markdown, raw_markdown)')
       .eq('user_id', auth.publicUserId)
-      .in('id', clipIds.slice(0, 20));
+      .in('id', resolvedClipIds.slice(0, 20));
 
     if (!dbErr && clips) {
       context = (clips as ClipRow[]).map((clip, idx) => {
         const content = clip.clip_contents?.content_markdown ?? clip.clip_contents?.raw_markdown ?? '';
         const body = content ? `\n내용:\n${content.substring(0, 1500)}` : clip.summary ? `\n요약: ${clip.summary}` : '';
-        return `[클립 ${idx + 1}] ${clip.title ?? clip.url}${body}`;
+        return `[클립 ${idx + 1}: ${clip.id}] ${clip.title ?? clip.url}${body}`;
       }).join('\n\n---\n\n');
     }
   }
 
+  // ─── Load conversation history ──────────────────────────────────────
+  let conversationHistory = '';
+  let activeConversationId = conversationId;
+
+  if (conversationId) {
+    const { data: prevMessages } = await db
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(20);
+
+    if (prevMessages) {
+      conversationHistory = (prevMessages as Array<{ role: string; content: string }>)
+        .slice(-10) // Last 10 messages for context window
+        .map((m) => `${m.role === 'user' ? '사용자' : '어시스턴트'}: ${m.content.substring(0, 500)}`)
+        .join('\n\n');
+    }
+  }
+
+  // ─── Build prompt & stream ──────────────────────────────────────────
   try {
     const lang = language === 'en' ? 'English' : '한국어';
-    const systemPrompt = context
-      ? `당신은 Linkbrain 세컨드 브레인 어시스턴트입니다. 사용자의 저장된 클립을 바탕으로 질문에 답변하세요. ${lang}로 답변하세요.\n\n[사용자 클립]\n${context}`
-      : `당신은 Linkbrain 세컨드 브레인 어시스턴트입니다. 사용자의 질문에 도움이 되는 답변을 제공하세요. ${lang}로 답변하세요.`;
+    let systemPrompt = `당신은 Linkbrain 세컨드 브레인 어시스턴트입니다. 사용자가 저장한 클립(웹 콘텐츠)을 기반으로 질문에 정확하게 답변합니다. ${lang}로 답변하세요.\n\n`;
+    systemPrompt += '답변 규칙:\n';
+    systemPrompt += '- 클립 내용을 기반으로 답변할 때 어떤 클립을 참조했는지 언급하세요\n';
+    systemPrompt += '- 클립에 관련 정보가 없으면 솔직히 알려주세요\n';
+    systemPrompt += '- 답변은 구조화하되 간결하게 유지하세요\n';
 
-    const answer = await callOpenAI(systemPrompt, message);
-    return sendSuccess({ action: 'ask', message, answer, clipsUsed: clipIds.length });
+    if (context) {
+      systemPrompt += `\n[참조 클립]\n${context}`;
+    }
+    if (conversationHistory) {
+      systemPrompt += `\n\n[이전 대화]\n${conversationHistory}`;
+    }
+
+    // Auto-create conversation if none provided
+    if (!activeConversationId) {
+      const { data: newConv } = await db
+        .from('conversations')
+        .insert({
+          user_id: auth.publicUserId,
+          title: message.substring(0, 100),
+        })
+        .select('id')
+        .single();
+      if (newConv) {
+        activeConversationId = (newConv as { id: string }).id;
+      }
+    } else {
+      // Update conversation timestamp
+      await db
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', activeConversationId);
+    }
+
+    // Save user message
+    if (activeConversationId) {
+      await db.from('messages').insert({
+        conversation_id: activeConversationId,
+        role: 'user',
+        content: message,
+      });
+    }
+
+    // Stream response
+    let fullAnswer = '';
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          // Send metadata as first chunk
+          const meta = JSON.stringify({
+            conversationId: activeConversationId,
+            clipIds: resolvedClipIds,
+            usedRag,
+          });
+          controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
+
+          for await (const chunk of streamOpenAI(systemPrompt, message)) {
+            fullAnswer += chunk;
+            controller.enqueue(encoder.encode(chunk));
+          }
+
+          // Save assistant message after streaming completes
+          if (activeConversationId) {
+            await db.from('messages').insert({
+              conversation_id: activeConversationId,
+              role: 'assistant',
+              content: fullAnswer,
+              clip_references: resolvedClipIds,
+            });
+          }
+
+          controller.close();
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : '알 수 없는 오류';
+          console.error('[API v1 AI Ask] Stream error:', errMsg);
+          try {
+            controller.enqueue(encoder.encode(`\n\n[오류: ${errMsg}]`));
+          } catch { /* enqueue fail */ }
+          controller.close();
+        }
+      },
+    });
+
+    return new NextResponse(stream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store',
+        Connection: 'keep-alive',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 402) return sendError(ErrorCodes.INSUFFICIENT_CREDITS, 'OpenAI 크레딧 부족', 402, undefined);
@@ -438,25 +564,55 @@ async function handleInsights(req: NextRequest, auth: AuthContext): Promise<Next
     .slice(0, 5)
     .map(([name, count]) => ({ name, count }));
 
+  // Fetch content summaries for AI analysis
+  const clipIdsForContent = clipRows.slice(0, 30).map((c) => c.id as string);
+  let contentSummaries = '';
+  if (clipIdsForContent.length > 0) {
+    const { data: clipContents } = await db
+      .from('clips')
+      .select('title, summary, clip_contents(content_markdown)')
+      .in('id', clipIdsForContent);
+
+    if (clipContents) {
+      contentSummaries = (clipContents as Array<{ title: string | null; summary: string | null; clip_contents: { content_markdown: string | null } | null }>)
+        .map((c, i) => {
+          const content = c.clip_contents?.content_markdown?.substring(0, 300) ?? c.summary ?? '';
+          return `${i + 1}. ${c.title ?? '제목 없음'}: ${content}`;
+        })
+        .join('\n');
+    }
+  }
+
+  // Check reading debt (saved but never read)
+  const { count: unreadCount } = await db
+    .from('clips')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', auth.publicUserId)
+    .eq('is_read', false)
+    .eq('is_archived', false);
+
   // Build summary text for AI
   const statsSummary =
     `기간: ${period === 'custom' ? `${days}일` : period}\n` +
     `총 클립: ${totalClips}개\n` +
     `플랫폼 분포: ${Object.entries(platformCount).map(([k, v]) => `${k}(${v})`).join(', ')}\n` +
     `상위 카테고리: ${topCategories.map((c) => `${c.name}(${c.count})`).join(', ')}\n` +
-    `클립 목록 (최근 10개):\n` +
-    clipRows.slice(0, 10).map((c, i) => `${i + 1}. ${c.title ?? '제목 없음'}`).join('\n');
+    `미읽은 클립: ${unreadCount ?? 0}개\n\n` +
+    `클립 콘텐츠 요약:\n${contentSummaries}`;
 
   try {
     const lang = language === 'en' ? 'English' : '한국어';
     const systemPrompt =
-      `당신은 독서/학습 패턴 분석 전문가입니다. 사용자의 클립 저장 데이터를 분석하여 인사이트를 제공하세요. ${lang}로 답변하세요.\n\n` +
+      `당신은 지식 관리 및 학습 패턴 분석 전문가입니다. 사용자의 저장된 콘텐츠를 깊이 분석하여 인사이트를 제공하세요. ${lang}로 답변하세요.\n\n` +
       `다음 JSON 형식으로 응답하세요:\n` +
       `{\n` +
-      `  "summary": "전체 요약",\n` +
-      `  "trends": ["트렌드1", "트렌드2"],\n` +
+      `  "summary": "전체 요약 (2-3문장)",\n` +
+      `  "trends": ["트렌드1", "트렌드2", "트렌드3"],\n` +
       `  "recommendations": ["추천사항1", "추천사항2"],\n` +
-      `  "topicFocus": "주된 관심 주제"\n` +
+      `  "topicFocus": "주된 관심 주제",\n` +
+      `  "knowledgeClusters": [{"name": "클러스터명", "clipCount": 3, "description": "설명"}],\n` +
+      `  "readingDebt": {"count": ${unreadCount ?? 0}, "suggestion": "읽기 부채 해소 제안"},\n` +
+      `  "actionItems": ["행동 제안1", "행동 제안2"]\n` +
       `}\n` +
       `반드시 유효한 JSON만 응답하세요.`;
 

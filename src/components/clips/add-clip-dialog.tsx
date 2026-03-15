@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { PLATFORM_LABELS } from '@/config/constants';
+import { usePlan } from '@/lib/hooks/use-plan';
+import { UpgradePrompt } from '@/components/plan/upgrade-prompt';
 
 
 interface AnalyzeResult {
@@ -73,6 +75,7 @@ export function AddClipDialog() {
   const router = useRouter();
   const { user: authUser } = useSupabase();
 
+  const { canCreateClip } = usePlan();
   const { data: categories = [] } = useCategories();
   const { data: existingTags = [] } = useTags();
 
@@ -314,6 +317,11 @@ export function AddClipDialog() {
         queryClient.invalidateQueries({ queryKey: ['clips'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['credits'] });
+        // 백그라운드 AI 분석 완료 후 크레딧 재반영 (약 10초 소요)
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['credits'] });
+        }, 12_000);
         addNotification({
           type: 'clip_saved',
           title: hasPreview ? '저장되었습니다' : '저장됨 — 콘텐츠 분석 중...',
@@ -445,6 +453,7 @@ export function AddClipDialog() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
       addNotification({
         type: 'clip_saved',
         title: '이미지 저장됨 — OCR 분석 중...',
@@ -531,6 +540,10 @@ export function AddClipDialog() {
               : '분석된 클립 정보를 확인하고 저장하세요. 2단계 중 2단계입니다.'}
           </p>
         </DialogHeader>
+
+        {!canCreateClip && (
+          <UpgradePrompt reason="clip" className="mb-4" />
+        )}
 
         {step === 1 ? (
           <div className="space-y-4 animate-blur-in">
@@ -757,14 +770,14 @@ export function AddClipDialog() {
                 <Button
                   variant="outline"
                   onClick={handleQuickSave}
-                  disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip)}
+                  disabled={isAnalyzing || (!allowDuplicate && !!duplicateClip) || !canCreateClip}
                   className="rounded-xl border-border transition-spring hover-lift sm:w-auto"
                 >
                   바로 저장
                 </Button>
                 <Button
                   onClick={handleAnalyze}
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || !canCreateClip}
                   className="bg-gradient-brand glow-brand hover-scale rounded-xl font-semibold shadow-none transition-spring sm:w-auto"
                 >
                   {isAnalyzing ? (

@@ -50,6 +50,7 @@ import {
   GitMerge,
   Check,
 } from 'lucide-react';
+import { UsageBar } from '@/components/plan/usage-bar';
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
 import { ProfileEditor } from '@/components/settings/profile-editor';
@@ -652,17 +653,18 @@ export function SettingsClient() {
           </div>
         </section>
 
-        {/* Usage section */}
+        {/* Plan & Usage section */}
         <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-550 rounded-2xl border border-border bg-card p-6">
           <div className="mb-5 flex items-center gap-3">
             <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20">
               <Gauge size={15} className="text-primary" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">사용량</h2>
+            <h2 className="text-base font-semibold text-foreground">플랜 &amp; 사용량</h2>
           </div>
 
           {creditsLoading ? (
             <div className="space-y-4">
+              <Skeleton className="h-5 w-24 shimmer" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-32 shimmer" />
                 <Skeleton className="h-2 w-full rounded-full shimmer" />
@@ -671,35 +673,57 @@ export function SettingsClient() {
                 <Skeleton className="h-4 w-40 shimmer" />
                 <Skeleton className="h-2 w-full rounded-full shimmer" />
               </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-36 shimmer" />
+                <Skeleton className="h-2 w-full rounded-full shimmer" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28 shimmer" />
+                <Skeleton className="h-2 w-full rounded-full shimmer" />
+              </div>
             </div>
           ) : credits ? (
             <div className="space-y-5">
-              {/* 크레딧 사용량 header */}
-              <p className="text-xs text-muted-foreground">
-                크레딧 사용량 — 이번 달 AI 기능 사용 횟수입니다.
-              </p>
-
-              {/* 크레딧 (analyze + AI generate 통합) */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">크레딧 사용량</span>
-                  <span className="text-xs text-muted-foreground">
-                    {credits.creditsLimit === -1
-                      ? `${credits.creditsUsed} / 무제한`
-                      : `${credits.creditsUsed} / ${credits.creditsLimit}`}
+              {/* 플랜 티어 배지 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">현재 플랜</span>
+                {credits.tier === 'master' ? (
+                  <span className="rounded-full bg-gradient-to-r from-violet-500 to-primary px-2.5 py-0.5 text-xs font-semibold text-white">
+                    Master
                   </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary transition-all"
-                    style={{
-                      width:
-                        credits.creditsLimit === -1
-                          ? '0%'
-                          : `${Math.min(100, (credits.creditsUsed / credits.creditsLimit) * 100)}%`,
-                    }}
-                  />
-                </div>
+                ) : credits.tier === 'pro' ? (
+                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white">
+                    Pro
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                    Free
+                  </span>
+                )}
+              </div>
+
+              {/* 사용량 바 목록 */}
+              <div className="space-y-3">
+                <UsageBar
+                  label="클립"
+                  used={credits.clipsUsed}
+                  limit={credits.clipsLimit}
+                />
+                <UsageBar
+                  label="AI 크레딧"
+                  used={credits.creditsUsed}
+                  limit={credits.creditsLimit}
+                />
+                <UsageBar
+                  label="Content Studio"
+                  used={credits.studioUsed}
+                  limit={credits.studioLimit}
+                />
+                <UsageBar
+                  label="컬렉션"
+                  used={credits.collectionsUsed}
+                  limit={credits.collectionsLimit}
+                />
               </div>
 
               {/* 다음 초기화 */}
@@ -712,15 +736,16 @@ export function SettingsClient() {
                 })}
               </p>
 
-              {/* 업그레이드 CTA — free 플랜에서만 표시 */}
-              {credits.creditsLimit !== -1 && (
+              {/* 업그레이드 CTA — master 제외 */}
+              {credits.tier !== 'master' && (
                 <div className="pt-1">
                   <Button
                     asChild
-                    variant="outline"
-                    className="gap-2 rounded-xl border-primary/40 text-primary transition-spring hover:bg-primary/10 hover:border-primary/60"
+                    className="bg-gradient-brand glow-brand gap-2 rounded-xl text-white"
                   >
-                    <a href="/pricing">Pro로 업그레이드하여 무제한 사용</a>
+                    <a href="/pricing">
+                      {credits.tier === 'pro' ? 'Master로 업그레이드' : 'Pro로 업그레이드'}
+                    </a>
                   </Button>
                 </div>
               )}

@@ -9,7 +9,7 @@ export const CREDIT_COSTS = {
   AI_SUMMARY: 1,        // 클립 저장 시 AI 요약/태깅
   AI_CHAT: 1,           // 클립 채팅
   AI_STUDIO: 2,         // Content Studio 생성
-  AI_INSIGHTS: 3,       // 인사이트 분석
+  AI_INSIGHTS: 2,       // 인사이트 분석
   AI_EMBEDDING: 0,      // 임베딩 생성 (무료)
 } as const;
 
