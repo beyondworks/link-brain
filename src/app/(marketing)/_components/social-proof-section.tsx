@@ -1,12 +1,10 @@
 'use client';
 
-import { motion } from 'motion/react';
-
 const platforms = ['YouTube', 'Threads', 'Instagram', 'X', 'Pinterest', 'Reddit', 'Web', 'Blog', 'Image', 'Podcast', 'LinkedIn', 'TikTok'];
 
 export function SocialProofSection() {
-  // Duplicate the list for seamless loop
-  const doubled = [...platforms, ...platforms];
+  // Triple the list for seamless infinite scroll
+  const tripled = [...platforms, ...platforms, ...platforms];
 
   return (
     <div
@@ -15,16 +13,10 @@ export function SocialProofSection() {
         background: 'linear-gradient(-71deg, #C3EBF8 0%, #5DD5C3 49%, #90E0DD 100%)',
       }}
     >
-      <motion.div
-        className="flex items-center gap-12 px-8 w-max"
-        animate={{ x: ['0%', '-50%'] }}
-        transition={{
-          duration: 25,
-          ease: 'linear',
-          repeat: Infinity,
-        }}
+      <div
+        className="flex items-center gap-12 w-max animate-[marquee_30s_linear_infinite]"
       >
-        {doubled.map((name, i) => (
+        {tripled.map((name, i) => (
           <span
             key={`${name}-${i}`}
             className="text-white/90 text-[15px] tracking-[-0.3px] whitespace-nowrap select-none"
@@ -33,11 +25,7 @@ export function SocialProofSection() {
             {name}
           </span>
         ))}
-      </motion.div>
-
-      {/* Fade edges */}
-      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#5DD5C3] to-transparent pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#C3EBF8] to-transparent pointer-events-none" />
+      </div>
     </div>
   );
 }
