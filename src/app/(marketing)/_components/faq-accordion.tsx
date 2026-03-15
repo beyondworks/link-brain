@@ -1,25 +1,24 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { motion, useInView, AnimatePresence } from 'motion/react';
-import { ChevronDown } from 'lucide-react';
+import { useState, useRef, ReactNode } from 'react';
+import { motion, AnimatePresence, useInView } from 'motion/react';
 
+// ── Inlined SectionBadge ───────────────────────────────────────────────────
 function SectionBadge({ label }: { label: string }) {
   return (
     <div className="relative inline-flex items-center justify-center">
       <div
-        className="absolute inset-0 rounded-full opacity-60 blur-sm"
+        className="absolute inset-0 rounded-full blur-sm opacity-60"
         style={{
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
+          background: 'linear-gradient(89deg, rgba(91,214,195,0.8) 0%, rgba(197,234,246,0.8) 100%)',
         }}
       />
       <span
-        className="relative rounded-full px-5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] text-white"
+        className="relative px-5 py-1.5 rounded-full text-white text-[11px] tracking-[0.8px] uppercase"
         style={{
           fontFamily: "'Pretendard Variable', sans-serif",
-          background:
-            'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
+          fontWeight: 600,
+          background: 'linear-gradient(89deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
         }}
       >
         {label}
@@ -28,133 +27,168 @@ function SectionBadge({ label }: { label: string }) {
   );
 }
 
-const FAQ_ITEMS = [
+// ── Inlined AnimatedSection ────────────────────────────────────────────────
+function AnimatedSection({
+  children,
+  className = '',
+  delay = 0,
+  direction = 'up',
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'left' | 'right' | 'none';
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+
+  const initial = {
+    opacity: 0,
+    y: direction === 'up' ? 40 : 0,
+    x: direction === 'left' ? -40 : direction === 'right' ? 40 : 0,
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={initial}
+      animate={inView ? { opacity: 1, y: 0, x: 0 } : initial}
+      transition={{
+        duration: 0.75,
+        delay,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ── Data ───────────────────────────────────────────────────────────────────
+const faqs = [
   {
-    question: 'Linkbrain은 무료인가요?',
-    answer:
-      '기본 플랜은 영구 무료입니다. 최대 100개의 클립을 저장하고, AI 분석 월 100회, Content Studio 월 10회를 카드 등록 없이 즉시 사용할 수 있습니다.',
+    q: 'Linkbrain은 무료인가요?',
+    a: '네, 무료 플랜으로 최대 100개의 클립을 저장하고 모든 기본 기능을 사용할 수 있습니다. 더 많은 저장 공간과 고급 AI 기능이 필요하다면 Pro 플랜을 이용해보세요.',
   },
   {
-    question: '어떤 콘텐츠를 저장할 수 있나요?',
-    answer:
-      'URL이 있는 모든 콘텐츠를 저장할 수 있습니다. 웹페이지, 블로그 아티클, YouTube 영상, Twitter/X 스레드, PDF, 뉴스 기사 등 플랫폼 전용 페처가 최적의 메타데이터를 자동으로 추출합니다.',
+    q: '어떤 콘텐츠를 저장할 수 있나요?',
+    a: 'YouTube 영상, X/Twitter 게시물, Instagram 릴스, Threads, 네이버 블로그, 티스토리, 웹 아티클, PDF, 이미지 등 거의 모든 형태의 웹 콘텐츠를 저장할 수 있습니다.',
   },
   {
-    question: 'AI 분석은 어떻게 작동하나요?',
-    answer:
-      'URL을 저장하는 순간 AI가 자동으로 콘텐츠를 분석합니다. 제목, 핵심 요약, 관련 태그를 생성하고 적절한 카테고리로 분류합니다. OpenAI와 Gemini 듀얼 AI 엔진을 사용해 정확도를 높였습니다.',
+    q: 'AI 분석은 어떻게 작동하나요?',
+    a: 'URL을 저장하면 OpenAI GPT 모델이 자동으로 콘텐츠를 분석하여 제목 추출, 핵심 요약, 관련 태그 생성, 카테고리 분류를 수행합니다. 별도 설정 없이 자동으로 작동합니다.',
   },
   {
-    question: '기존 북마크를 가져올 수 있나요?',
-    answer:
-      '네, JSON 및 CSV 형식의 가져오기를 지원합니다. Chrome, Firefox, Safari의 북마크 내보내기 파일이나 Raindrop.io, Pocket 등 다른 서비스에서 내보낸 파일을 그대로 가져올 수 있습니다.',
+    q: '데이터는 안전한가요?',
+    a: '모든 데이터는 AES-256 암호화로 저장되며, 사용자만이 접근 가능합니다. SSL/TLS를 통해 전송 중에도 안전하게 보호됩니다. 서버는 국내 클라우드 인프라를 사용합니다.',
   },
   {
-    question: '데이터는 안전한가요?',
-    answer:
-      'Supabase 기반의 PostgreSQL에 암호화하여 저장하며, 사용자별 Row Level Security(RLS)로 데이터를 완벽히 격리합니다. 내 데이터는 오직 나만 접근할 수 있습니다.',
+    q: '브라우저 확장 프로그램이 있나요?',
+    a: 'Chrome, Firefox, Safari, Edge 브라우저 확장 프로그램을 지원합니다. 확장 프로그램을 설치하면 현재 보고 있는 페이지를 클릭 한 번으로 바로 저장할 수 있습니다.',
   },
 ];
 
-function FaqItem({
-  item,
-  isOpen,
-  onToggle,
-}: {
-  item: (typeof FAQ_ITEMS)[number];
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
+function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-40px' });
+
   return (
-    <div className="border-b border-white/5">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-4 py-6 text-left transition-colors"
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-5 text-left group"
+        whileHover={{ x: 2 }}
+        transition={{ duration: 0.2 }}
       >
         <span
-          className="text-base font-semibold text-white"
-          style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+          className={`text-[16px] tracking-[-0.3px] transition-colors duration-200 ${open ? 'text-[#21DBA4]' : 'text-[#222] group-hover:text-[#333]'}`}
+          style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 500 }}
         >
-          {item.question}
+          {q}
         </span>
         <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="shrink-0 ml-4"
         >
-          <ChevronDown className="h-5 w-5 shrink-0 text-white/30" />
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={open ? '#21DBA4' : '#888'}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="transition-colors duration-200"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </motion.div>
-      </button>
+      </motion.button>
+
       <AnimatePresence initial={false}>
-        {isOpen && (
+        {open && (
           <motion.div
+            key="answer"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
             <p
-              className="pb-6 text-sm leading-relaxed text-white/40"
+              className="pb-5 text-[14px] text-[#888] leading-[1.8] tracking-[-0.2px] pr-10"
               style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
             >
-              {item.answer}
+              {a}
             </p>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+
+      <div className="h-[1px] bg-[#f0f0f0]" />
+    </motion.div>
   );
 }
 
 export function FAQAccordion() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
   return (
-    <section
-      ref={ref}
-      className="relative py-24 md:py-32"
-      style={{ background: '#0D0D0D' }}
-    >
-      <motion.div
-        className="mx-auto mb-12 max-w-3xl px-4 text-center md:px-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <SectionBadge label="FAQ" />
-        <h2
-          className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-5xl"
-          style={{
-            fontFamily: "'Pretendard Variable', sans-serif",
-            wordBreak: 'keep-all',
-          }}
-        >
-          자주 묻는 질문
-        </h2>
-        <p className="mt-4 text-lg text-white/40">
-          궁금한 점이 있으신가요? 아래에서 빠르게 답변을 찾아보세요.
-        </p>
-      </motion.div>
+    <section className="py-28 bg-[#fafafa]">
+      <div className="max-w-[860px] mx-auto px-6 md:px-12">
+        <AnimatedSection className="flex flex-col items-center gap-5 mb-16">
+          <SectionBadge label="FAQ" />
+          <h2
+            className="text-[clamp(28px,4vw,40px)] text-transparent bg-clip-text text-center tracking-[-1px]"
+            style={{
+              backgroundImage: 'linear-gradient(125deg, #C3EBF8 0%, #5DD5C3 37%)',
+              fontFamily: "'Pretendard Variable', sans-serif",
+              fontWeight: 800,
+            }}
+          >
+            자주 묻는 질문
+          </h2>
+          <p
+            className="text-[16px] text-[#888] text-center tracking-[-0.3px]"
+            style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+          >
+            궁금한 점이 있으신가요? 아래에서 빠르게 답변을 찾아보세요.
+          </p>
+        </AnimatedSection>
 
-      <motion.div
-        className="mx-auto max-w-3xl px-4 md:px-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {FAQ_ITEMS.map((item, i) => (
-          <FaqItem
-            key={i}
-            item={item}
-            isOpen={openIndex === i}
-            onToggle={() => setOpenIndex((prev) => (prev === i ? null : i))}
-          />
-        ))}
-      </motion.div>
+        <div className="border-t border-[#f0f0f0]">
+          {faqs.map((faq, index) => (
+            <FAQItem key={faq.q} q={faq.q} a={faq.a} index={index} />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

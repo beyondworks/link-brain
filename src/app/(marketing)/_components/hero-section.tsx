@@ -1,432 +1,849 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { motion, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
-import { ArrowRight, Play } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 
-const LOGO_ICON_PATH =
-  'M41.0994 29.4896C48.8095 29.4896 55.0602 23.1121 55.0602 15.245L55.0558 14.8771C54.8647 7.17988 48.6891 1 41.0994 1L40.7394 1.00454C35.0535 1.1515 30.2128 4.76731 28.1731 9.85522C26.0683 4.6602 21.0121 1.00003 15.1091 1L14.7449 1.00454C7.121 1.19956 1 7.50069 1 15.245C1.00007 23.1121 7.31691 29.4896 15.1091 29.4896C21.0119 29.4896 26.068 25.8298 28.173 20.6352C30.2558 25.8298 35.2588 29.4896 41.0994 29.4896ZM15.1091 21.0898C11.9118 21.0896 9.31991 18.4728 9.31984 15.245C9.31985 12.0169 11.9118 9.39993 15.1091 9.39987C18.3063 9.3999 20.8984 12.0169 20.8984 15.245C20.8984 18.473 18.3063 21.0896 15.1091 21.0898ZM41.0994 21.0898C37.9358 21.0896 35.3713 18.4728 35.3713 15.245C35.3713 12.0169 37.9358 9.39998 41.0994 9.39987C44.2631 9.39987 46.828 12.0169 46.828 15.245C46.8279 18.473 44.2631 21.0898 41.0994 21.0898Z';
-
-/* ---------- IndexedDB cache helpers ---------- */
-const DB_NAME = 'linkbrain-hero-cache';
-const STORE_NAME = 'videos';
+// ── IndexedDB helpers ──────────────────────────────────────────────────────
+const IDB_NAME = 'linkbrain';
+const IDB_STORE = 'hero';
+const IDB_KEY = 'video';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(IDB_STORE))
+        db.createObjectStore(IDB_STORE);
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function getCachedBlob(key: string): Promise<Blob | null> {
-  try {
-    const db = await openDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.get(key);
-      req.onsuccess = () => resolve(req.result ?? null);
-      req.onerror = () => resolve(null);
-    });
-  } catch {
-    return null;
-  }
+async function saveBlob(blob: Blob) {
+  const db = await openDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(blob, IDB_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
-async function setCachedBlob(key: string, blob: Blob): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(blob, key);
-  } catch {
-    // silently ignore
-  }
+async function loadBlob(): Promise<Blob | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = () => resolve((req.result as Blob) ?? null);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-/* ---------- Infinity symbol animation ---------- */
-function InfinityOrb() {
+// ── PingPongVideo ──────────────────────────────────────────────────────────
+function PingPongVideo({ src, className = '' }: { src: string; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [pct, setPct] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!canvas || !src) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const size = 280;
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    canvas.style.width = `${size}px`;
-    canvas.style.height = `${size}px`;
-    ctx.scale(dpr, dpr);
+    let dead = false;
+    let raf = 0;
+    let frames: ImageBitmap[] = [];
 
-    let t = 0;
-    const cx = size / 2;
-    const cy = size / 2;
-    const a = 70;
-    const b = 40;
+    const ctx = canvas.getContext('2d', { alpha: false })!;
 
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, size, size);
+    const vid = document.createElement('video');
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.preload = 'auto';
+    vid.src = src;
 
-      // Glow background
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120);
-      glow.addColorStop(0, 'rgba(33, 219, 164, 0.15)');
-      glow.addColorStop(0.5, 'rgba(33, 219, 164, 0.05)');
-      glow.addColorStop(1, 'transparent');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, size, size);
+    const capture = (): Promise<number> =>
+      new Promise((done) => {
+        vid.addEventListener(
+          'loadedmetadata',
+          () => {
+            const MAX_W = 960;
+            const scale = Math.min(1, MAX_W / vid.videoWidth);
+            canvas.width = Math.round(vid.videoWidth * scale);
+            canvas.height = Math.round(vid.videoHeight * scale);
 
-      // Draw infinity path (lemniscate of Bernoulli)
-      ctx.beginPath();
-      for (let i = 0; i <= 360; i++) {
-        const rad = (i * Math.PI) / 180;
-        const denominator = 1 + Math.sin(rad) * Math.sin(rad);
-        const x = cx + (a * Math.cos(rad)) / denominator;
-        const y = cy + (b * Math.sin(rad) * Math.cos(rad)) / denominator;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = 'rgba(33, 219, 164, 0.3)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+            const dur = vid.duration;
+            let settled = false;
+            const finish = () => {
+              if (!settled) {
+                settled = true;
+                done(dur);
+              }
+            };
 
-      // Animated dot
-      const dotRad = (t * Math.PI) / 180;
-      const dotDenom = 1 + Math.sin(dotRad) * Math.sin(dotRad);
-      const dotX = cx + (a * Math.cos(dotRad)) / dotDenom;
-      const dotY = cy + (b * Math.sin(dotRad) * Math.cos(dotRad)) / dotDenom;
+            if ('requestVideoFrameCallback' in (vid as unknown as Record<string, unknown>)) {
+              const pending: Promise<ImageBitmap>[] = [];
 
-      const dotGlow = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, 20);
-      dotGlow.addColorStop(0, 'rgba(33, 219, 164, 0.8)');
-      dotGlow.addColorStop(0.5, 'rgba(33, 219, 164, 0.3)');
-      dotGlow.addColorStop(1, 'transparent');
-      ctx.fillStyle = dotGlow;
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, 20, 0, Math.PI * 2);
-      ctx.fill();
+              const onFrame = () => {
+                if (dead) { finish(); return; }
+                ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+                pending.push(createImageBitmap(canvas));
+                setPct(Math.round((vid.currentTime / dur) * 100));
 
-      ctx.fillStyle = '#21DBA4';
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
-      ctx.fill();
+                if (vid.ended || vid.currentTime >= dur - 0.05) {
+                  Promise.all(pending).then((b) => {
+                    frames = b;
+                    finish();
+                  });
+                } else {
+                  (vid as unknown as Record<string, (cb: () => void) => void>).requestVideoFrameCallback(onFrame);
+                }
+              };
 
-      t = (t + 0.8) % 360;
-      animRef.current = requestAnimationFrame(draw);
-    }
+              vid.addEventListener(
+                'ended',
+                () => Promise.all(pending).then((b) => { frames = b; finish(); }),
+                { once: true }
+              );
 
-    draw();
-    return () => cancelAnimationFrame(animRef.current);
-  }, []);
+              (vid as unknown as Record<string, (cb: () => void) => void>).requestVideoFrameCallback(onFrame);
+              vid.playbackRate = 2;
+              vid.play().catch(finish);
+            } else {
+              const FPS = 20;
+              const pending: Promise<ImageBitmap>[] = [];
+              const id = setInterval(() => {
+                if (dead) { clearInterval(id); finish(); return; }
+                ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+                pending.push(createImageBitmap(canvas));
+                setPct(Math.round((vid.currentTime / dur) * 100));
+              }, 1000 / FPS);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 m-auto" />;
-}
-
-/* ---------- PingPong Video Canvas ---------- */
-function PingPongVideo({ file }: { file: File }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let url: string | null = null;
-
-    async function setup() {
-      // Try cache first
-      const cacheKey = `${file.name}-${file.size}`;
-      let blob = await getCachedBlob(cacheKey);
-      if (!blob) {
-        blob = file;
-        await setCachedBlob(cacheKey, file);
-      }
-
-      url = URL.createObjectURL(blob);
-      const video = document.createElement('video');
-      video.src = url;
-      video.muted = true;
-      video.playsInline = true;
-      video.loop = true;
-
-      video.addEventListener('loadedmetadata', () => {
-        if (!canvas || !ctx) return;
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = 280 * dpr;
-        canvas.height = 280 * dpr;
-        canvas.style.width = '280px';
-        canvas.style.height = '280px';
-        ctx.scale(dpr, dpr);
-
-        video.play();
-
-        function render() {
-          if (!ctx) return;
-          ctx.clearRect(0, 0, 280, 280);
-
-          // Circular clip
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(140, 140, 120, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(video, 10, 10, 260, 260);
-          ctx.restore();
-
-          // Border ring
-          ctx.beginPath();
-          ctx.arc(140, 140, 120, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(33, 219, 164, 0.4)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-
-          animRef.current = requestAnimationFrame(render);
-        }
-        render();
+              vid.addEventListener(
+                'ended',
+                () => {
+                  clearInterval(id);
+                  Promise.all(pending).then((b) => { frames = b; finish(); });
+                },
+                { once: true }
+              );
+              vid.play().catch(() => { clearInterval(id); finish(); });
+            }
+          },
+          { once: true }
+        );
+        vid.load();
       });
-    }
-    setup();
+
+    const play = (dur: number) => {
+      if (dead || frames.length < 2) return;
+      setLoading(false);
+
+      const mspf = (dur * 1000) / frames.length;
+      let fi = 0;
+      let dir = 1;
+      let last = 0;
+
+      const loop = (ts: number) => {
+        if (dead) return;
+        raf = requestAnimationFrame(loop);
+        if (ts - last < mspf) return;
+        last = ts;
+
+        ctx.drawImage(frames[fi], 0, 0, canvas.width, canvas.height);
+
+        fi += dir;
+        if (fi >= frames.length) { fi = frames.length - 2; dir = -1; }
+        else if (fi < 0) { fi = 1; dir = 1; }
+      };
+
+      raf = requestAnimationFrame(loop);
+    };
+
+    capture().then((dur) => {
+      vid.src = '';
+      if (!dead) play(dur);
+    });
 
     return () => {
-      cancelAnimationFrame(animRef.current);
-      if (url) URL.revokeObjectURL(url);
+      dead = true;
+      cancelAnimationFrame(raf);
+      vid.pause();
+      vid.src = '';
+      frames.forEach((b) => b.close());
+      frames = [];
     };
-  }, [file]);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 m-auto" />;
-}
-
-/* ---------- Main Hero Section ---------- */
-export function HeroSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const glowX = useTransform(mouseX, (v) => v - 200);
-  const glowY = useTransform(mouseY, (v) => v - 200);
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      const rect = sectionRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      mouseX.set(e.clientX - rect.left);
-      mouseY.set(e.clientY - rect.top);
-    },
-    [mouseX, mouseY],
-  );
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('video/')) {
-      setVideoFile(file);
-    }
-  }
-
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault();
-    setIsDragging(true);
-  }
+  }, [src]);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20"
-      style={{
-        background:
-          'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(33,219,164,0.08) 0%, #090909 60%, #000 100%)',
-      }}
-      onMouseMove={handleMouseMove}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={() => setIsDragging(false)}
-    >
-      {/* Mouse-reactive glow */}
-      <motion.div
-        className="pointer-events-none absolute h-[400px] w-[400px] rounded-full opacity-30"
+    <div className={`relative overflow-hidden ${className}`}>
+      <canvas
+        ref={canvasRef}
         style={{
-          x: glowX,
-          y: glowY,
-          background:
-            'radial-gradient(circle, rgba(33,219,164,0.15) 0%, transparent 70%)',
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
         }}
       />
 
-      {/* Glass orb area */}
-      <motion.div
-        className="relative mb-12 h-[280px] w-[280px]"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        {/* Glass sphere background */}
+      {loading && (
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3"
+          style={{
+            background: 'rgba(4,6,14,0.52)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+          }}
+        >
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.88)',
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: "'Pretendard Variable', sans-serif",
+              letterSpacing: '-0.2px',
+            }}
+          >
+            역재생 준비 중&nbsp;&nbsp;{pct}%
+          </p>
+          <div
+            style={{
+              width: 140,
+              height: 2,
+              borderRadius: 9,
+              background: 'rgba(255,255,255,0.1)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${pct}%`,
+                borderRadius: 9,
+                background: 'linear-gradient(90deg, #21DBA4, #5BC8E8)',
+                transition: 'width 80ms linear',
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── VideoMorphCanvas ───────────────────────────────────────────────────────
+function VideoMorphCanvas({ className = '' }: { className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { damping: 28, stiffness: 65, mass: 1 });
+  const springY = useSpring(mouseY, { damping: 28, stiffness: 65, mass: 1 });
+
+  const rotateX = useTransform(springY, [-0.5, 0.5], ['9deg', '-9deg']);
+  const rotateY = useTransform(springX, [-0.5, 0.5], ['-9deg', '9deg']);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
+  const infinityPath =
+    'M 200 100 C 130 30, 30 30, 30 100 C 30 170, 130 170, 200 100 C 270 30, 370 30, 370 100 C 370 170, 270 170, 200 100 Z';
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative w-full h-full flex items-center justify-center ${className}`}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ perspective: '1100px' }}
+    >
+      <motion.div
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        className="relative flex items-center justify-center"
+      >
+        {/* Layer 1: Deep outer atmospheric halo */}
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 'clamp(480px, 75vw, 820px)',
+            height: 'clamp(480px, 75vw, 820px)',
+            background:
+              'radial-gradient(circle, rgba(195,235,248,0.55) 0%, rgba(195,235,248,0.22) 42%, rgba(195,235,248,0.06) 68%, transparent 85%)',
+            filter: 'blur(72px)',
+            transform: 'translateZ(-60px)',
+          }}
+          animate={{ scale: [1, 1.05, 1], opacity: [0.75, 1, 0.75] }}
+          transition={{ duration: 7.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Layer 2: Mid glow ring */}
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 'clamp(340px, 56vw, 600px)',
+            height: 'clamp(340px, 56vw, 600px)',
+            background:
+              'radial-gradient(circle, transparent 40%, rgba(195,235,248,0.35) 65%, rgba(195,235,248,0.12) 85%, transparent 100%)',
+            filter: 'blur(30px)',
+            transform: 'translateZ(-20px)',
+          }}
+          animate={{ scale: [1, 1.04, 1] }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Layer 3: Main glass orb */}
+        <motion.div
+          style={{
+            position: 'relative',
+            width: 'clamp(280px, 46vw, 520px)',
+            height: 'clamp(280px, 46vw, 520px)',
+            borderRadius: '50%',
+            transformStyle: 'preserve-3d',
+          }}
+          animate={{ scale: [1, 1.018, 1] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          {/* Glass body */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              background:
+                'radial-gradient(circle at 43% 37%, rgba(255,255,255,0.97) 0%, rgba(225,245,253,0.82) 24%, rgba(195,235,248,0.6) 50%, rgba(195,235,248,0.28) 74%, rgba(195,235,248,0.06) 92%, transparent 100%)',
+              backdropFilter: 'blur(22px)',
+              WebkitBackdropFilter: 'blur(22px)',
+              boxShadow:
+                'inset 0 2px 0 rgba(255,255,255,0.92), inset 0 0 80px rgba(255,255,255,0.28), 0 20px 80px rgba(195,235,248,0.55)',
+            }}
+          />
+
+          {/* Glass rim */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '50%',
+              border: '1px solid rgba(195,235,248,0.45)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Upper-left surface highlight */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '5%',
+              left: '10%',
+              width: '62%',
+              height: '42%',
+              borderRadius: '50%',
+              background:
+                'radial-gradient(ellipse at 52% 28%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.4) 35%, transparent 70%)',
+              filter: 'blur(10px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Lower edge subtle fill */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '5%',
+              left: '20%',
+              width: '60%',
+              height: '30%',
+              borderRadius: '50%',
+              background:
+                'radial-gradient(ellipse, rgba(195,235,248,0.22) 0%, transparent 70%)',
+              filter: 'blur(8px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Infinity / Lemniscate SVG path */}
+          <svg
+            viewBox="0 0 400 200"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '74%',
+              height: 'auto',
+              overflow: 'visible',
+            }}
+          >
+            <defs>
+              <linearGradient
+                id="vmcPathGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
+                <stop offset="0%" stopColor="#21DBA4" />
+                <stop offset="45%" stopColor="#5BC8E8" />
+                <stop offset="100%" stopColor="#21DBA4" />
+              </linearGradient>
+
+              <filter
+                id="vmcNeonGlow"
+                x="-30%"
+                y="-80%"
+                width="160%"
+                height="260%"
+              >
+                <feGaussianBlur
+                  stdDeviation="5"
+                  result="outerBlur"
+                  in="SourceGraphic"
+                />
+                <feGaussianBlur
+                  stdDeviation="2"
+                  result="innerBlur"
+                  in="SourceGraphic"
+                />
+                <feMerge>
+                  <feMergeNode in="outerBlur" />
+                  <feMergeNode in="innerBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              <filter
+                id="vmcDotGlow"
+                x="-60%"
+                y="-200%"
+                width="220%"
+                height="500%"
+              >
+                <feGaussianBlur
+                  stdDeviation="4"
+                  result="blur"
+                  in="SourceGraphic"
+                />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Faint base track */}
+            <path
+              d={infinityPath}
+              fill="none"
+              stroke="rgba(195,235,248,0.22)"
+              strokeWidth="1.5"
+            />
+
+            {/* Main animated teal stroke */}
+            <motion.path
+              d={infinityPath}
+              fill="none"
+              stroke="url(#vmcPathGrad)"
+              strokeWidth="5.5"
+              strokeLinecap="round"
+              filter="url(#vmcNeonGlow)"
+              initial={{ pathLength: 0.42, pathOffset: 0 }}
+              animate={{ pathOffset: [0, 1] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: 'linear' }}
+            />
+
+            {/* Reverse chaser */}
+            <motion.path
+              d={infinityPath}
+              fill="none"
+              stroke="rgba(33,219,164,0.55)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              style={{ mixBlendMode: 'screen' }}
+              initial={{ pathLength: 0.18, pathOffset: 0.5 }}
+              animate={{ pathOffset: [0.5, 1.5] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            />
+
+            {/* Bright white sparkle dot */}
+            <motion.path
+              d={infinityPath}
+              fill="none"
+              stroke="rgba(255,255,255,0.96)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              filter="url(#vmcDotGlow)"
+              initial={{ pathLength: 0.022, pathOffset: 0 }}
+              animate={{ pathOffset: [0, 1] }}
+              transition={{ duration: 5.5, repeat: Infinity, ease: 'linear' }}
+            />
+          </svg>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+export function HeroSection() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
+  const objUrlRef = useRef<string | null>(null);
+
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Load persisted video on mount
+  useEffect(() => {
+    loadBlob()
+      .then((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        objUrlRef.current = url;
+        setVideoSrc(url);
+      })
+      .catch(() => {});
+
+    return () => {
+      if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current);
+    };
+  }, []);
+
+  // Mouse tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 46, damping: 18 });
+  const springY = useSpring(mouseY, { stiffness: 46, damping: 18 });
+  const glowX = useTransform(springX, [-0.5, 0.5], [35, 65]);
+  const glowY = useTransform(springY, [-0.5, 0.5], [25, 55]);
+  const mouseGlow = useTransform(
+    [glowX, glowY],
+    ([x, y]: number[]) =>
+      `radial-gradient(ellipse at ${x}% ${y}%, rgba(33,219,164,0.07) 0%, rgba(195,235,248,0.12) 28%, transparent 62%)`
+  );
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
+  // File handling
+  const processFile = async (file: File) => {
+    if (!file.type.startsWith('video/')) return;
+    if (objUrlRef.current) {
+      URL.revokeObjectURL(objUrlRef.current);
+      objUrlRef.current = null;
+    }
+    await saveBlob(file).catch(() => {});
+    const url = URL.createObjectURL(file);
+    objUrlRef.current = url;
+    setVideoSrc(url);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    e.target.value = '';
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    setIsDragOver(true);
+  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDragLeave = () => {
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setIsDragOver(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
+  return (
+    <div className="w-full bg-white">
+      {/* VISUAL SECTION */}
+      <section
+        ref={sectionRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="relative w-full flex items-center justify-center overflow-hidden"
+        style={{
+          minHeight: '72vh',
+          paddingTop: videoSrc ? 0 : '4rem',
+          background: videoSrc
+            ? 'transparent'
+            : 'linear-gradient(to bottom, #e6f3f8 0%, #edf7fb 20%, #f4fafc 55%, #ffffff 100%)',
+        }}
+      >
+        {/* Mouse-reactive glow */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{ background: mouseGlow }}
+        />
+
+        {/* Canvas ping-pong video (when uploaded) */}
+        {videoSrc && (
+          <motion.div
+            key="video-fullbleed"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 w-full h-full z-10"
+          >
+            <PingPongVideo src={videoSrc} className="w-full h-full" />
+            {/* Soft bottom fade into text section */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none z-10"
+              style={{
+                background:
+                  'linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.88) 100%)',
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Glass orb (no video) */}
+        {!videoSrc && (
+          <motion.div
+            key="orb"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-[860px] mx-auto px-4 sm:px-8 z-10"
+          >
+            <div
+              className="relative w-full"
+              style={{ minHeight: '380px', aspectRatio: '21 / 9' }}
+            >
+              <VideoMorphCanvas className="absolute inset-0 w-full h-full" />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Drag-over overlay */}
+        {isDragOver && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 z-30 flex items-center justify-center"
+            style={{
+              background: 'rgba(195,235,248,0.25)',
+              border: '2px dashed rgba(33,219,164,0.6)',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <p
+              style={{
+                color: '#21DBA4',
+                fontSize: 15,
+                fontWeight: 600,
+                fontFamily: "'Pretendard Variable', sans-serif",
+              }}
+            >
+              여기에 놓으세요
+            </p>
+          </motion.div>
+        )}
+
+        {/* Upload button (only when no video stored) */}
+        {!videoSrc && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
+          >
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#21DBA4]/20 active:scale-95"
+              style={{
+                background: 'rgba(255,255,255,0.72)',
+                backdropFilter: 'blur(12px)',
+                border: '1px dashed rgba(33,219,164,0.45)',
+                color: '#5a9a8e',
+                fontFamily: "'Pretendard Variable', sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              영상 업로드
+              <span className="opacity-50 text-[11px]">또는 드래그</span>
+            </button>
+          </motion.div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </section>
+
+      {/* TEXT SECTION */}
+      <section className="relative w-full pt-4 pb-20 text-center overflow-hidden">
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[160px] pointer-events-none"
           style={{
             background:
-              'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.08) 0%, rgba(33,219,164,0.05) 40%, transparent 70%)',
-            boxShadow:
-              'inset 0 0 60px rgba(33,219,164,0.1), 0 0 80px rgba(33,219,164,0.08)',
+              'radial-gradient(ellipse at 50% 0%, rgba(33,219,164,0.06) 0%, transparent 70%)',
           }}
         />
 
-        <AnimatePresence mode="wait">
-          {videoFile ? (
-            <motion.div
-              key="video"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0"
-            >
-              <PingPongVideo file={videoFile} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="infinity"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="absolute inset-0"
-            >
-              <InfinityOrb />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Drop overlay */}
-        <AnimatePresence>
-          {isDragging && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-10 flex items-center justify-center rounded-full border-2 border-dashed border-[#21DBA4]/60 bg-[#21DBA4]/10 backdrop-blur-sm"
-            >
-              <div className="text-center">
-                <Play className="mx-auto h-8 w-8 text-[#21DBA4]" />
-                <p className="mt-2 text-xs font-medium text-[#21DBA4]">
-                  영상을 놓아주세요
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Text content */}
-      <div className="relative z-10 mx-auto max-w-3xl text-center">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
-          <span
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-white/60 backdrop-blur-sm"
+        <div className="relative max-w-[580px] mx-auto px-[24px] pt-[50px] pb-[0px]">
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="relative inline-flex items-center justify-center mb-7"
           >
-            <svg
-              width="16"
-              height="10"
-              viewBox="0 0 56 31"
-              fill="none"
-              className="opacity-70"
+            <div
+              className="absolute inset-0 rounded-full blur-md"
+              style={{
+                background:
+                  'linear-gradient(88deg, rgba(91,214,195,0.7) 0%, rgba(197,234,246,0.7) 100%)',
+              }}
+            />
+            <span
+              className="relative py-1.5 rounded-full text-white text-[12px] tracking-[0.5px] uppercase px-[24px] py-[6px]"
+              style={{
+                fontFamily: "'Pretendard Variable', sans-serif",
+                fontWeight: 600,
+                background:
+                  'linear-gradient(88deg, rgba(91,214,195,0.58) 0%, rgba(197,234,246,0.48) 100%)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.38)',
+              }}
             >
-              <path d={LOGO_ICON_PATH} fill="#21DBA4" />
-            </svg>
-            Your Second Brain
-          </span>
-        </motion.div>
+              Your Second Brain
+            </span>
+          </motion.div>
 
-        {/* Headline */}
-        <motion.h1
-          className="mt-8 text-5xl font-extrabold leading-tight tracking-tight text-white md:text-7xl"
-          style={{ fontFamily: "'Pretendard Variable', sans-serif", wordBreak: 'keep-all' }}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-        >
-          저장하는 순간,
-          <br />
-          <span
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.9, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[clamp(34px,5.5vw,60px)] text-transparent bg-clip-text text-center leading-[1.18] tracking-[-2px] mb-5"
             style={{
-              background: 'linear-gradient(90deg, #21DBA4 0%, #5BD6C3 50%, #C5EAF6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              backgroundImage:
+                'linear-gradient(118deg, #5DD5C3 0%, #21DBA4 44%, #5BC8E8 100%)',
+              fontFamily: "'Pretendard Variable', sans-serif",
+              fontWeight: 800,
             }}
           >
-            지식이 됩니다
-          </span>
-        </motion.h1>
+            저장한 링크가
+            <br />
+            나만의 콘텐츠가 됩니다
+          </motion.h1>
 
-        {/* Subtitle */}
-        <motion.p
-          className="mx-auto mt-6 max-w-lg text-lg leading-relaxed text-white/50"
-          style={{ fontFamily: "'Pretendard Variable', sans-serif", wordBreak: 'keep-all' }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.7 }}
-        >
-          URL 하나면 충분합니다. AI가 자동으로 분석하고, 정리하고, 연결합니다.
-          흩어진 링크가 나만의 지식 베이스로.
-        </motion.p>
-
-        {/* CTA buttons */}
-        <motion.div
-          className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.9 }}
-        >
-          <Link
-            href="/signup"
-            className="group inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(33,219,164,0.3)]"
-            style={{
-              background: 'linear-gradient(135deg, #21DBA4 0%, #1BC290 100%)',
-            }}
-          >
-            무료로 시작하기
-            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-3.5 text-base font-medium text-white/70 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white"
-          >
-            로그인
-          </Link>
-        </motion.div>
-
-        {/* Video drop hint */}
-        {!videoFile && (
+          {/* Subtitle */}
           <motion.p
-            className="mt-8 text-xs text-white/20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[clamp(15px,1.9vw,17px)] text-[#9a9a9a] text-center tracking-[-0.3px] leading-[1.9]"
+            style={{
+              fontFamily: "'Pretendard Variable', sans-serif",
+              fontWeight: 400,
+            }}
           >
-            영상을 드래그해 올려보세요
+            SNS, 유튜브 등 수 많은 콘텐츠와 게시물,
+            <br className="hidden sm:block" />
+            하루에 몇 개나 보고 몇 개나 저장하시나요?
           </motion.p>
-        )}
-      </div>
-    </section>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-9 flex items-center justify-center gap-4 flex-wrap"
+          >
+            <a
+              href="#"
+              className="px-7 py-3 rounded-full text-[15px] text-white transition-all duration-300 hover:shadow-xl hover:shadow-[#21DBA4]/30 hover:-translate-y-0.5 active:scale-95"
+              style={{
+                background: 'linear-gradient(100deg, #21DBA4 0%, #5DD5C3 100%)',
+                fontFamily: "'Pretendard Variable', sans-serif",
+                fontWeight: 600,
+              }}
+            >
+              무료로 시작하기
+            </a>
+            <a
+              href="#pricing"
+              className="px-7 py-3 rounded-full text-[15px] text-[#666] border border-[#e5e5e5] hover:border-[#21DBA4]/50 hover:text-[#21DBA4] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
+              style={{
+                fontFamily: "'Pretendard Variable', sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              요금제 보기
+            </a>
+          </motion.div>
+
+          {/* Fine print */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.45 }}
+            className="mt-5 text-[12px] text-[#ccc]"
+            style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
+          >
+            카드 등록 불필요 · 즉시 사용 가능 · 언제든 취소
+          </motion.p>
+        </div>
+      </section>
+    </div>
   );
 }
