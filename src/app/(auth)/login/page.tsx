@@ -91,7 +91,8 @@ function LoginForm() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3.5 text-sm font-semibold text-foreground transition-all duration-300 hover:bg-muted hover-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+          className="w-full flex items-center justify-center gap-3 rounded-full border px-4 py-3.5 text-sm font-semibold transition-all duration-300 focus-visible:outline focus-visible:outline-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ borderColor: "rgba(0,0,0,0.12)", background: "#ffffff", color: "#1a2e2a" }}
         >
           <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true">
             <path
@@ -197,7 +198,8 @@ function LoginForm() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 font-semibold text-sm rounded-xl transition-all duration-300 hover:glow-brand hover-lift"
+            className="w-full h-11 font-semibold text-sm rounded-full transition-all duration-300 disabled:opacity-50"
+            style={{ background: "linear-gradient(90deg, #21DBA4, #5DD5C3)", color: "#ffffff", border: "none" }}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
