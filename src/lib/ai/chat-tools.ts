@@ -154,6 +154,7 @@ async function execSearchClips(userId: string, args: ToolArgs): Promise<string> 
   const query = String(args.query ?? '');
   const limit = Math.min(Number(args.limit) || 10, 20);
 
+  // Try FTS first, fall back to ilike if FTS fails or returns empty
   const { data, error } = await db
     .from('clips')
     .select('id, title, summary, url, platform, created_at, keywords')
@@ -162,8 +163,22 @@ async function execSearchClips(userId: string, args: ToolArgs): Promise<string> 
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) return JSON.stringify({ error: error.message });
-  return JSON.stringify({ clips: data ?? [], count: (data ?? []).length });
+  if (!error && data && data.length > 0) {
+    return JSON.stringify({ clips: data, count: data.length });
+  }
+
+  // Fallback: ilike search on title and summary
+  const pattern = `%${query}%`;
+  const { data: fallback, error: fbErr } = await db
+    .from('clips')
+    .select('id, title, summary, url, platform, created_at, keywords')
+    .eq('user_id', userId)
+    .or(`title.ilike.${pattern},summary.ilike.${pattern}`)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (fbErr) return JSON.stringify({ error: fbErr.message });
+  return JSON.stringify({ clips: fallback ?? [], count: (fallback ?? []).length });
 }
 
 async function execFindSimilar(userId: string, args: ToolArgs): Promise<string> {
