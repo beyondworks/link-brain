@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     .from('clips')
     .select('id, user_id')
     .not('id', 'in', db.from('clip_embeddings').select('clip_id'))
-    .eq('processing_status', 'completed')
+    .eq('processing_status', 'ready')
     .order('created_at', { ascending: false })
     .limit(batchSize);
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const { data: fallbackClips, error: fallbackErr } = await db
       .from('clips')
       .select('id, user_id')
-      .eq('processing_status', 'completed')
+      .eq('processing_status', 'ready')
       .order('created_at', { ascending: false })
       .limit(batchSize * 2);
 
