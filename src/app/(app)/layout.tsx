@@ -29,6 +29,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+/** Notch fill — sits above overlays (z-[200]) to keep the notch area matching bg-background.
+ *  When notchOverlayActive is true (e.g. center-mode dialog), it becomes transparent
+ *  so the dialog overlay can darken the notch area. */
+function NotchFill() {
+  const notchOverlayActive = useUIStore((s) => s.notchOverlayActive);
+  if (notchOverlayActive) return null;
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden"
+      style={{ height: 'env(safe-area-inset-top, 0px)' }}
+      aria-hidden="true"
+    />
+  );
+}
+
 interface AppLayoutProps {
   children: React.ReactNode;
 }
@@ -63,6 +78,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <TooltipProvider>
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Safe area fill — covers the notch area with bg-background.
+          Hidden when notchOverlayActive so dialog overlays can darken the notch. */}
+      <NotchFill />
       {/* Skip navigation link */}
       <a
         href="#main-content"

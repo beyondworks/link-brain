@@ -30,6 +30,7 @@ interface UIState {
   omniSearchOpen: boolean;
   peekClipId: string | null;
   clipPeekMode: ClipPeekMode;
+  notchOverlayActive: boolean;
 }
 
 interface UIActions {
@@ -56,6 +57,7 @@ interface UIActions {
   openClipPeek: (clipId: string) => void;
   closeClipPeek: () => void;
   setClipPeekMode: (mode: ClipPeekMode) => void;
+  setNotchOverlayActive: (active: boolean) => void;
 }
 
 const DEFAULT_FILTERS: UIFilters = {
@@ -87,6 +89,7 @@ export const useUIStore = create<UIState & UIActions>()(
       omniSearchOpen: false,
       peekClipId: null,
       clipPeekMode: 'side',
+      notchOverlayActive: false,
 
       // Actions
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -154,8 +157,9 @@ export const useUIStore = create<UIState & UIActions>()(
       clearFilters: () => set({ filters: DEFAULT_FILTERS }),
 
       openClipPeek: (clipId) => set({ peekClipId: clipId }),
-      closeClipPeek: () => set({ peekClipId: null }),
+      closeClipPeek: () => set({ peekClipId: null, notchOverlayActive: false }),
       setClipPeekMode: (mode) => set({ clipPeekMode: mode }),
+      setNotchOverlayActive: (active) => set({ notchOverlayActive: active }),
     }),
     {
       name: 'linkbrain-ui',

@@ -502,6 +502,7 @@ export function ClipPeekPanel() {
   const peekClipId = useUIStore((s) => s.peekClipId);
   const clipPeekMode = useUIStore((s) => s.clipPeekMode);
   const closeClipPeek = useUIStore((s) => s.closeClipPeek);
+  const setNotchOverlayActive = useUIStore((s) => s.setNotchOverlayActive);
 
   const isOpen = peekClipId !== null;
   const isSeed = peekClipId?.startsWith('seed-') ?? false;
@@ -519,6 +520,15 @@ export function ClipPeekPanel() {
   const category = clip?.category_id
     ? categories.find((c) => c.id === clip.category_id)
     : undefined;
+
+  // Center mode: activate notch overlay so the dialog dims the notch area
+  useEffect(() => {
+    if (isOpen && clipPeekMode === 'center') {
+      setNotchOverlayActive(true);
+    } else {
+      setNotchOverlayActive(false);
+    }
+  }, [isOpen, clipPeekMode, setNotchOverlayActive]);
 
   // ESC closes peek — only needed for full mode (Sheet/Dialog handle their own ESC)
   const handleEsc = useCallback(
