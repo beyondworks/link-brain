@@ -704,7 +704,7 @@ export function ClipPeekPanel() {
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in"
-      style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       {content}
     </div>
