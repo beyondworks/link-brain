@@ -6,6 +6,7 @@ import { SupabaseProvider } from '@/components/providers/supabase-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SwRegister } from '@/components/pwa/sw-register';
+import { ThemeColorSync } from '@/components/layout/theme-color-sync';
 import './globals.css';
 
 const inter = Inter({
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <QueryProvider>
           <SupabaseProvider>
             <ThemeProvider>
+              <ThemeColorSync />
               <TooltipProvider delayDuration={300}>
                 {children}
                 <Toaster position="bottom-right" richColors />
