@@ -106,6 +106,7 @@ export function ChatPanel() {
           'border-l border-border/50 bg-background shadow-2xl',
           'animate-slide-in',
         )}
+        style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
       >
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-border/50 px-4">
