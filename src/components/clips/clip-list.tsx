@@ -67,7 +67,6 @@ export function ClipList({
   // Mobile context menu state
   const [contextMenu, setContextMenu] = useState<{
     clipId: string;
-    position: { x: number; y: number };
   } | null>(null);
   const [singleDeleteTarget, setSingleDeleteTarget] = useState<string | null>(null);
 
@@ -114,8 +113,8 @@ export function ClipList({
   );
 
   const handleLongPress = useCallback(
-    (clip: ClipData, position: { x: number; y: number }) => {
-      setContextMenu({ clipId: clip.id, position });
+    (clip: ClipData, _position: { x: number; y: number }) => {
+      setContextMenu({ clipId: clip.id });
     },
     [],
   );
@@ -324,8 +323,9 @@ export function ClipList({
           </button>
 
           {/* Count */}
-          <span className="min-w-[60px] text-sm font-semibold text-foreground">
-            {selectedCount}개 선택됨
+          <span className="text-sm font-semibold text-foreground tabular-nums">
+            <span className="sm:hidden">{selectedCount}</span>
+            <span className="hidden sm:inline">{selectedCount}개 선택됨</span>
           </span>
 
           <div className="flex-1" />
@@ -334,60 +334,60 @@ export function ClipList({
           <button
             onClick={handleBulkFavorite}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="선택한 클립 즐겨찾기"
           >
-            <Star className="h-3.5 w-3.5" />
+            <Star className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">즐겨찾기</span>
           </button>
 
           <button
             onClick={handleBulkArchive}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="선택한 클립 아카이브"
           >
-            <Archive className="h-3.5 w-3.5" />
+            <Archive className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">아카이브</span>
           </button>
 
           <button
             onClick={handleBulkHide}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={allSelectedHidden ? '선택한 클립 홈에서 표시' : '선택한 클립 홈에서 숨김'}
           >
-            {allSelectedHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            {allSelectedHidden ? <Eye className="h-3.5 w-3.5 shrink-0" /> : <EyeOff className="h-3.5 w-3.5 shrink-0" />}
             <span className="hidden sm:inline">{allSelectedHidden ? '홈에서 표시' : '홈에서 숨김'}</span>
           </button>
 
           <button
             onClick={() => setDeleteDialogOpen(true)}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="선택한 클립 삭제"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">삭제</span>
           </button>
 
           <button
             onClick={() => setTagDialogOpen(true)}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="선택한 클립에 태그 추가"
           >
-            <Tag className="h-3.5 w-3.5" />
+            <Tag className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">태그 추가</span>
           </button>
 
           <button
             onClick={() => setCollectionDialogOpen(true)}
             disabled={selectedCount === 0 || isBulkPending}
-            className="flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-8 items-center gap-1.5 rounded-xl px-2 sm:px-3 text-xs font-medium text-muted-foreground transition-spring hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="선택한 클립을 컬렉션에 추가"
           >
-            <FolderPlus className="h-3.5 w-3.5" />
+            <FolderPlus className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden sm:inline">컬렉션에 추가</span>
           </button>
 
@@ -548,7 +548,6 @@ export function ClipList({
       <MobileContextMenu
         open={contextMenu !== null}
         onClose={() => setContextMenu(null)}
-        position={contextMenu?.position ?? { x: 0, y: 0 }}
         actions={contextActions}
       />
 

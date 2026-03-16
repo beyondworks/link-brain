@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckSquare,
   Star,
@@ -22,51 +23,30 @@ export interface MobileContextMenuAction {
 interface MobileContextMenuProps {
   open: boolean;
   onClose: () => void;
-  position: { x: number; y: number };
+  position?: { x: number; y: number };
   actions: MobileContextMenuAction[];
 }
 
 /**
- * Mobile-optimized context menu that appears on long-press.
- * Positioned near the touch point, dismisses on backdrop tap.
+ * Mobile bottom action bar that appears on long-press.
+ * Uses createPortal to render at document.body level,
+ * bypassing any transform/overflow containing blocks.
  */
-export function MobileContextMenu({ open, onClose, position, actions }: MobileContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [adjustedPos, setAdjustedPos] = useState(position);
-
+export function MobileContextMenu({ open, onClose, actions }: MobileContextMenuProps) {
+  // Clear any iOS text selection when menu opens
   useEffect(() => {
-    if (!open) return;
-    // Start with touch coordinates
-    let x = position.x;
-    let y = position.y;
+    if (open) {
+      window.getSelection()?.removeAllRanges();
+    }
+  }, [open]);
 
-    // Wait for menu to render to get its size
-    requestAnimationFrame(() => {
-      if (!menuRef.current) {
-        setAdjustedPos({ x, y });
-        return;
-      }
-      const rect = menuRef.current.getBoundingClientRect();
-      const PADDING = 16;
+  if (!open || typeof document === 'undefined') return null;
 
-      // Center horizontally on touch point
-      x = x - rect.width / 2;
-
-      // Clamp to viewport
-      x = Math.max(PADDING, Math.min(x, window.innerWidth - rect.width - PADDING));
-      y = Math.max(PADDING, Math.min(y, window.innerHeight - rect.height - PADDING));
-
-      setAdjustedPos({ x, y });
-    });
-  }, [open, position]);
-
-  if (!open) return null;
-
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[70] lg:hidden"
+        className="fixed inset-0 z-[70] bg-black/20 lg:hidden"
         onTouchStart={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -75,37 +55,49 @@ export function MobileContextMenu({ open, onClose, position, actions }: MobileCo
         onClick={onClose}
         aria-hidden="true"
       />
-      {/* Menu */}
+      {/* Bottom action bar — above bottom nav */}
       <div
-        ref={menuRef}
-        className="fixed z-[70] min-w-[180px] overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-elevated animate-fade-in lg:hidden"
-        style={{ top: adjustedPos.y, left: adjustedPos.x }}
+        className="fixed left-0 right-0 bottom-[4rem] z-[70] lg:hidden animate-in slide-in-from-bottom-4 duration-200 pb-safe-bottom"
         role="menu"
       >
-        {actions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <button
-              key={action.id}
-              role="menuitem"
-              onClick={() => {
-                action.onClick();
-                onClose();
-              }}
-              className={cn(
-                'flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors active:bg-accent',
-                action.variant === 'destructive'
-                  ? 'text-destructive'
-                  : 'text-foreground',
-              )}
-            >
-              <Icon size={16} className={action.variant === 'destructive' ? 'text-destructive' : 'text-muted-foreground'} />
-              {action.label}
-            </button>
-          );
-        })}
+        <div className="touch-none-native mx-3 mb-2 overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-elevated">
+          <div className="flex items-center justify-around px-1 py-2">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  role="menuitem"
+                  onClick={() => {
+                    action.onClick();
+                    onClose();
+                  }}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1 rounded-xl py-2 transition-colors active:bg-accent',
+                    action.variant === 'destructive'
+                      ? 'text-destructive'
+                      : 'text-foreground',
+                  )}
+                >
+                  <Icon
+                    size={18}
+                    className={
+                      action.variant === 'destructive'
+                        ? 'text-destructive'
+                        : 'text-muted-foreground'
+                    }
+                  />
+                  <span className="text-[9px] font-medium leading-tight whitespace-nowrap">
+                    {action.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
@@ -159,7 +151,7 @@ export function buildClipContextActions({
   if (onAddToCollection) {
     actions.push({
       id: 'collection',
-      label: '컬렉션에 추가',
+      label: '컬렉션 추가',
       icon: FolderPlus,
       onClick: onAddToCollection,
     });

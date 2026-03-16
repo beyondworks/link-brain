@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 
-const LONG_PRESS_DURATION = 500;
+const LONG_PRESS_DURATION = 400; // Shorter than iOS native ~500ms to fire first
 const MOVE_THRESHOLD = 10;
 
 interface UseLongPressOptions {
@@ -13,7 +13,7 @@ interface UseLongPressOptions {
 /**
  * Returns event handlers for long-press detection.
  * Cancels if finger moves beyond threshold or touch ends too early.
- * Timer is cleaned up on unmount to prevent stale callbacks.
+ * Clears iOS native text selection on fire.
  */
 export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,11 +35,12 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
       if (!isEnabled) return;
       firedRef.current = false;
       const touch = e.touches[0];
-      // Capture position immediately — touch event data becomes stale after timeout
       const pos = { x: touch.clientX, y: touch.clientY };
       startPos.current = pos;
       timerRef.current = setTimeout(() => {
         firedRef.current = true;
+        // Clear any iOS native text selection that may have started
+        window.getSelection()?.removeAllRanges();
         onLongPress(pos);
       }, LONG_PRESS_DURATION);
     },
@@ -48,6 +49,7 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
+      // Prevent native context menu on both desktop and mobile
       if (isEnabled) e.preventDefault();
     },
     [isEnabled],
@@ -69,8 +71,6 @@ export function useLongPress({ onLongPress, isEnabled = true }: UseLongPressOpti
   const onTouchEnd = useCallback(
     () => {
       clear();
-      // Click suppression is handled by longPressFired ref guard in the click handler.
-      // e.preventDefault() in touchend does NOT reliably cancel the synthetic click on iOS Safari.
     },
     [clear],
   );

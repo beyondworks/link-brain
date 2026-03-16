@@ -99,7 +99,7 @@ export const ClipRow = memo(function ClipRow({
       onTouchEnd={longPressHandlers.onTouchEnd}
       onContextMenu={longPressHandlers.onContextMenu}
       className={cn(
-        'group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60 [&_*]:[-webkit-touch-callout:none] [&_*]:[user-select:none]',
+        'touch-none-native group flex cursor-pointer items-start gap-3 border-b border-border/30 py-3 last:border-b-0 transition-colors hover:bg-card/60',
         isSelected && 'border-primary/20 bg-primary/5'
       )}
     >
