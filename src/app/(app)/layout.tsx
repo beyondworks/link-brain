@@ -28,6 +28,7 @@ import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSafeArea } from '@/lib/hooks/use-safe-area';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -75,6 +76,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const peekClipId = useUIStore((s) => s.peekClipId);
   const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile && !peekClipId, isSidebarOpen: sidebarOpen });
   useStatusBarScrollTop({ isEnabled: isMobile });
+  useSafeArea();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -95,7 +97,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible */}
       <div
-        className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden h-safe-top"
+        className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden"
+        style={{ height: 'var(--sat, env(safe-area-inset-top, 0px))' }}
         aria-hidden="true"
       />
       {/* Skip navigation link */}
@@ -105,10 +108,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         본문으로 건너뛰기
       </a>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — starts below safe area to avoid darkening the notch */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
+          className="fixed left-0 right-0 bottom-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
+          style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -130,10 +134,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Sidebar header — safe area padding for iOS notch/Dynamic Island */}
         <div
           className={[
-            'flex items-center border-b border-border/50 pt-safe-top',
+            'flex items-center border-b border-border/50',
             isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
           ].join(' ')}
-          style={{ minHeight: '4rem' }}
+          style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))', minHeight: '4rem' }}
         >
           <Link
             href="/dashboard"
@@ -390,7 +394,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Mobile header — outside scroll container, always visible */}
         <header
           aria-label="앱 헤더"
-          className="flex-shrink-0 flex flex-col border-b border-border/50 bg-background pt-safe-top lg:hidden"
+          className="flex-shrink-0 flex flex-col border-b border-border/50 bg-background lg:hidden"
+          style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
         >
           <div className="flex h-16 items-center px-4">
             <Button
