@@ -52,7 +52,10 @@ export function ChatInput({
   }, []);
 
   return (
-    <div className="flex items-end gap-2 border-t border-border/50 bg-background px-4 py-3">
+    <div
+      className="flex items-end gap-2 border-t border-border/50 bg-background px-4 py-3"
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
+    >
       <textarea
         ref={textareaRef}
         value={value}
