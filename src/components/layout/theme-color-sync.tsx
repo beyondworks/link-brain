@@ -4,33 +4,45 @@ import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
 /**
- * Syncs the <meta name="theme-color"> tag with the app's current theme.
+ * Syncs <meta name="theme-color"> with the ACTUAL computed background color.
  *
- * iOS Safari uses theme-color for the status bar background.
- * Without this, the status bar uses the static meta tag value which may
- * not match the app's actual theme (e.g., system dark + app light).
+ * Instead of hardcoding hex values (which may not exactly match oklch CSS variables),
+ * reads the computed background-color from document.body and uses that exact value.
  */
 export function ThemeColorSync() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    // Match the actual --background CSS value for each theme
-    const color = resolvedTheme === 'dark' ? '#2e2e2e' : '#fafafa';
+    // Wait for theme to be applied to DOM
+    requestAnimationFrame(() => {
+      // Read the ACTUAL computed background color from body
+      const computed = getComputedStyle(document.body).backgroundColor;
 
-    // Find or create the theme-color meta tags and update them all
-    const metas = document.querySelectorAll('meta[name="theme-color"]');
-    if (metas.length > 0) {
+      // Convert rgb(r, g, b) to #rrggbb
+      const match = computed.match(/\d+/g);
+      let hex: string;
+      if (match && match.length >= 3) {
+        hex = '#' + match.slice(0, 3).map((v) => parseInt(v).toString(16).padStart(2, '0')).join('');
+      } else {
+        // Fallback
+        hex = resolvedTheme === 'dark' ? '#2e2e2e' : '#fafafa';
+      }
+
+      // Update all theme-color meta tags
+      const metas = document.querySelectorAll('meta[name="theme-color"]');
       metas.forEach((meta) => {
-        meta.setAttribute('content', color);
-        // Remove media attribute so it applies unconditionally
+        meta.setAttribute('content', hex);
         meta.removeAttribute('media');
       });
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      meta.content = color;
-      document.head.appendChild(meta);
-    }
+
+      // If no meta tag exists, create one
+      if (metas.length === 0) {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = hex;
+        document.head.appendChild(meta);
+      }
+    });
   }, [resolvedTheme]);
 
   return null;
