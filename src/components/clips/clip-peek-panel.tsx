@@ -702,7 +702,10 @@ export function ClipPeekPanel() {
   /* ─── Full mode: Full overlay ────────────────────────────── */
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in"
+      style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+    >
       {content}
     </div>
   );
