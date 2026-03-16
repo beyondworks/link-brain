@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SwRegister } from '@/components/pwa/sw-register';
 import { ThemeColorSync } from '@/components/layout/theme-color-sync';
+import { ThemeColorScript } from '@/components/layout/theme-color-script';
 import './globals.css';
 
 const inter = Inter({
@@ -56,7 +57,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f9fafb",
+  // themeColor는 inline script에서 동적 설정 (ThemeColorScript)
   colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={inter.variable}
     >
       <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
+        <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link

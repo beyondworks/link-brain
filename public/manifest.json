@@ -4,8 +4,8 @@
   "description": "AI-powered Bookmark Manager",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#f9fafb",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
   "icons": [
     {
