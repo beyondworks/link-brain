@@ -92,7 +92,8 @@ export function ChatPanel() {
     <>
       {/* Overlay (mobile) */}
       <div
-        className="fixed inset-0 z-[49] bg-black/30 lg:hidden animate-fade-in"
+        className="fixed left-0 right-0 bottom-0 z-[49] bg-black/30 lg:hidden animate-fade-in"
+        style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
         onClick={closeChat}
         aria-hidden="true"
       />
