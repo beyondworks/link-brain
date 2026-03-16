@@ -93,7 +93,7 @@ export function ChatPanel() {
       {/* Overlay (mobile) */}
       <div
         className="fixed left-0 right-0 bottom-0 z-[49] bg-black/30 lg:hidden animate-fade-in"
-        style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
         onClick={closeChat}
         aria-hidden="true"
       />
@@ -106,7 +106,7 @@ export function ChatPanel() {
           'border-l border-border/50 bg-background shadow-2xl',
           'animate-slide-in',
         )}
-        style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-border/50 px-4">

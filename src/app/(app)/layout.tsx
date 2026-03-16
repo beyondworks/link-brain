@@ -98,7 +98,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible */}
       <div
         className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden"
-        style={{ height: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+        style={{ height: 'env(safe-area-inset-top, 0px)' }}
         aria-hidden="true"
       />
       {/* Skip navigation link */}
@@ -112,7 +112,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {sidebarOpen && (
         <div
           className="fixed left-0 right-0 bottom-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
-          style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+          style={{ top: 'env(safe-area-inset-top, 0px)' }}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -137,7 +137,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             'flex items-center border-b border-border/50',
             isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
           ].join(' ')}
-          style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))', minHeight: '4rem' }}
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)', minHeight: '4rem' }}
         >
           <Link
             href="/dashboard"
@@ -395,7 +395,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <header
           aria-label="앱 헤더"
           className="flex-shrink-0 flex flex-col border-b border-border/50 bg-background lg:hidden"
-          style={{ paddingTop: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <div className="flex h-16 items-center px-4">
             <Button

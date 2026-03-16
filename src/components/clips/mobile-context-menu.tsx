@@ -47,7 +47,7 @@ export function MobileContextMenu({ open, onClose, actions }: MobileContextMenuP
       {/* Backdrop */}
       <div
         className="fixed left-0 right-0 bottom-0 z-[70] bg-black/20 lg:hidden"
-        style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
         onTouchStart={(e) => {
           e.preventDefault();
           e.stopPropagation();
