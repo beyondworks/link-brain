@@ -48,6 +48,11 @@ export const metadata: Metadata = {
   icons: {
     icon: '/icons/favicon.svg',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Linkbrain',
+  },
 };
 
 export const viewport: Viewport = {
