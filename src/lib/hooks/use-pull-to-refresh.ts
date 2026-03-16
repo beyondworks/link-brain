@@ -87,6 +87,7 @@ export function usePullToRefresh({
         pulling.current = true;
         setIsPulling(true);
         startY.current = currentY.current;
+        e.preventDefault();
         return;
       }
 

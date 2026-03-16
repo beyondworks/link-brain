@@ -116,7 +116,7 @@ export const ClipCard = memo(function ClipCard({
       onTouchEnd={longPressHandlers.onTouchEnd}
       onContextMenu={longPressHandlers.onContextMenu}
       className={cn(
-        'card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card [&_*]:[-webkit-touch-callout:none] [&_*]:[user-select:none]',
+        'touch-none-native card-glow group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-0 gap-0 shadow-card',
         isSelected && 'ring-2 ring-primary ring-offset-2'
       )}
     >

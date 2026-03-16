@@ -1,0 +1,26 @@
+{
+  "name": "linkbrain-migration",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firebase → Supabase data migration for Linkbrain",
+  "scripts": {
+    "export": "ts-node 01-export-firebase.ts",
+    "transform": "ts-node 02-transform.ts",
+    "migrate-users": "ts-node 03-migrate-users.ts",
+    "import": "ts-node 04-import-supabase.ts",
+    "verify": "ts-node 05-verify.ts",
+    "rollback": "ts-node rollback.ts"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "uuid": "^9.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0"
+  }
+}

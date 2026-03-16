@@ -1,86 +1,66 @@
 # Session Handover
 
-## 날짜: 2026-03-14 (세션 6)
+## 날짜: 2026-03-16 (세션 9)
 
 ---
 
 ## 완료
 
-### 1. 플랜/크레딧 시스템 프론트엔드 연동
-- **설정 페이지 "플랜 & 사용량" 섹션 강화** (`settings-client.tsx`)
-  - 기존 단일 크레딧 바 → 플랜 티어 배지(Free/Pro/Master) + 4개 UsageBar(클립·AI 크레딧·Studio·컬렉션) + 초기화 날짜 + 업그레이드 CTA
-- **UpgradePrompt 연동** — 한도 초과 시 비차단 경고 배너
-  - `add-clip-dialog.tsx`: 클립 한도 초과 시 배너 + Quick Save/분석 버튼 비활성화
-  - `studio-client.tsx`: Studio 한도 초과 시 배너 + 생성 버튼 비활성화
-  - `usePlan()` 훅의 `canCreateClip`, `canUseStudio` 플래그 사용
+### Firebase → Supabase 데이터 마이그레이션
+- 5단계 파이프라인 구현 (`scripts/migration/` 01~05 + rollback)
+- 299명 유저 전원 매핑 (기존 5명 + 신규 294명), 에러 0
+- 1523 클립, 295 카테고리, 20 컬렉션, 3417 태그 이전 완료
+- 검증 8/8 PASS (카운트, spot-check, orphan FK, 유저별 클립 수)
+- Supabase `.in()` 한글 배치 50개 제한 발견 → 해결
 
-### 2. 마케팅 페이지 PLAN_LIMITS 동기화
-- **`src/config/plans.ts` 신규** — `PLAN_LIMITS`에서 마케팅 플랜 데이터를 동적 생성 (단일 소스)
-- **Pricing 페이지** (`pricing/page.tsx`): 하드코딩 `PLANS` 배열 제거 → `MARKETING_PLANS` 사용
-- **Landing 페이지** (`page.tsx`): FAQ 답변, CTA 텍스트, trust signal에서 `PLAN_LIMITS` config 값 동적 참조
+### 도메인 전환
+- `linkbrain.cloud` + `www.linkbrain.cloud`: v1(`linkbrain`) → v2(`link-brain`) Vercel 프로젝트 이동
+- DNS 변경 불필요 (가비아 네임서버 → Vercel A 레코드 유지)
 
-### 3. Playwright 시각적 검증
-- Pricing 페이지: 3개 플랜 카드 수치 config 값과 일치 확인
-- Landing 페이지: FAQ/CTA 텍스트 config 값 반영 확인
-- 빌드: `tsc --noEmit` + `npm run build` 모두 통과
-
-### 4. 이전 세션(세션 5) 작업
-- 이미지 클립 썸네일 표시 (clip.url fallback)
-- 이미지 페이지 6열 그리드 + 드래그앤드롭 앨범 이동 (데스크탑 HTML5 + 모바일 롱터치)
-- 검색 강화: 카테고리/컬렉션/이미지 pill 오버레이
-- Studio 콘텐츠 새로고침 유지 (auto-restore + error toast)
-
----
-
-## 미커밋 변경 사항
-
-```
-M  src/app/(app)/settings/settings-client.tsx  — 플랜 섹션 강화
-M  src/app/(app)/studio/studio-client.tsx       — UpgradePrompt 연동
-M  src/app/(marketing)/page.tsx                 — PLAN_LIMITS 동적 참조
-M  src/app/(marketing)/pricing/page.tsx         — MARKETING_PLANS 사용
-M  src/components/clips/add-clip-dialog.tsx     — UpgradePrompt 연동
-?? src/config/plans.ts                          — 마케팅 플랜 config (신규)
-```
-
-**브랜치**: `main` (커밋 전 — 사용자 확인 대기)
+### 모바일 UX 개선
+- 모바일 헤더를 스크롤 컨테이너 밖으로 이동 (sticky → flex child) — 스크롤 시 헤더 사라짐 해결
+- 롱터치 컨텍스트 메뉴 → 바텀 액션 바 (createPortal로 body에 직접 렌더)
+- iOS 터치 하이라이트/callout 차단 CSS (`.touch-none-native`)
+- 롱터치 타이머 500ms → 400ms (iOS 네이티브보다 먼저 발동)
+- pull-to-refresh: `overscroll-y-none` + `overflow-x-hidden` 추가
+- 일괄선택 툴바: 모바일 패딩/텍스트 축소 (아이콘 shrink-0)
+- `themeColor`를 배경색에 맞춤 (#fafafa / #2e2e2e)
+- safe-area CSS 클래스 통일 (`.pt-safe-top`, `.h-safe-top`, `.pb-safe-bottom`)
+- 스크롤 좌우 흔들림 해결 (`overflow-x-hidden`)
+- tsconfig exclude에 `scripts/` 추가 (빌드 에러 수정)
 
 ---
 
 ## 미완료
 
-### P0 — 즉시
-- [ ] 미커밋 변경 사항 커밋 (사용자 브랜치 결정 대기)
-- [ ] `src/app/api/v1/clips-detail/route 2.ts` — 공백 포함 중복 파일, 삭제 필요
+### P0 — 모바일 UX 잔여
+- [ ] 노치 색상 차이 (사이드바/클립 열 때) — localhost에서 `env(safe-area-inset-top)` 0 반환, 프로덕션(HTTPS)에서 확인 필요
+- [ ] 롱터치 iOS 네이티브 하이라이트 — CSS/JS로 차단 시도했으나 iOS 26.1에서 완전 차단 안 됨, 추가 조사 필요
+- [ ] pull-to-refresh 동작 미확인 — 프로덕션에서 테스트 필요
 
-### P1 — 플랜 시스템 확장
-- [ ] Stripe/결제 연동 (현재 플랜 변경 UI만 있고 실제 결제 없음)
-- [ ] 사이드바 하단에 PlanUsageCard 렌더링 (컴포넌트 존재하지만 미사용)
-- [ ] 컬렉션 생성 시 `canCreateCollection` 체크 + UpgradePrompt
-
-### P1 — DB 마이그레이션
-- [ ] `016_image_upload_support.sql` — DB push 미적용
-- [ ] `017_plan_system.sql` — DB push 적용 여부 확인 (credit_usage 테이블)
-- [ ] `008`, `009` 마이그레이션 미적용
-
-### P2 — 정리
-- [ ] `supabase gen types typescript` → `as any` 30개 제거
-- [ ] 로고 결정 (7개 SVG 중 선택)
-- [ ] stale 리모트 브랜치 정리
+### P1
+- [ ] DDD 경량 도입 (4개 도메인: clip, ai, credit, user)
+- [ ] `as any` 30개 제거 (`supabase gen types typescript`)
+- [ ] Stripe 결제 연동
 
 ---
 
 ## 에러/학습
 
-1. **Turbopack dev 서버 hang**: 첫 요청 시 2분+ 타임아웃. `npm run build` + `next start` 프로덕션 모드로 Playwright 검증 진행
-2. **PLAN_LIMITS 동기화**: `Infinity` 값은 `formatLimit()` 헬퍼로 '무제한' 문자열 변환. pricing 페이지 JSON-LD도 config에서 동적 생성
+1. **Supabase `.in()` URL 길이 제한**: 한글 500개 → 0 결과 반환 (에러 없음). 배치 50개로 줄여 해결
+2. **tags UNIQUE(name) 충돌**: upsert `onConflict: 'id'`로 하면 name 충돌. 이름만 삽입 → DB 실제 ID 조회 → clip_tags 매핑
+3. **fixed + transform containing block**: PullToRefreshWrapper 내 transform div 안의 `position: fixed`가 absolute처럼 동작 → `createPortal(document.body)` 해결
+4. **Turbopack 캐시**: `.next` 삭제 + 서버 재시작해도 구 코드 서빙. `node_modules/.cache`도 삭제 필요
+5. **tsconfig exclude 누락**: `scripts/migration/`이 Next.js 빌드에 포함 → `FirebaseFirestore` 타입 에러. `"scripts"` exclude 추가
+6. **iOS Safari `env(safe-area-inset-top)`**: localhost(HTTP)에서 0 반환 가능 — 프로덕션(HTTPS)에서는 정상 동작 확인 필요
+7. **iOS 롱터치 네이티브 메뉴**: `-webkit-touch-callout: none` + `user-select: none`이 iOS 26.1에서 완전 차단 안 됨
 
 ---
 
 ## 다음 세션 시작 시
 
-1. `MEMORY.md` + `SESSION_HANDOVER.md` 읽기
-2. 미커밋 변경 사항 커밋 (feat 브랜치 or main 직접)
-3. DB 마이그레이션 적용 여부 확인 (`017_plan_system.sql` — credit_usage 테이블)
-4. Stripe 연동 또는 사이드바 PlanUsageCard 렌더링 진행
-5. `route 2.ts` 중복 파일 삭제
+1. Vercel 배포 상태 확인 (feat/ai-rag-chat-insights 브랜치, 커밋 `29328d6`)
+2. 프로덕션에서 모바일 테스트: 노치 색상, 롱터치 바텀바, pull-to-refresh
+3. 프로덕션에서 노치 OK면 → localhost는 HTTP 한계로 무시
+4. 롱터치 하이라이트 잔여 이슈 → iOS 네이티브 동작 추가 조사
+5. `MEMORY.md` + `SESSION_HANDOVER.md` 읽고 사용자 요청 대응

@@ -4,6 +4,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Safe Area ───────────────────────────────────────────── */
+.pt-safe-top {
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.h-safe-top {
+  height: constant(safe-area-inset-top);
+  height: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── iOS Touch Behavior ─────────────────────────────────── */
+/* Suppress native iOS long-press callout, tap highlight, and text selection
+   on interactive clip items to allow custom long-press handling */
+.touch-none-native,
+.touch-none-native * {
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
 /* ─── Design Token System ─────────────────────────────────────
    3-tier: Primitive (oklch values) → Semantic (:root vars) → Component (@theme)
    All design changes should only require updating :root / .dark values.

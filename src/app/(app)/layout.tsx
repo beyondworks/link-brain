@@ -95,8 +95,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible */}
       <div
-        className="fixed top-0 left-0 right-0 z-[101] bg-background pointer-events-none lg:hidden"
-        style={{ height: 'env(safe-area-inset-top, 0px)' }}
+        className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden h-safe-top"
         aria-hidden="true"
       />
       {/* Skip navigation link */}
@@ -131,10 +130,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Sidebar header — safe area padding for iOS notch/Dynamic Island */}
         <div
           className={[
-            'flex items-center border-b border-border/50',
+            'flex items-center border-b border-border/50 pt-safe-top',
             isSidebarCollapsed ? 'justify-center px-3' : 'justify-between px-5',
           ].join(' ')}
-          style={{ height: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+          style={{ minHeight: '4rem' }}
         >
           <Link
             href="/dashboard"
@@ -388,74 +387,72 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* AI Chat panel — right sidebar slide-in */}
         <ChatPanel />
 
-        {/* Page content — mobile header as stickyHeader inside scroll container */}
-        <PullToRefreshWrapper
-          stickyHeader={
-            <header
-              aria-label="앱 헤더"
-              className="sticky top-0 z-40 flex flex-col border-b border-border/50 bg-background lg:hidden"
-              style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-            >
-              <div className="flex h-16 items-center px-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSidebarOpen(true)}
-                  aria-label="사이드바 열기"
-                  className="rounded-xl"
-                >
-                  <Menu size={20} aria-hidden="true" />
-                </Button>
-                <Link href="/dashboard" className="ml-3 flex items-center">
-                  <LinkbrainLogo variant="full" height={20} />
-                </Link>
-                <div className="ml-auto flex items-center gap-1">
-                  <AdvancedFilters />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const next = !mobileSearchOpen;
-                      setMobileSearchOpen(next);
-                      if (!next) setSearchQuery('');
-                      else setTimeout(() => mobileSearchRef.current?.focus(), 100);
-                    }}
-                    aria-label={mobileSearchOpen ? '검색 닫기' : '검색'}
-                    className="rounded-xl"
-                  >
-                    {mobileSearchOpen ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
-                  </Button>
-                </div>
-              </div>
-              {/* Inline search bar */}
-              {mobileSearchOpen && (
-                <div className="flex items-center gap-2 border-t border-border/30 bg-muted/30 px-4 py-2">
-                  <Search size={14} className="shrink-0 text-muted-foreground" />
-                  <input
-                    ref={mobileSearchRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="키워드로 클립 검색..."
-                    className="h-8 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-                    autoComplete="off"
-                    enterKeyHint="search"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label="검색어 지우기"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              )}
-            </header>
-          }
+        {/* Mobile header — outside scroll container, always visible */}
+        <header
+          aria-label="앱 헤더"
+          className="flex-shrink-0 flex flex-col border-b border-border/50 bg-background pt-safe-top lg:hidden"
         >
+          <div className="flex h-16 items-center px-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="사이드바 열기"
+              className="rounded-xl"
+            >
+              <Menu size={20} aria-hidden="true" />
+            </Button>
+            <Link href="/dashboard" className="ml-3 flex items-center">
+              <LinkbrainLogo variant="full" height={20} />
+            </Link>
+            <div className="ml-auto flex items-center gap-1">
+              <AdvancedFilters />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const next = !mobileSearchOpen;
+                  setMobileSearchOpen(next);
+                  if (!next) setSearchQuery('');
+                  else setTimeout(() => mobileSearchRef.current?.focus(), 100);
+                }}
+                aria-label={mobileSearchOpen ? '검색 닫기' : '검색'}
+                className="rounded-xl"
+              >
+                {mobileSearchOpen ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
+              </Button>
+            </div>
+          </div>
+          {/* Inline search bar */}
+          {mobileSearchOpen && (
+            <div className="flex items-center gap-2 border-t border-border/30 bg-muted/30 px-4 py-2">
+              <Search size={14} className="shrink-0 text-muted-foreground" />
+              <input
+                ref={mobileSearchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="키워드로 클립 검색..."
+                className="h-8 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+                autoComplete="off"
+                enterKeyHint="search"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="검색어 지우기"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        </header>
+
+        {/* Page content — scrollable area */}
+        <PullToRefreshWrapper>
           {children}
         </PullToRefreshWrapper>
 

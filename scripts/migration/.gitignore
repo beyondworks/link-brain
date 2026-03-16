@@ -1,0 +1,6 @@
+data/*.json
+!data/.gitkeep
+node_modules/
+dist/
+.env
+firebase-service-account.json
