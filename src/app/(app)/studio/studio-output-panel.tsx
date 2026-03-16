@@ -130,7 +130,8 @@ function OutputModal({ item, onClose, onCopy }: {
   return (
     <>
       <div
-        className="fixed inset-0 z-[50] bg-black/50 animate-fade-in"
+        className="fixed left-0 right-0 bottom-0 z-[50] bg-black/50 animate-fade-in"
+        style={{ top: 'var(--sat, env(safe-area-inset-top, 0px))' }}
         onClick={onClose}
         aria-hidden="true"
       />
