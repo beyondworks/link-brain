@@ -78,6 +78,15 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={inter.variable}
     >
       <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
+        {/* Safe area fill — direct body child so it's in the same stacking context
+            as Radix portals (Sheet/Dialog). z-[9999] guarantees it's above all overlays.
+            useStatusBarSync updates its bg inline to match sidebar/drawer state. */}
+        <div
+          data-status-bar-fill
+          className="fixed top-0 left-0 right-0 z-[9999] bg-background pointer-events-none lg:hidden"
+          style={{ height: 'env(safe-area-inset-top, 0px)' }}
+          aria-hidden="true"
+        />
         <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
