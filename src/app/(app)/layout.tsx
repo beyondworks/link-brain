@@ -27,6 +27,7 @@ import { ChatPanel } from '@/components/chat/chat-panel';
 import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
+import { useStatusBarSync } from '@/lib/hooks/use-status-bar-sync';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSafeArea } from '@/lib/hooks/use-safe-area';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { swipeOffset, activeEdge } = useEdgeSwipeNavigation({ isEnabled: isMobile && !peekClipId, isSidebarOpen: sidebarOpen });
   useStatusBarScrollTop({ isEnabled: isMobile });
   useSafeArea();
+  useStatusBarSync();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -95,8 +97,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <TooltipProvider>
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible */}
+      {/* Safe area fill — fixed layer behind notch/Dynamic Island, always visible.
+           data-status-bar-fill: useStatusBarSync updates this element's bg inline
+           to match sidebar/drawer/default state on PWA mobile. */}
       <div
+        data-status-bar-fill
         className="fixed top-0 left-0 right-0 z-[200] bg-background pointer-events-none lg:hidden"
         style={{ height: 'env(safe-area-inset-top, 0px)' }}
         aria-hidden="true"
