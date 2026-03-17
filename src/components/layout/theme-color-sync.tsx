@@ -3,28 +3,34 @@
 import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
-const LIGHT = '#ffffff';
-const DARK = '#363636';
-
 /**
  * Dynamically updates theme-color meta tag when app theme changes.
  * ThemeColorScript handles initial render; this handles runtime changes.
+ *
+ * Reads the actual computed background color from <html> to ensure
+ * the meta tag matches the CSS variable value exactly (no hardcoded hex).
+ *
+ * NOTE: On PWA mobile, useStatusBarSync takes over and also updates
+ * theme-color on overlay state changes. This component provides the
+ * baseline for non-PWA environments and marketing pages.
  */
 export function ThemeColorSync() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (!resolvedTheme) return;
-    const color = resolvedTheme === 'dark' ? DARK : LIGHT;
+
+    // Read the actual rendered background color (browser resolves oklch → rgb)
+    const computed = getComputedStyle(document.documentElement).backgroundColor;
 
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.setAttribute('content', color);
+      meta.setAttribute('content', computed);
       meta.removeAttribute('media');
     } else {
       const el = document.createElement('meta');
       el.name = 'theme-color';
-      el.content = color;
+      el.content = computed;
       document.head.appendChild(el);
     }
   }, [resolvedTheme]);

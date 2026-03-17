@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/ui-store';
 
 /**
- * Syncs the <html> background color (and safe-area-fill element) with the
- * current overlay state so the iOS PWA status bar area seamlessly matches
- * the visible surface (sidebar, drawer, or default app background).
+ * Syncs the <html> background color, safe-area-fill element, AND
+ * meta[name="theme-color"] with the current overlay state so the iOS PWA
+ * status bar area seamlessly matches the visible surface.
  *
  * Only activates when both conditions are true:
  *   1. Running as installed PWA (display-mode: standalone)
@@ -96,10 +96,19 @@ function syncStatusBar(type: 'sidebar' | 'drawer' | 'default') {
   const color = getThemeVar(VAR_MAP[type]);
   if (!color) return;
 
-  // Update <html> background — iOS PWA status bar inherits this
+  // 1. Update <html> background — iOS PWA status bar inherits this
   document.documentElement.style.backgroundColor = color;
 
-  // Also update the safe-area-fill element so the notch cover matches
+  // 2. Read back the computed rgb value (browser converts oklch → rgb)
+  //    and update the theme-color meta tag with a browser-compatible value
+  const computedRgb = getComputedStyle(document.documentElement).backgroundColor;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', computedRgb);
+    meta.removeAttribute('media');
+  }
+
+  // 3. Update the safe-area-fill element so the notch cover matches
   const fill = document.querySelector('[data-status-bar-fill]');
   if (fill instanceof HTMLElement) {
     fill.style.backgroundColor = color;

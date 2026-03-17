@@ -267,14 +267,10 @@
   --shadow-brand-glow: 0 0 24px oklch(0.78 0.15 168 / 18%), 0 0 50px oklch(0.78 0.15 168 / 7%);
 }
 
-/* ─── System dark fallback (theme='system') ──────────────── */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --app-bg: oklch(0.30 0.00 0);
-    --sidebar-bg: oklch(0.30 0.00 0);
-    --drawer-bg: oklch(0.30 0.00 0);
-  }
-}
+/* NOTE: @media (prefers-color-scheme: dark) fallback for --app-bg/--sidebar-bg/--drawer-bg
+   intentionally omitted. next-themes uses class-based (.dark) toggling, so a prefers-color-scheme
+   media query would override light-mode values when the user's system is in dark mode
+   but the app is explicitly set to light. The .dark class selector handles all dark mode cases. */
 
 /* ─── Base Layer ──────────────────────────────────────────── */
 @layer base {
