@@ -187,6 +187,11 @@
 
   /* Thumbnail fallback */
   --thumbnail-fallback: #f5f5f5;
+
+  /* Status bar sync (PWA mobile) */
+  --app-bg: oklch(0.985 0.002 250);
+  --sidebar-bg: oklch(0.985 0.002 250);
+  --drawer-bg: oklch(0.985 0.002 250);
 }
 
 /* ─── Dark Mode ───────────────────────────────────────────── */
@@ -239,6 +244,11 @@
   /* Thumbnail fallback */
   --thumbnail-fallback: #363636;
 
+  /* Status bar sync (PWA mobile) */
+  --app-bg: oklch(0.30 0.00 0);
+  --sidebar-bg: oklch(0.30 0.00 0);
+  --drawer-bg: oklch(0.30 0.00 0);
+
   --sidebar: oklch(0.28 0.00 0);
   --sidebar-foreground: oklch(0.96 0.005 250);
   --sidebar-primary: oklch(0.78 0.15 168);
@@ -255,6 +265,15 @@
   --shadow-brand: 0 2px 14px oklch(0.78 0.15 168 / 18%);
   --shadow-brand-lg: 0 4px 24px oklch(0.78 0.15 168 / 24%);
   --shadow-brand-glow: 0 0 24px oklch(0.78 0.15 168 / 18%), 0 0 50px oklch(0.78 0.15 168 / 7%);
+}
+
+/* ─── System dark fallback (theme='system') ──────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --app-bg: oklch(0.30 0.00 0);
+    --sidebar-bg: oklch(0.30 0.00 0);
+    --drawer-bg: oklch(0.30 0.00 0);
+  }
 }
 
 /* ─── Base Layer ──────────────────────────────────────────── */
