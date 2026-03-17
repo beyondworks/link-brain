@@ -285,23 +285,6 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Status bar cover — pure CSS, no JS needed.
-     body::before as fixed pseudo-element is a direct child of body,
-     same stacking context as Radix portals. z-[99999] beats everything. */
-  @media (max-width: 1023px) {
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: env(safe-area-inset-top, 0px);
-      background-color: var(--background);
-      z-index: 99999;
-      pointer-events: none;
-    }
-  }
-
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
