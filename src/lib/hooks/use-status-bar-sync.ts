@@ -4,9 +4,25 @@ import { useEffect, useRef } from 'react';
 import { useUIStore } from '@/stores/ui-store';
 
 /**
- * Syncs the <html> background color, safe-area-fill element, AND
- * meta[name="theme-color"] with the current overlay state so the iOS PWA
- * status bar area seamlessly matches the visible surface.
+ * Pre-computed hex values matching CSS design tokens.
+ * Avoids runtime oklch→rgb conversion which is unreliable in PWA environments.
+ *
+ * bg-background light: oklch(0.985 0.002 250) → #f9fafb
+ * bg-background dark:  oklch(0.30 0.00 0)     → #2e2e2e
+ *
+ * Sidebar and drawer currently use the same bg-background color.
+ * If they diverge in the future, add separate entries here.
+ */
+const COLORS = {
+  light: { default: '#f9fafb', sidebar: '#f9fafb', drawer: '#f9fafb' },
+  dark: { default: '#2e2e2e', sidebar: '#2e2e2e', drawer: '#2e2e2e' },
+} as const;
+
+type OverlayType = 'sidebar' | 'drawer' | 'default';
+
+/**
+ * Syncs the iOS PWA status bar color with the current overlay state
+ * by updating both the <html> background and theme-color meta tag.
  *
  * Only activates when both conditions are true:
  *   1. Running as installed PWA (display-mode: standalone)
@@ -52,7 +68,7 @@ export function useStatusBarSync() {
   useEffect(() => {
     if (!shouldSyncRef.current) return;
 
-    const getCurrentType = (): 'sidebar' | 'drawer' | 'default' => {
+    const getCurrentType = (): OverlayType => {
       const state = useUIStore.getState();
       if (state.sidebarOpen) return 'sidebar';
       if (state.isChatOpen || state.peekClipId) return 'drawer';
@@ -80,35 +96,26 @@ export function useStatusBarSync() {
 
 // ---------------------------------------------------------------------------
 
-const VAR_MAP: Record<string, string> = {
-  sidebar: '--sidebar-bg',
-  drawer: '--drawer-bg',
-  default: '--app-bg',
-};
-
-function getThemeVar(varName: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(varName)
-    .trim();
+function isDarkMode(): boolean {
+  return document.documentElement.classList.contains('dark');
 }
 
-function syncStatusBar(type: 'sidebar' | 'drawer' | 'default') {
-  const color = getThemeVar(VAR_MAP[type]);
-  if (!color) return;
+function syncStatusBar(type: OverlayType) {
+  const palette = isDarkMode() ? COLORS.dark : COLORS.light;
+  const color = palette[type];
 
-  // 1. Update <html> background — iOS PWA status bar inherits this
+  // 1. Update <html> inline background — iOS PWA status bar inherits this
   document.documentElement.style.backgroundColor = color;
 
-  // 2. Read back the computed rgb value (browser converts oklch → rgb)
-  //    and update the theme-color meta tag with a browser-compatible value
-  const computedRgb = getComputedStyle(document.documentElement).backgroundColor;
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    meta.setAttribute('content', computedRgb);
-    meta.removeAttribute('media');
-  }
+  // 2. Clear ALL theme-color metas and set a single one
+  //    Prevents media-specific duplicates from overriding
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+  const meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = color;
+  document.head.appendChild(meta);
 
-  // 3. Update the safe-area-fill element so the notch cover matches
+  // 3. Update the safe-area-fill element (for black-translucent mode)
   const fill = document.querySelector('[data-status-bar-fill]');
   if (fill instanceof HTMLElement) {
     fill.style.backgroundColor = color;
