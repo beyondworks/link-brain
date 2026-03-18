@@ -65,7 +65,9 @@ export function BetaFeedback() {
           setIsOpen(true);
           setTimeout(() => textareaRef.current?.focus(), 100);
         }}
-        className="group flex items-center gap-2.5 rounded-xl border border-dashed border-border/60 bg-card/60 px-4 py-3 text-left transition-all duration-200 hover:border-primary/30 hover:bg-brand-muted/50"
+        aria-expanded={false}
+        aria-label="피드백 보내기"
+        className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed border-border/60 bg-card/60 px-4 py-3 text-left transition-all duration-200 hover:border-primary/30 hover:bg-brand-muted/50"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted transition-colors group-hover:bg-primary/15">
           <MessageSquarePlus className="h-4 w-4 text-primary" />
@@ -90,7 +92,8 @@ export function BetaFeedback() {
         </div>
         <button
           onClick={() => setIsOpen(false)}
-          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label="피드백 닫기"
+          className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
