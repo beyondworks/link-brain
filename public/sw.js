@@ -1,4 +1,4 @@
-const CACHE_NAME = 'linkbrain-static-v3';
+const CACHE_NAME = 'linkbrain-static-v4';
 const API_ORIGINS = ['/api/', 'https://supabase.co', 'https://openai.com'];
 
 const STATIC_EXTENSIONS = [

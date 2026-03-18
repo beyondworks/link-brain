@@ -62,7 +62,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
 };
 
 interface RootLayoutProps {
@@ -77,22 +76,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={inter.variable}
     >
       <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
-        {/* Status bar fill — inline styles only, no Tailwind classes that could be purged.
-            Direct body child = same stacking context as Radix portals. */}
-        <div
-          data-status-bar-fill
-          aria-hidden="true"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 'env(safe-area-inset-top, 0px)',
-            backgroundColor: 'var(--background)',
-            zIndex: 99999,
-            pointerEvents: 'none' as const,
-          }}
-        />
         <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
