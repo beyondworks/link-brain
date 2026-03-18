@@ -35,7 +35,8 @@ export function useCheckout() {
       const { url } = await res.json() as { url: string };
       window.location.href = url;
     } catch (error) {
-      toast.error('결제 페이지를 열 수 없습니다. 잠시 후 다시 시도해주세요.');
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`결제 오류: ${msg}`);
       console.error('[Checkout]', error);
     } finally {
       setIsLoading(false);
