@@ -89,7 +89,8 @@ CREATE OR REPLACE FUNCTION public.deduct_credit(
   p_user_id UUID,
   p_action TEXT,
   p_cost INTEGER DEFAULT 1,
-  p_clip_id UUID DEFAULT NULL
+  p_clip_id UUID DEFAULT NULL,
+  p_monthly_limit INTEGER DEFAULT NULL
 ) RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -100,6 +101,9 @@ DECLARE
   v_monthly_used INTEGER;
   v_month_start TIMESTAMPTZ;
 BEGIN
+  -- Advisory lock per user to prevent TOCTOU race condition
+  PERFORM pg_advisory_xact_lock(hashtext(p_user_id::text));
+
   -- Get user's plan
   SELECT plan INTO v_plan FROM public.users WHERE id = p_user_id;
   IF v_plan IS NULL THEN
@@ -113,15 +117,18 @@ BEGIN
     RETURN jsonb_build_object('allowed', true, 'remaining', -1);
   END IF;
 
-  -- Determine monthly limit based on plan
-  IF v_plan = 'pro' THEN
+  -- Use caller-provided limit (single source of truth from TypeScript config)
+  -- Fallback to plan-based defaults if not provided
+  IF p_monthly_limit IS NOT NULL THEN
+    v_monthly_limit := p_monthly_limit;
+  ELSIF v_plan = 'pro' THEN
     v_monthly_limit := 500;
   ELSE
     v_monthly_limit := 100;
   END IF;
 
-  -- Count usage this month
-  v_month_start := date_trunc('month', now());
+  -- Count usage this month (UTC)
+  v_month_start := date_trunc('month', now() AT TIME ZONE 'UTC');
   SELECT COALESCE(SUM(cost), 0) INTO v_monthly_used
   FROM public.credit_usage
   WHERE user_id = p_user_id
