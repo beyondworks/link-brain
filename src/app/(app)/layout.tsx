@@ -106,10 +106,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         본문으로 건너뛰기
       </a>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — transparent, click-to-close only (no bg to avoid status bar boundary) */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
+          className="fixed inset-0 z-[40] lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -366,8 +366,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* Main content — blur+dim when sidebar open (replaces overlay bg to avoid status bar boundary) */}
+      <div
+        id="app-content"
+        className={[
+          'flex min-w-0 flex-1 flex-col overflow-hidden transition-[filter] duration-300',
+          sidebarOpen ? 'blur-content-dim lg:filter-none' : '',
+        ].join(' ')}
+      >
         {/* Desktop header */}
         <div className="hidden lg:block">
           <AppHeader />

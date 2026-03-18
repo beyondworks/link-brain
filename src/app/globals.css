@@ -886,6 +886,20 @@
   }
 }
 
+/* ─── Overlay Content Dim (Approach A) ───────────────────── */
+/* Sidebar open: blur+dim main content instead of overlay bg (avoids status bar boundary) */
+.blur-content-dim {
+  filter: blur(4px) brightness(0.6);
+  pointer-events: none;
+}
+
+/* Sheet open: blur+dim via :has() — Sheet portal renders on body */
+body:has([data-slot="sheet-overlay"][data-state="open"]) #app-content {
+  filter: blur(4px) brightness(0.6);
+  pointer-events: none;
+  transition: filter 0.3s ease;
+}
+
 /* ─── Theme Transition ────────────────────────────────────── */
 html.transitioning,
 html.transitioning *,
