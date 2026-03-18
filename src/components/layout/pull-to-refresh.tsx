@@ -90,8 +90,10 @@ export function PullToRefreshWrapper({ children, stickyHeader, className }: Pull
       {/* Content with pull offset */}
       <div
         style={{
-          transform: showIndicator ? `translateY(${pullDistance}px)` : undefined,
-          transition: !showIndicator ? 'transform 0.3s ease' : undefined,
+          transform: `translateY(${pullDistance}px)`,
+          transition: pullDistance === 0 && !isRefreshing
+            ? 'transform 0.35s cubic-bezier(0.25, 1.3, 0.5, 1)'
+            : 'none',
         }}
       >
         {children}

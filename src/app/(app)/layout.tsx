@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, User, Moon, Sun, Plus, Keyboard, ChevronsLeft, ChevronsRight, Search, Shield, MessageSquare } from 'lucide-react';
@@ -81,6 +81,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useStatusBarScrollTop({ isEnabled: isMobile });
   useSafeArea();
   useStatusBarSync();
+
+  // Scroll-based header shadow — detect when #main-content has scrolled past 0
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = document.getElementById('main-content');
+    if (!el) return;
+    const handler = () => setIsScrolled(el.scrollTop > 0);
+    el.addEventListener('scroll', handler, { passive: true });
+    return () => el.removeEventListener('scroll', handler);
+  }, [isMobile]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -399,7 +410,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Mobile header — outside scroll container, always visible */}
         <header
           aria-label="앱 헤더"
-          className="flex-shrink-0 flex flex-col border-b border-border/50 bg-background lg:hidden"
+          className={[
+            'flex-shrink-0 flex flex-col bg-background lg:hidden transition-shadow duration-200',
+            isScrolled ? 'shadow-sm border-b border-border' : 'border-b border-border/50',
+          ].join(' ')}
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <div className="flex h-16 items-center px-4">
@@ -478,10 +492,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Edge swipe navigation indicator */}
         <EdgeSwipeIndicator activeEdge={activeEdge} swipeOffset={swipeOffset} />
-
-        {/* Mobile bottom nav */}
-        <MobileBottomNav />
       </div>
+
+      {/* Mobile bottom nav — OUTSIDE #app-content to avoid filter containing block issue.
+          CSS filter creates a new containing block, breaking position:fixed inside it
+          during sidebar blur transition (300ms). */}
+      <MobileBottomNav />
     </div>
     </TooltipProvider>
   );
