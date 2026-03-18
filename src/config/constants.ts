@@ -107,6 +107,20 @@ export const SORT_OPTIONS = [
 
 export type SortBy = (typeof SORT_OPTIONS)[number]['value'];
 
+export const CHART_PALETTE = [
+  '#3b82f6', // blue-500
+  '#21DBA4', // brand
+  '#f59e0b', // amber-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+];
+
+export const CATEGORY_COLORS = [
+  '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
+  '#F59E0B', '#F97316', '#14B8A6', '#6366F1',
+  '#F43F5E', '#06B6D4', '#34D399', '#7C3AED',
+];
+
 export const ANNOTATION_COLORS = ['yellow', 'green', 'blue', 'pink', 'purple'] as const;
 export type AnnotationColor = (typeof ANNOTATION_COLORS)[number];
 

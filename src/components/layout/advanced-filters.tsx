@@ -18,7 +18,6 @@ import { PLATFORMS, PLATFORM_LABELS_EN } from '@/config/constants';
 import type { ReadStatus } from '@/types/clip';
 
 const PLATFORM_LIST = PLATFORMS;
-const PLATFORM_LABELS: Record<string, string> = PLATFORM_LABELS_EN;
 
 const DATE_PRESETS: { label: string; from: string; to: string }[] = [
   {
@@ -130,7 +129,7 @@ export function AdvancedFilters() {
                   onClick={() => setFilter('platform', p)}
                   className={cn(CHIP_BASE, filters.platform === p ? CHIP_ACTIVE : CHIP_IDLE)}
                 >
-                  {PLATFORM_LABELS[p] ?? p}
+                  {PLATFORM_LABELS_EN[p] ?? p}
                 </button>
               ))}
             </div>
