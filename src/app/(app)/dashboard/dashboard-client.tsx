@@ -25,6 +25,7 @@ import { WelcomeDialog } from '@/components/onboarding/welcome-dialog';
 import { DashboardSettings } from '@/components/dashboard/dashboard-settings';
 import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
 import { SearchResultsOverlay } from '@/components/layout/search-results-overlay';
+import { UpgradeBanner } from '@/components/plan/upgrade-banner';
 
 import { cn } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -374,6 +375,9 @@ export function DashboardClient() {
           </div>
         </div>
       </div>
+
+      {/* Upgrade nudge for Free users approaching limits */}
+      <UpgradeBanner />
 
       {/* Stats — detail: full cards, summary: compact inline */}
       {widgets.stats && dashboardView === 'detail' && (
