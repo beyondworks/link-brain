@@ -32,6 +32,7 @@ export const MARKETING_PLANS: MarketingPlan[] = [
       `AI 분석 월 ${formatLimit(PLAN_LIMITS.free.monthlyAiCredits)}회`,
       `Content Studio 월 ${formatLimit(PLAN_LIMITS.free.monthlyStudioGenerations)}회`,
       '기본 검색',
+      'API 키 미지원',
       '커뮤니티 접근',
     ],
     cta: '무료로 시작하기',
