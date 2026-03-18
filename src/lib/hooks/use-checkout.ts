@@ -48,6 +48,10 @@ export function useCheckout() {
       const res = await fetch('/api/billing/portal', { method: 'POST' });
       if (!res.ok) {
         const data = await res.json() as { error?: string };
+        if (res.status === 404) {
+          toast.info('구독 정보가 없습니다. 관리자 계정이거나 아직 결제 내역이 없습니다.');
+          return;
+        }
         throw new Error(data.error ?? 'Portal failed');
       }
       const { url } = await res.json() as { url: string };
