@@ -21,10 +21,12 @@ import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { AdvancedFilters } from '@/components/layout/advanced-filters';
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
-import { ClipPeekPanel } from '@/components/clips/clip-peek-panel';
+import dynamic from 'next/dynamic';
 import { AddClipDialog } from '@/components/clips/add-clip-dialog';
-import { ChatPanel } from '@/components/chat/chat-panel';
-import { KeyboardShortcutsDialog } from '@/components/layout/keyboard-shortcuts-dialog';
+
+const ClipPeekPanel = dynamic(() => import('@/components/clips/clip-peek-panel').then(m => ({ default: m.ClipPeekPanel })), { ssr: false });
+const ChatPanel = dynamic(() => import('@/components/chat/chat-panel').then(m => ({ default: m.ChatPanel })), { ssr: false });
+const KeyboardShortcutsDialog = dynamic(() => import('@/components/layout/keyboard-shortcuts-dialog').then(m => ({ default: m.KeyboardShortcutsDialog })), { ssr: false });
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
 import { useStatusBarSync } from '@/lib/hooks/use-status-bar-sync';

@@ -401,6 +401,8 @@ export const ClipCard = memo(function ClipCard({
   prev.clip.id === next.clip.id &&
   prev.clip.updated_at === next.clip.updated_at &&
   prev.clip.processing_status === next.clip.processing_status &&
+  prev.clip.image === next.clip.image &&
+  prev.clip.title === next.clip.title &&
   prev.isSelected === next.isSelected &&
   prev.isSelectionMode === next.isSelectionMode &&
   prev.categoryName === next.categoryName &&
