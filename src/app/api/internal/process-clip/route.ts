@@ -14,6 +14,7 @@ import { fetchUrlContent } from '@/lib/fetchers/orchestrator';
 import { enrichClipContent } from '@/lib/services/clip-service';
 import { getValidToken } from '@/lib/oauth/token-manager';
 import { upsertClipEmbedding } from '@/lib/services/embedding-service';
+import { deductCredits } from '@/lib/services/plan-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -85,6 +86,17 @@ export async function POST(req: NextRequest) {
       web: 'web',
     };
     const sourceType = sourceTypeMap[platform] ?? 'web';
+
+    // Deduct AI_SUMMARY credit before AI enrichment
+    const creditCheck = await deductCredits(userId, 'AI_SUMMARY', clipId);
+    if (!creditCheck.allowed) {
+      console.warn(`[ProcessClip] Insufficient credits for user ${userId}, skipping AI enrichment`);
+      await db
+        .from('clips')
+        .update({ processing_status: 'failed', processing_error: 'Insufficient AI credits' })
+        .eq('id', clipId);
+      return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
+    }
 
     // Enrich clip with AI metadata + content
     await enrichClipContent({
