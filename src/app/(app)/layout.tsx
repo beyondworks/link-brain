@@ -109,8 +109,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile overlay — starts below safe area to avoid darkening the notch */}
       {sidebarOpen && (
         <div
-          className="fixed left-0 right-0 bottom-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
-          style={{ top: 'env(safe-area-inset-top, 0px)' }}
+          className="fixed inset-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
+          style={{ clipPath: 'inset(env(safe-area-inset-top, 0px) 0 0 0)' }}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
