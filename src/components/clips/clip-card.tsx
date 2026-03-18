@@ -170,15 +170,12 @@ export const ClipCard = memo(function ClipCard({
           </div>
         )}
 
-        {/* Pin / Favorite indicators — top right */}
-        <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
-          {clip.is_pinned && (
+        {/* Pin indicator — top right */}
+        {clip.is_pinned && (
+          <div className="absolute right-2.5 top-2.5">
             <Pin className="h-3.5 w-3.5 fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgb(251,191,36)]" />
-          )}
-          {clip.is_favorite && (
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-[0_0_6px_rgb(250,204,21)]" />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Selection checkbox */}
         <div

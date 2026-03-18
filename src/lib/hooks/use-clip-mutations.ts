@@ -84,8 +84,9 @@ export function useToggleFavorite() {
       toast.success(isFavorite ? '즐겨찾기에서 제거됨' : '즐겨찾기에 추가됨');
     },
 
-    onSettled: () => {
+    onSettled: (_data, _err, { clipId }) => {
       queryClient.invalidateQueries({ queryKey: ['clips'] });
+      queryClient.invalidateQueries({ queryKey: ['clip', clipId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
   });
