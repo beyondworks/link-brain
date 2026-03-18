@@ -81,6 +81,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={`${inter.variable} bg-background`}
     >
       <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
+        {/* Status bar cover layer — physically covers the iOS safe area with app background.
+            z-[9999] ensures it sits above ALL overlays (Radix Portals, Sheet backdrops, sidebar overlay).
+            This prevents any dark overlay from bleeding into the status bar area. */}
+        <div
+          aria-hidden="true"
+          className="fixed top-0 left-0 right-0 z-[9999] bg-background pointer-events-none"
+          style={{ height: 'env(safe-area-inset-top, 0px)' }}
+        />
         <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
