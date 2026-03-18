@@ -21,52 +21,15 @@ export function useNavCounts() {
     queryFn: async (): Promise<NavCounts> => {
       if (!user) return { total: 0, favorites: 0, readLater: 0, archived: 0, collections: 0, images: 0 };
 
-      const [totalRes, favRes, readLaterRes, archivedRes, collectionsRes, imagesRes] = await Promise.all([
-        supabase
-          .from('clips')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_archived', false)
-          .eq('is_hidden', false)
-          .neq('platform', 'image'),
-        supabase
-          .from('clips')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_favorite', true)
-          .neq('platform', 'image'),
-        supabase
-          .from('clips')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_read_later', true)
-          .neq('platform', 'image'),
-        supabase
-          .from('clips')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_archived', true),
-        supabase
-          .from('collections')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-        supabase
-          .from('clips')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('platform', 'image')
-          .eq('is_archived', false)
-          .eq('is_hidden', false),
-      ]);
+      const { data, error } = await (supabase as any).rpc('get_nav_counts', {
+        p_user_id: user.id,
+      });
 
-      return {
-        total: totalRes.count ?? 0,
-        favorites: favRes.count ?? 0,
-        readLater: readLaterRes.count ?? 0,
-        archived: archivedRes.count ?? 0,
-        collections: collectionsRes.count ?? 0,
-        images: imagesRes.count ?? 0,
-      };
+      if (error || !data) {
+        return { total: 0, favorites: 0, readLater: 0, archived: 0, collections: 0, images: 0 };
+      }
+
+      return data as NavCounts;
     },
     enabled: !!user,
     staleTime: 30_000,

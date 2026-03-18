@@ -22,8 +22,9 @@ import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { AdvancedFilters } from '@/components/layout/advanced-filters';
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 import dynamic from 'next/dynamic';
-import { AddClipDialog } from '@/components/clips/add-clip-dialog';
 
+// Dynamic imports — 사용자 액션으로만 열리는 모달/패널
+const AddClipDialog = dynamic(() => import('@/components/clips/add-clip-dialog').then(m => ({ default: m.AddClipDialog })), { ssr: false });
 const ClipPeekPanel = dynamic(() => import('@/components/clips/clip-peek-panel').then(m => ({ default: m.ClipPeekPanel })), { ssr: false });
 const ChatPanel = dynamic(() => import('@/components/chat/chat-panel').then(m => ({ default: m.ChatPanel })), { ssr: false });
 const KeyboardShortcutsDialog = dynamic(() => import('@/components/layout/keyboard-shortcuts-dialog').then(m => ({ default: m.KeyboardShortcutsDialog })), { ssr: false });
@@ -42,7 +43,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -108,7 +108,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <TooltipProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Safe area fill is now in root layout (body direct child) for correct
            stacking context with Radix portals. See src/app/layout.tsx */}
@@ -499,6 +498,5 @@ export default function AppLayout({ children }: AppLayoutProps) {
           during sidebar blur transition (300ms). */}
       <MobileBottomNav />
     </div>
-    </TooltipProvider>
   );
 }
