@@ -18,7 +18,7 @@ const FAQ_ITEMS = [
   },
   {
     q: '팀 플랜은 별도로 있나요?',
-    a: 'Master 플랜에 팀 워크스페이스 기능이 포함되어 있습니다. 5인 이상 대규모 팀은 별도 문의 주시면 맞춤 견적을 드립니다.',
+    a: '현재는 Free와 Pro 두 가지 플랜을 운영합니다. 팀 기능이 필요하시면 문의해 주세요.',
   },
 ];
 
@@ -67,7 +67,7 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
 
-  const PRICE_NUMERIC: Record<string, string> = { Free: '0', Pro: '9900', Master: '29900' };
+  const PRICE_NUMERIC: Record<string, string> = { Free: '0', Pro: '9900' };
   const pricingJsonLd = MARKETING_PLANS.map((plan) => ({
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -159,7 +159,7 @@ export default function PricingPage() {
       {/* Cards grid */}
       <div className="relative container mx-auto px-4 py-14">
         <div className="mx-auto max-w-5xl">
-          <div className="grid gap-6 md:grid-cols-3 items-center">
+          <div className="grid gap-6 md:grid-cols-2 items-center max-w-3xl mx-auto">
             {MARKETING_PLANS.map((plan, index) => {
               if (plan.highlighted) {
                 return (
@@ -178,7 +178,7 @@ export default function PricingPage() {
                         </span>
                       </div>
 
-                      <h3 className="text-lg font-black text-gradient-brand">{plan.nameKo}</h3>
+                      <h2 className="text-lg font-black text-gradient-brand">{plan.nameKo}</h2>
 
                       <div className="mt-3 flex items-baseline gap-1">
                         <span className="text-5xl font-black stat-number">
@@ -240,12 +240,9 @@ export default function PricingPage() {
                   )}
                 >
                   <div
-                    className={cn(
-                      'relative flex flex-col gap-0 p-6 rounded-2xl bg-card border border-border card-interactive shadow-card',
-                      plan.name === 'Master' && 'border-gradient'
-                    )}
+                    className="relative flex flex-col gap-0 p-6 rounded-2xl bg-card border border-border card-interactive shadow-card"
                   >
-                    <h3 className="text-lg font-black text-foreground">{plan.nameKo}</h3>
+                    <h2 className="text-lg font-black text-foreground">{plan.nameKo}</h2>
 
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-4xl font-black text-foreground">

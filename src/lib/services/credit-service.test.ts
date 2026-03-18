@@ -94,34 +94,30 @@ describe('getCreditBalance', () => {
     expect(balance.studioLimit).toBe(100);
   });
 
-  it('encodes Infinity as -1 for master tier', async () => {
+  it('treats unknown tier as free fallback', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'users') {
-        return makeChain({ data: { plan: 'master' }, error: null });
+        return makeChain({ data: { plan: 'unknown' }, error: null });
       }
       if (table === 'clips') {
-        return makeChain({ count: 999, error: null });
+        return makeChain({ count: 0, error: null });
       }
       if (table === 'collections') {
-        return makeChain({ count: 10, error: null });
+        return makeChain({ count: 0, error: null });
       }
       if (table === 'api_keys') {
-        return makeChain({ count: 5, error: null });
+        return makeChain({ count: 0, error: null });
       }
       if (table === 'credit_usage') {
-        return makeChain({ data: [{ cost: 100 }], error: null });
+        return makeChain({ data: [], error: null });
       }
       return makeChain({ data: null, error: null });
     });
 
-    const balance = await getCreditBalance('user-master');
+    const balance = await getCreditBalance('user-unknown');
 
-    expect(balance.tier).toBe('master');
-    expect(balance.creditsLimit).toBe(-1);
-    expect(balance.clipsLimit).toBe(-1);
-    expect(balance.collectionsLimit).toBe(-1);
-    expect(balance.studioLimit).toBe(-1);
-    expect(balance.apiKeysLimit).toBe(10);
+    expect(balance.tier).toBe('free');
+    expect(balance.creditsLimit).toBe(100);
   });
 
   it('falls back to free when plan column is missing', async () => {

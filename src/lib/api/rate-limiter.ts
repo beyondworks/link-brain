@@ -17,11 +17,6 @@ export const RATE_LIMITS = {
     requestsPerDay: 5000,
     aiRequestsPerDay: 50,
   },
-  master: {
-    requestsPerMinute: 240,
-    requestsPerDay: 100000,
-    aiRequestsPerDay: 1000,
-  },
 } as const;
 
 export type SubscriptionTier = keyof typeof RATE_LIMITS;

@@ -8,6 +8,7 @@
 import { notFound } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import type { ClipData, ClipContent } from '@/types/database';
 import { ExternalLink, Clock, Calendar, ArrowUpRight } from 'lucide-react';
@@ -91,8 +92,7 @@ export default async function SharedClipPage({ params }: Props) {
       <header className="border-b border-border/60 bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 md:px-6">
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/linkbrain-logo.svg" alt="Linkbrain" width={108} height={18} />
+            <Image src="/linkbrain-logo.svg" alt="Linkbrain" width={108} height={18} />
           </Link>
           <span className="rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
             공유된 클립

@@ -3,7 +3,7 @@
 import { useCredits } from '@/lib/hooks/use-credits';
 import type { CreditBalance } from '@/lib/services/credit-service';
 
-export type PlanTier = 'free' | 'pro' | 'master';
+export type PlanTier = 'free' | 'pro';
 
 function canUse(used: number, limit: number): boolean {
   if (limit === -1) return true;
@@ -18,7 +18,6 @@ export function usePlan() {
   return {
     tier,
     isPro: tier === 'pro',
-    isMaster: tier === 'master',
     isFree: tier === 'free',
     canCreateClip: usage ? canUse(usage.clipsUsed, usage.clipsLimit) : true,
     canCreateCollection: usage ? canUse(usage.collectionsUsed, usage.collectionsLimit) : true,

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: {
     default: "로그인 | LinkBrain",
     template: "%s | LinkBrain",
   },
+  description: "LinkBrain에 로그인하여 저장한 클립과 컬렉션을 관리하세요.",
 };
 
 interface AuthLayoutProps {
@@ -49,10 +51,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         <div className="relative z-10 flex flex-col items-center text-center gap-10">
           {/* Logo */}
           <div className="flex flex-col items-center gap-5 animate-fade-in-up">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/linkbrain-symbol.svg" alt="" width={72} height={40} aria-hidden="true" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/linkbrain-typo.svg" alt="Linkbrain" width={160} height={29} />
+            <Image src="/linkbrain-symbol.svg" alt="" width={72} height={40} aria-hidden="true" />
+            <Image src="/linkbrain-typo.svg" alt="Linkbrain" width={160} height={29} />
           </div>
 
           {/* Tagline */}
@@ -131,8 +131,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="flex-1 flex flex-col items-center justify-center bg-background px-4 py-12">
         {/* Mobile logo */}
         <div className="md:hidden mb-8 flex flex-col items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/linkbrain-logo.svg" alt="Linkbrain" width={120} height={20} />
+          <Image src="/linkbrain-logo.svg" alt="Linkbrain" width={120} height={20} />
         </div>
 
         {/* Auth card */}

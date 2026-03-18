@@ -236,7 +236,7 @@ export default function FeaturesPage() {
                   <div className={cn('icon-glow mb-5 inline-flex rounded-2xl p-4', HeroFirstFeature.iconBg)}>
                     <HeroFirstIcon className={cn('h-8 w-8 group-hover-bounce', HeroFirstFeature.iconColor)} />
                   </div>
-                  <h3 className="mb-3 text-xl font-bold tracking-tight">{HeroFirstFeature.title}</h3>
+                  <h2 className="mb-3 text-xl font-bold tracking-tight">{HeroFirstFeature.title}</h2>
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {HeroFirstFeature.description}
                   </p>
@@ -264,7 +264,7 @@ export default function FeaturesPage() {
                       <div className={cn('icon-glow mb-4 inline-flex rounded-xl p-3.5', feature.iconBg)}>
                         <feature.icon className={cn('h-6 w-6 group-hover-bounce', feature.iconColor)} />
                       </div>
-                      <h3 className="mb-2.5 text-lg font-bold tracking-tight">{feature.title}</h3>
+                      <h2 className="mb-2.5 text-lg font-bold tracking-tight">{feature.title}</h2>
                       <p className="text-sm leading-relaxed text-muted-foreground">
                         {feature.description}
                       </p>
@@ -302,7 +302,7 @@ export default function FeaturesPage() {
                       <feature.icon className={cn('h-5 w-5 group-hover-bounce', feature.iconColor)} />
                     </div>
                     <div>
-                      <h3 className="mb-2 font-bold tracking-tight">{feature.title}</h3>
+                      <h2 className="mb-2 font-bold tracking-tight">{feature.title}</h2>
                       <p className="text-sm leading-relaxed text-muted-foreground">
                         {feature.description}
                       </p>

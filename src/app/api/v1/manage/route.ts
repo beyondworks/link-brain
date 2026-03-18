@@ -31,7 +31,6 @@ import * as crypto from 'crypto';
 const WEBHOOK_LIMITS: Record<string, number> = {
   free: 2,
   pro: 10,
-  master: 50,
 };
 
 // Escape strict Supabase generics

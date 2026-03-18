@@ -688,11 +688,7 @@ export function SettingsClient() {
               {/* 플랜 티어 배지 */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">현재 플랜</span>
-                {credits.tier === 'master' ? (
-                  <span className="rounded-full bg-gradient-to-r from-violet-500 to-primary px-2.5 py-0.5 text-xs font-semibold text-white">
-                    Master
-                  </span>
-                ) : credits.tier === 'pro' ? (
+                {credits.tier === 'pro' ? (
                   <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white">
                     Pro
                   </span>
@@ -737,16 +733,14 @@ export function SettingsClient() {
                 })}
               </p>
 
-              {/* 업그레이드 CTA — master 제외 */}
-              {credits.tier !== 'master' && (
+              {/* 업그레이드 CTA — pro 제외 */}
+              {credits.tier === 'free' && (
                 <div className="pt-1">
                   <Button
                     asChild
                     className="bg-gradient-brand glow-brand gap-2 rounded-xl text-white"
                   >
-                    <a href="/pricing">
-                      {credits.tier === 'pro' ? 'Master로 업그레이드' : 'Pro로 업그레이드'}
-                    </a>
+                    <a href="/pricing">Pro로 업그레이드</a>
                   </Button>
                 </div>
               )}

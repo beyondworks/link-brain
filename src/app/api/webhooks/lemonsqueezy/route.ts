@@ -123,14 +123,7 @@ async function upsertSubscription(
   resolvedStatus: 'active' | 'cancelled' | 'past_due' | 'paused'
 ): Promise<void> {
   const attrs = payload.data.attributes;
-  // Map variant to tier. Master variant ID should be set in env.
-  // For now: LEMONSQUEEZY_MASTER_VARIANT_ID env var, otherwise default to 'pro'.
-  const masterVariantId = process.env.LEMONSQUEEZY_MASTER_VARIANT_ID;
-  const variantId = String(attrs.variant_id);
-  let tier: 'free' | 'pro' | 'master' = 'free';
-  if (resolvedStatus === 'active') {
-    tier = masterVariantId && variantId === masterVariantId ? 'master' : 'pro';
-  }
+  const tier: 'free' | 'pro' = resolvedStatus === 'active' ? 'pro' : 'free';
 
   const { error } = await db.from('subscriptions').upsert(
     {
