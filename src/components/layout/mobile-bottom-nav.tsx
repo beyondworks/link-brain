@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 function MobileBottomNavComponent() {
   const pathname = usePathname();
-  const { openModal } = useUIStore();
+  const { openModal, sidebarOpen } = useUIStore();
 
   // Scroll #main-content to top when clicking the already-active tab
   const handleNavClick = useCallback(
@@ -31,6 +31,8 @@ function MobileBottomNavComponent() {
     },
     [],
   );
+
+  if (sidebarOpen) return null;
 
   return (
     <nav
