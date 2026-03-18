@@ -29,13 +29,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const PLATFORM_COLORS = [
-  '#3b82f6', // blue-500
-  '#21DBA4', // brand
-  '#f59e0b', // amber-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-];
+import { CHART_PALETTE } from '@/config/constants';
 
 export function InsightsClient() {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -233,7 +227,7 @@ export function InsightsClient() {
                   segments={data.platformBreakdown.slice(0, 5).map(({ platform, count }, idx) => ({
                     value: count,
                     label: platform,
-                    color: PLATFORM_COLORS[idx % PLATFORM_COLORS.length],
+                    color: CHART_PALETTE[idx % CHART_PALETTE.length],
                   }))}
                   size={72}
                   className="shrink-0"
@@ -245,7 +239,7 @@ export function InsightsClient() {
                         <span className="flex items-center gap-1.5 text-sm font-medium capitalize">
                           <span
                             className="inline-block h-2 w-2 rounded-full shrink-0"
-                            style={{ backgroundColor: PLATFORM_COLORS[idx % PLATFORM_COLORS.length] }}
+                            style={{ backgroundColor: CHART_PALETTE[idx % CHART_PALETTE.length] }}
                           />
                           {platform}
                         </span>

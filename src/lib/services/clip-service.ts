@@ -7,6 +7,8 @@ import { generateChatCompletion } from '@/lib/ai/openai';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
 import { fetchTopicImage } from '@/lib/services/unsplash-service';
+import { extractYouTubeVideoId } from '@/lib/utils/clip-content';
+import { CATEGORY_COLORS } from '@/config/constants';
 import type { Category, Tag } from '@/types/database';
 
 // Raw client bypasses the Database generic for tables whose Insert types
@@ -43,19 +45,8 @@ export interface ClipMetadata {
 
 // ─── Utility helpers ───────────────────────────────────────────────────────────
 
-export const extractYouTubeVideoId = (url: string): string | null => {
-  const patterns = [
-    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
-};
+// extractYouTubeVideoId is imported from @/lib/utils/clip-content (single source of truth)
+export { extractYouTubeVideoId };
 
 export const getYouTubeThumbnail = (videoId: string): string =>
   `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
@@ -83,12 +74,6 @@ const fallbackSummary = (rawText: string, language = 'KR'): string => {
 };
 
 // ─── Category helpers ──────────────────────────────────────────────────────────
-
-const CATEGORY_COLORS = [
-  '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
-  '#F59E0B', '#F97316', '#14B8A6', '#6366F1',
-  '#F43F5E', '#06B6D4', '#34D399', '#7C3AED',
-];
 
 const getOrCreateCategory = async (
   userId: string,

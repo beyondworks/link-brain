@@ -7,22 +7,11 @@ import { ExternalLink, Hash } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { getGradient } from '@/config/constants';
 import { useRelatedClips } from '@/lib/hooks/use-related-clips';
 
 interface RelatedClipsProps {
   clipId: string;
-}
-
-const GRADIENT_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-green-500 to-emerald-600',
-  'from-orange-500 to-red-600',
-  'from-pink-500 to-rose-600',
-];
-
-function getGradient(id: string): string {
-  return GRADIENT_COLORS[id.charCodeAt(0) % GRADIENT_COLORS.length];
 }
 
 function RelatedClipSkeleton() {

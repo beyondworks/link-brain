@@ -109,7 +109,7 @@ async function processBatch(
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
-  console.log(`[Backfill] Batch complete: ${succeeded} succeeded, ${failed} failed out of ${clipList.length}`);
+  // Batch result is returned in the JSON response below
 
   return NextResponse.json({
     processed: clipList.length,

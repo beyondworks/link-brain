@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ArrowLeft, Heart } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { getGradient } from '@/config/constants';
 
 interface Props {
   params: Promise<{ clipId: string }>;
@@ -63,14 +64,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const GRADIENT_COLORS = [
-  'from-violet-500 to-purple-600',
-  'from-blue-500 to-cyan-600',
-  'from-green-500 to-emerald-600',
-  'from-orange-500 to-red-600',
-  'from-pink-500 to-rose-600',
-];
-
 export default async function PublicClipPage({ params }: Props) {
   const { clipId } = await params;
   const clip = await getPublicClip(clipId);
@@ -78,7 +71,7 @@ export default async function PublicClipPage({ params }: Props) {
   if (!clip) notFound();
 
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
-  const gradient = GRADIENT_COLORS[clip.id.charCodeAt(0) % GRADIENT_COLORS.length];
+  const gradient = getGradient(clip.id);
 
   return (
     <div className="min-h-screen bg-background">
