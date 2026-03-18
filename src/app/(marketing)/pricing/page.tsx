@@ -178,7 +178,7 @@ export default function PricingPage() {
                         </span>
                       </div>
 
-                      <h3 className="text-lg font-black text-gradient-brand">{plan.nameKo}</h3>
+                      <h2 className="text-lg font-black text-gradient-brand">{plan.nameKo}</h2>
 
                       <div className="mt-3 flex items-baseline gap-1">
                         <span className="text-5xl font-black stat-number">
@@ -245,7 +245,7 @@ export default function PricingPage() {
                       plan.name === 'Master' && 'border-gradient'
                     )}
                   >
-                    <h3 className="text-lg font-black text-foreground">{plan.nameKo}</h3>
+                    <h2 className="text-lg font-black text-foreground">{plan.nameKo}</h2>
 
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-4xl font-black text-foreground">
