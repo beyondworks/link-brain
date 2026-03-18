@@ -51,13 +51,15 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
     title: 'Linkbrain',
   },
 };
 
 export const viewport: Viewport = {
-  // themeColor는 inline script에서 동적 설정 (ThemeColorScript)
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f9fafb' },
+    { media: '(prefers-color-scheme: dark)', color: '#2e2e2e' },
+  ],
   colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
