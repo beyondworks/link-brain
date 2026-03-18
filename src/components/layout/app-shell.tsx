@@ -13,6 +13,7 @@ import { useGlobalShortcuts } from '@/lib/hooks/use-global-shortcuts';
 import { supabase } from '@/lib/supabase/client';
 import { MAIN_NAV } from '@/config/navigation';
 import { useNavCounts } from '@/lib/hooks/use-nav-counts';
+import { usePlan } from '@/lib/hooks/use-plan';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
@@ -43,6 +44,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+function PlanBadge() {
+  const { isPro } = usePlan();
+  if (!isPro) return null;
+  return (
+    <span className="flex-shrink-0 rounded-full bg-gradient-brand px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white shadow-brand">
+      Pro
+    </span>
+  );
+}
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -321,9 +332,7 @@ export function AppShell({ children }: AppShellProps) {
                           <span className="truncate text-xs font-semibold text-foreground">
                             {displayName}
                           </span>
-                          <span className="flex-shrink-0 rounded-full bg-gradient-brand px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white shadow-brand">
-                            Pro
-                          </span>
+                          <PlanBadge />
                         </div>
                         <span className="truncate text-[11px] text-muted-foreground/70">
                           {user.email}
