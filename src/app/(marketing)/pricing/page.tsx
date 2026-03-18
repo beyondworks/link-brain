@@ -3,9 +3,12 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MARKETING_PLANS } from '@/config/plans';
+import { useSupabase } from '@/components/providers/supabase-provider';
+import { usePlan } from '@/lib/hooks/use-plan';
+import { useCheckout } from '@/lib/hooks/use-checkout';
 
 const FAQ_ITEMS = [
   {
@@ -61,6 +64,41 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function ProButton({ isYearly, className }: { isYearly: boolean; className?: string }) {
+  const { user } = useSupabase();
+  const { isPro } = usePlan();
+  const { checkout, openPortal, isLoading } = useCheckout();
+
+  // Not logged in → signup
+  if (!user) {
+    return (
+      <Button className={className} asChild>
+        <Link href="/signup?plan=pro">Pro 시작하기</Link>
+      </Button>
+    );
+  }
+
+  // Already Pro → manage subscription
+  if (isPro) {
+    return (
+      <Button className={className} variant="outline" onClick={() => openPortal()} disabled={isLoading}>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : '구독 관리'}
+      </Button>
+    );
+  }
+
+  // Free user → checkout
+  return (
+    <Button
+      className={className}
+      onClick={() => checkout(isYearly ? 'yearly' : 'monthly')}
+      disabled={isLoading}
+    >
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pro 시작하기'}
+    </Button>
   );
 }
 
@@ -219,12 +257,10 @@ export default function PricingPage() {
                         ))}
                       </ul>
 
-                      <Button
+                      <ProButton
+                        isYearly={isYearly}
                         className="mt-8 w-full h-12 font-bold text-sm rounded-xl glow-brand animate-pulse-brand hover-lift transition-all duration-300"
-                        asChild
-                      >
-                        <Link href={plan.href}>{plan.cta}</Link>
-                      </Button>
+                      />
                     </div>
                   </div>
                 );
