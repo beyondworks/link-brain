@@ -123,8 +123,8 @@
 :root {
   --radius: 0.625rem;
 
-  /* Core */
-  --background: oklch(0.985 0.002 250);
+  /* Core — hex to match theme-color meta exactly (eliminates status bar seam) */
+  --background: #f9fafb;
   --foreground: oklch(0.145 0.005 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0.005 250);
@@ -152,7 +152,7 @@
   --brand-subtle: oklch(0.96 0.03 168);
 
   /* Surface layers */
-  --surface: oklch(0.985 0.002 250);
+  --surface: #f9fafb;
   --surface-raised: oklch(0.975 0.002 250);
   --surface-overlay: oklch(0 0 0 / 50%);
 
@@ -189,14 +189,15 @@
   --thumbnail-fallback: #f5f5f5;
 
   /* Status bar sync (PWA mobile) */
-  --app-bg: oklch(0.985 0.002 250);
-  --sidebar-bg: oklch(0.985 0.002 250);
-  --drawer-bg: oklch(0.985 0.002 250);
+  --app-bg: #f9fafb;
+  --sidebar-bg: #f9fafb;
+  --drawer-bg: #f9fafb;
 }
 
 /* ─── Dark Mode ───────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.30 0.00 0);
+  /* hex to match theme-color meta exactly (eliminates status bar seam) */
+  --background: #2e2e2e;
   --foreground: oklch(0.96 0.005 250);
   --card: oklch(0.34 0.00 0);
   --card-foreground: oklch(0.96 0.005 250);
@@ -245,9 +246,9 @@
   --thumbnail-fallback: #363636;
 
   /* Status bar sync (PWA mobile) */
-  --app-bg: oklch(0.30 0.00 0);
-  --sidebar-bg: oklch(0.30 0.00 0);
-  --drawer-bg: oklch(0.30 0.00 0);
+  --app-bg: #2e2e2e;
+  --sidebar-bg: #2e2e2e;
+  --drawer-bg: #2e2e2e;
 
   --sidebar: oklch(0.28 0.00 0);
   --sidebar-foreground: oklch(0.96 0.005 250);

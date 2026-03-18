@@ -52,6 +52,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Linkbrain',
+    statusBarStyle: 'black-translucent',
   },
 };
 
@@ -62,6 +63,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 interface RootLayoutProps {
@@ -73,7 +75,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html
       lang="ko"
       suppressHydrationWarning
-      className={inter.variable}
+      className={`${inter.variable} bg-background`}
     >
       <body className="bg-background font-[family-name:var(--font-pretendard),var(--font-inter),sans-serif] antialiased">
         <ThemeColorScript />

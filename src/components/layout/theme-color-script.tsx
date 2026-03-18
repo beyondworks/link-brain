@@ -20,6 +20,7 @@ export function ThemeColorScript() {
     "var m=document.querySelector('meta[name=\"theme-color\"]');",
     "if(m){m.setAttribute('content',c);m.removeAttribute('media')}",
     "else{var n=document.createElement('meta');n.name='theme-color';n.content=c;document.head.appendChild(n)}",
+    "document.documentElement.style.backgroundColor=c;",
     '}catch(e){}',
     '})();',
   ].join('');

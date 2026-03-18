@@ -26,13 +26,20 @@ export function ThemeColorSync() {
     if (!resolvedTheme) return;
     const color = resolvedTheme === 'dark' ? DARK : LIGHT;
 
-    // Clear all existing theme-color metas (prevents media-specific duplicates)
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+    // Update existing theme-color meta in-place (avoid remove/create flash)
+    const existing = document.querySelector('meta[name="theme-color"]');
+    if (existing) {
+      existing.setAttribute('content', color);
+      existing.removeAttribute('media');
+    } else {
+      const el = document.createElement('meta');
+      el.name = 'theme-color';
+      el.content = color;
+      document.head.appendChild(el);
+    }
 
-    const el = document.createElement('meta');
-    el.name = 'theme-color';
-    el.content = color;
-    document.head.appendChild(el);
+    // Sync html background to match theme-color exactly (eliminates status bar seam)
+    document.documentElement.style.backgroundColor = color;
   }, [resolvedTheme]);
 
   return null;
