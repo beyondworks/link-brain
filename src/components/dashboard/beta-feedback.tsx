@@ -67,7 +67,7 @@ export function BetaFeedback() {
         }}
         aria-expanded={false}
         aria-label="피드백 보내기"
-        className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed border-border/60 bg-card/60 px-4 py-3 text-left transition-all duration-200 hover:border-primary/30 hover:bg-brand-muted/50"
+        className="group flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed border-border/60 bg-card/60 px-4 py-3 text-left transition-all duration-200 hover:border-primary/30 hover:bg-brand-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted transition-colors group-hover:bg-primary/15">
           <MessageSquarePlus className="h-4 w-4 text-primary" />
@@ -93,7 +93,7 @@ export function BetaFeedback() {
         <button
           onClick={() => setIsOpen(false)}
           aria-label="피드백 닫기"
-          className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -106,7 +106,7 @@ export function BetaFeedback() {
             key={value}
             onClick={() => setFeedbackType(value)}
             className={cn(
-              'flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200',
+              'flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
               feedbackType === value
                 ? 'bg-primary text-white shadow-sm'
                 : 'bg-muted/60 text-muted-foreground hover:bg-accent hover:text-foreground'

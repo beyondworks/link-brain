@@ -37,7 +37,7 @@ export function UpgradePrompt({ reason, featureName, className }: UpgradePromptP
       <button
         onClick={() => checkout('monthly')}
         disabled={isLoading}
-        className="shrink-0 cursor-pointer rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+        className="shrink-0 cursor-pointer rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:opacity-50"
       >
         {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Pro 업그레이드'}
       </button>
