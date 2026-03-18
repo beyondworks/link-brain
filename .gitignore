@@ -63,6 +63,9 @@ video/demo/node_modules/
 # E2E auth state
 e2e/.auth/
 
+# Firebase service account keys
+*firebase-adminsdk*
+
 # Video assets (large)
 /video/
 !public/video/
