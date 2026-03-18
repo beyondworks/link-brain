@@ -52,13 +52,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const interval = body.interval === 'yearly' ? 'yearly' : 'monthly';
     const variantId = interval === 'yearly' ? YEARLY_VARIANT_ID : MONTHLY_VARIANT_ID;
 
-    if (!STORE_ID || !variantId) {
-      console.error('[Checkout] Missing Lemon Squeezy env vars');
+    if (!STORE_ID || !variantId || !process.env.LEMONSQUEEZY_API_KEY) {
+      console.error('[Checkout] Missing env vars:', {
+        STORE_ID: STORE_ID || '(empty)',
+        variantId: variantId || '(empty)',
+        API_KEY_LENGTH: process.env.LEMONSQUEEZY_API_KEY?.length ?? 0,
+      });
       return NextResponse.json(
         { error: 'Payment configuration not ready' },
         { status: 503 }
       );
     }
+
+    console.info('[Checkout] Creating checkout:', { storeId: STORE_ID, variantId, userId: user.id });
 
     const checkoutUrl = await createCheckout(
       STORE_ID,
@@ -69,7 +75,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
-    console.error('[Checkout] Error:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[Checkout] Error:', msg);
     return NextResponse.json(
       { error: 'Failed to create checkout' },
       { status: 500 }
