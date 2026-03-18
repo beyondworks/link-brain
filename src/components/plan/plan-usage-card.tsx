@@ -82,7 +82,7 @@ export function PlanUsageCard({ className }: { className?: string }) {
         )}
 
         {resetDate && (
-          <p className="text-xs text-muted-foreground">{resetDate}에 초기화</p>
+          <p className="text-xs text-muted-foreground">매월 1일 초기화 (다음 {resetDate})</p>
         )}
 
         {isFree && (

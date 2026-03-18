@@ -797,12 +797,11 @@ export function SettingsClient() {
 
               {/* 다음 초기화 */}
               <p className="text-xs text-muted-foreground" suppressHydrationWarning>
-                다음 초기화:{' '}
+                크레딧 초기화: 매월 1일 (다음{' '}
                 {new Date(credits.resetAt).toLocaleDateString('ko-KR', {
-                  year: 'numeric',
                   month: 'long',
                   day: 'numeric',
-                })}
+                })})
               </p>
 
               {/* 플랜 액션 */}
