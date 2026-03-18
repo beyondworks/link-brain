@@ -106,11 +106,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         본문으로 건너뛰기
       </a>
-      {/* Mobile overlay — starts below safe area to avoid darkening the notch */}
+      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-[40] bg-surface-overlay lg:hidden animate-fade-in"
-          style={{ clipPath: 'inset(env(safe-area-inset-top, 0px) 0 0 0)' }}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />

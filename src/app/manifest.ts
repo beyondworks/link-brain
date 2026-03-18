@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: '스마트 북마크 매니저 — AI가 당신의 콘텐츠를 정리합니다',
     start_url: '/dashboard',
     display: 'standalone',
-    background_color: '#09090b',
-    theme_color: '#21DBA4',
+    background_color: '#f9fafb',
+    theme_color: '#f9fafb',
     orientation: 'portrait-primary',
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
