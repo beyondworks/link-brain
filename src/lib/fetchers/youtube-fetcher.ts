@@ -10,6 +10,7 @@
 
 import { extractYouTubeContent, buildYouTubeRichText } from './youtube-extractor';
 import { extractWithPuppeteer } from './puppeteer-extractor';
+import { isDefuddleEnabled, extractWithDefuddle } from './defuddle-extractor';
 import { validateUrl } from './url-validator';
 import { fetchWithTimeout, extractImagesFromMarkdown } from './utils';
 import type { FetchedUrlContent, PlatformFetcher } from './types';
@@ -159,17 +160,32 @@ export class YouTubeFetcher implements PlatformFetcher {
                 };
             }
 
-            // Strategy 2: No transcript — try Jina to supplement with page description
-            const jinaResult = await extractWithJina(url);
+            // Strategy 2: No transcript — try Defuddle then Jina to supplement
+            let supplementResult: FetchedUrlContent = { rawText: '', images: [] };
 
-            if (ytData && jinaResult.rawText && jinaResult.rawText.length > 100) {
-                const enriched = { ...ytData, description: jinaResult.rawText };
+            if (isDefuddleEnabled()) {
+                const defuddleResult = await extractWithDefuddle(url);
+                if (defuddleResult.rawText && defuddleResult.rawText.length > 100) {
+                    console.log(`[YouTube Fetcher] Defuddle supplement success (${defuddleResult.rawText.length} chars)`);
+                    supplementResult = defuddleResult;
+                }
+            }
+
+            if (!supplementResult.rawText || supplementResult.rawText.length < 100) {
+                const jinaResult = await extractWithJina(url);
+                if (jinaResult.rawText && jinaResult.rawText.length > 100) {
+                    supplementResult = jinaResult;
+                }
+            }
+
+            if (ytData && supplementResult.rawText && supplementResult.rawText.length > 100) {
+                const enriched = { ...ytData, description: supplementResult.rawText };
                 const richText = buildYouTubeRichText(enriched);
                 return {
                     rawText: richText,
-                    images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : jinaResult.images,
-                    author: ytData.channelTitle || jinaResult.author || '',
-                    authorHandle: ytData.channelTitle || jinaResult.authorHandle || '',
+                    images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : supplementResult.images,
+                    author: ytData.channelTitle || supplementResult.author || '',
+                    authorHandle: ytData.channelTitle || supplementResult.authorHandle || '',
                     finalUrl: url
                 };
             }
@@ -201,8 +217,8 @@ export class YouTubeFetcher implements PlatformFetcher {
                 };
             }
 
-            if (jinaResult.rawText && jinaResult.rawText.length > 100) {
-                return jinaResult;
+            if (supplementResult.rawText && supplementResult.rawText.length > 100) {
+                return supplementResult;
             }
 
             if (puppeteerResult.rawText && puppeteerResult.rawText.length > 30) {
