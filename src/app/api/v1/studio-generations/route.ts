@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { deductCredits } from '@/lib/services/plan-service';
-import { errors, sendError } from '@/lib/api/response';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -30,19 +28,8 @@ async function handler(req: Request, auth: AuthContext) {
   }
 
   if (req.method === 'POST') {
-    const creditCheck = await deductCredits(auth.publicUserId, 'AI_STUDIO');
-    if (!creditCheck.allowed) {
-      if (creditCheck.reason === 'STUDIO_LIMIT_REACHED') {
-        return sendError(
-          'STUDIO_LIMIT_REACHED',
-          '이번 달 스튜디오 생성 횟수를 초과했습니다.',
-          402,
-          { used: creditCheck.used, limit: creditCheck.limit }
-        );
-      }
-      return errors.insufficientCredits(1, (creditCheck.limit ?? 0) - (creditCheck.used ?? 0));
-    }
-
+    // NOTE: 크레딧 차감은 /api/v1/ai (handleGenerate)에서 이미 수행됨.
+    // 이 라우트는 생성 결과를 저장하는 용도이므로 이중 차감하지 않음.
     const body = await req.json() as Record<string, unknown>;
     const { content_type, tone, length, source_clip_ids, output } = body;
 

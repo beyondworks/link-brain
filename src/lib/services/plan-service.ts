@@ -38,12 +38,12 @@ export interface LimitCheckResult {
 
 function getMonthStart(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
 function getMonthEnd(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 }
 
 /** Resolve user's plan tier from public.users.plan column */
@@ -259,12 +259,13 @@ export async function deductCredits(
 
   // Atomic deduction via SQL function (prevents TOCTOU race condition).
   // deduct_credit() checks the limit and inserts in a single transaction.
-  // NOTE: Limits are hardcoded in 017_plan_system.sql — keep in sync with PLAN_LIMITS.
+  // Pass monthlyLimit from TypeScript config → single source of truth.
   const { data: rpcResult, error: rpcError } = await db.rpc('deduct_credit', {
     p_user_id: publicUserId,
     p_action: action,
     p_cost: cost,
     p_clip_id: clipId ?? null,
+    p_monthly_limit: monthlyLimit,
   });
 
   if (rpcError) {

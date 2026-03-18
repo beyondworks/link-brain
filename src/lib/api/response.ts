@@ -182,15 +182,15 @@ export const errors = {
   insufficientCredits: (required: number, available: number) =>
     sendError(
       ErrorCodes.INSUFFICIENT_CREDITS,
-      `Insufficient credits. Required: ${required}, Available: ${available}`,
+      `크레딧이 부족합니다. 필요: ${required}, 잔여: ${available}. 플랜을 업그레이드하면 더 많은 크레딧을 사용할 수 있습니다.`,
       402,
-      { required, available }
+      { required, available, upgradeUrl: '/pricing' }
     ),
 
   planLimitReached: (resource: string, used: number, limit: number) =>
     sendError(
       `${resource.toUpperCase()}_LIMIT_REACHED` as ErrorCode,
-      `${resource} limit reached. Used: ${used}, Limit: ${limit}. Upgrade your plan for more.`,
+      `${resource} 한도에 도달했습니다. 사용: ${used}/${limit}. 플랜을 업그레이드하세요.`,
       403,
       { used, limit, upgradeUrl: '/pricing' }
     ),

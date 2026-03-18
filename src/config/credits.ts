@@ -1,8 +1,7 @@
 // =============================================================================
 // Plan & Credit Configuration — Single Source of Truth
-// NOTE: Monthly credit limits are also hardcoded in the atomic SQL function
-// deduct_credit() in supabase/migrations/017_plan_system.sql (lines 117-121).
-// If you change limits here, update the SQL function as well.
+// Monthly credit limits are passed from here to the SQL deduct_credit() function
+// via the p_monthly_limit parameter. No need to update SQL when changing limits.
 // =============================================================================
 
 export const CREDIT_COSTS = {
@@ -64,7 +63,3 @@ export function serializeLimit(value: number): number {
   return value === Infinity ? -1 : value;
 }
 
-/** JSON 역직렬화 시 -1 → Infinity 변환 */
-export function deserializeLimit(value: number): number {
-  return value === -1 ? Infinity : value;
-}
