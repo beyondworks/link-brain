@@ -6,7 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateChatCompletion } from '@/lib/ai/openai';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
-import { fetchTopicImage } from '@/lib/services/unsplash-service';
+import { fetchScreenshot } from '@/lib/services/screenshot-service';
 import { extractYouTubeVideoId } from '@/lib/utils/clip-content';
 import { CATEGORY_COLORS } from '@/config/constants';
 import type { Category, Tag } from '@/types/database';
@@ -487,8 +487,8 @@ export const enrichClipContent = async (
 
   // Unsplash fallback: if no content image, fetch a topic-related photo
   let thumbnailImage: string | null = prepared.thumbnailImage;
-  if (!thumbnailImage && prepared.keywords.length > 0) {
-    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  if (!thumbnailImage) {
+    thumbnailImage = await fetchScreenshot(url);
   }
 
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
@@ -581,8 +581,8 @@ export const processNewClip = async (
 
   // Unsplash fallback: if no content image, fetch a topic-related photo
   let thumbnailImage: string | null = prepared.thumbnailImage;
-  if (!thumbnailImage && prepared.keywords.length > 0) {
-    thumbnailImage = await fetchTopicImage(prepared.keywords);
+  if (!thumbnailImage) {
+    thumbnailImage = await fetchScreenshot(url);
   }
 
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
