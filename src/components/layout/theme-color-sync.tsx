@@ -26,11 +26,13 @@ export function ThemeColorSync() {
     if (!resolvedTheme) return;
     const color = resolvedTheme === 'dark' ? DARK : LIGHT;
 
-    // Update existing theme-color meta in-place (avoid remove/create flash)
-    const existing = document.querySelector('meta[name="theme-color"]');
-    if (existing) {
-      existing.setAttribute('content', color);
-      existing.removeAttribute('media');
+    // Update ALL theme-color metas in-place (server may render multiple media-specific ones)
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    if (metas.length) {
+      metas.forEach((m) => {
+        m.setAttribute('content', color);
+        m.removeAttribute('media');
+      });
     } else {
       const el = document.createElement('meta');
       el.name = 'theme-color';

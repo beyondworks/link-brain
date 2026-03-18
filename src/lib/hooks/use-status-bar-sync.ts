@@ -107,11 +107,13 @@ function syncStatusBar(type: OverlayType) {
   // 1. Update <html> inline background — iOS PWA status bar inherits this
   document.documentElement.style.backgroundColor = color;
 
-  // 2. Update existing theme-color meta in-place (avoid remove/create flash)
-  const existing = document.querySelector('meta[name="theme-color"]');
-  if (existing) {
-    existing.setAttribute('content', color);
-    existing.removeAttribute('media');
+  // 2. Update ALL theme-color metas in-place (server may render multiple media-specific ones)
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  if (metas.length) {
+    metas.forEach((m) => {
+      m.setAttribute('content', color);
+      m.removeAttribute('media');
+    });
   } else {
     const meta = document.createElement('meta');
     meta.name = 'theme-color';

@@ -128,7 +128,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Right panel - white auth card */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white px-4 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center bg-background px-4 py-12">
         {/* Mobile logo */}
         <div className="md:hidden mb-8 flex flex-col items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
