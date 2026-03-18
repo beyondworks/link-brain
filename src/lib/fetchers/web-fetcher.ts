@@ -1,16 +1,17 @@
 /**
  * Web Fetcher — Platform-specific fetcher for general web content
  *
- * Handles:
- * 1. Jina Reader primary extraction
- * 2. Readability fallback for weak results
- * 3. Web normalization with bug fixes:
- *    - B3: Single normalization pass (was applied 3x on merge path)
- *    - B4: Footer detection no longer resets after detection
+ * Strategy chain:
+ * 1. Defuddle (local HTML parsing, no external API)
+ * 2. Jina Reader fallback (external API)
+ * 3. Readability fallback merge for weak results
+ *
+ * Controlled by USE_DEFUDDLE env var (default: true).
  */
 
 import { normalizeWeb } from './normalizers/web';
 import { extractWithReadability } from './readability-fetcher';
+import { isDefuddleEnabled, extractWithDefuddle } from './defuddle-extractor';
 import { validateUrl } from './url-validator';
 import { ENABLE_WEB_FALLBACK_MERGE } from './feature-flags';
 import { fetchWithTimeout, extractImagesFromMarkdown, hasAuthGate, selectBetterText } from './utils';
@@ -185,13 +186,23 @@ export class WebFetcher implements PlatformFetcher {
         }
 
         try {
-            // Step 1: Jina Reader (primary)
-            const jinaResult = await extractWithJina(url);
+            // Step 1: Defuddle (local parsing, no external API)
+            if (isDefuddleEnabled()) {
+                const defuddleResult = await extractWithDefuddle(url);
+                const normalizedDefuddle = applyWebNormalization(defuddleResult);
 
-            // Step 2: Normalize (SINGLE PASS — B3 fix)
+                if (!isWeakWebResult(normalizedDefuddle)) {
+                    console.log(`[Web Fetcher] Defuddle success (${normalizedDefuddle.rawText.length} chars)`);
+                    return normalizedDefuddle;
+                }
+                console.warn(`[Web Fetcher] Weak Defuddle result (${normalizedDefuddle.rawText.length} chars), falling back to Jina`);
+            }
+
+            // Step 2: Jina Reader (fallback)
+            const jinaResult = await extractWithJina(url);
             const normalizedJina = applyWebNormalization(jinaResult);
 
-            // Step 3: Check if result is strong enough
+            // Step 3: Check if Jina result is strong enough
             if (!ENABLE_WEB_FALLBACK_MERGE || !isWeakWebResult(normalizedJina)) {
                 return normalizedJina;
             }
