@@ -33,7 +33,7 @@ export function useCurrentUser() {
       return data;
     },
     enabled: !!authUser && !authLoading,
-    staleTime: 60_000,
+    staleTime: 300_000,
     retry: false,
   });
 

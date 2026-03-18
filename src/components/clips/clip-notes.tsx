@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { PenLine, Check, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ interface ClipNotesProps {
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function ClipNotes({ clipId, initialNotes }: ClipNotesProps) {
+  const queryClient = useQueryClient();
   const [value, setValue] = useState(initialNotes ?? '');
   const [isExpanded, setIsExpanded] = useState(!!(initialNotes));
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -31,22 +33,49 @@ export function ClipNotes({ clipId, initialNotes }: ClipNotesProps) {
   const save = useCallback(
     async (notes: string) => {
       setSaveStatus('saving');
+      const id = clipIdRef.current;
       const { error } = await supabase
         .from('clips')
         .update({ notes } as never)
-        .eq('id', clipIdRef.current);
+        .eq('id', id);
 
       if (!error) {
         pendingValueRef.current = null;
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
+        // Update the single-clip cache so the peek panel reflects the saved
+        // notes immediately when re-opened (without waiting for staleTime to
+        // expire and triggering a full refetch).
+        queryClient.setQueryData<{ notes?: string | null } | null>(
+          ['clip', id],
+          (old) => (old ? { ...old, notes } : old)
+        );
+        // Also propagate to the list cache so clip cards / other consumers
+        // see the updated value without a full invalidation.
+        queryClient.setQueriesData<{
+          pages?: Array<{ data?: Array<{ id: string; notes?: string | null }> }>;
+        }>(
+          { queryKey: ['clips'] },
+          (old) => {
+            if (!old?.pages) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                data: page.data?.map((clip) =>
+                  clip.id === id ? { ...clip, notes } : clip
+                ),
+              })),
+            };
+          }
+        );
       } else {
         console.error('[ClipNotes] save failed:', error.message);
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     },
-    []
+    [queryClient]
   );
 
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {

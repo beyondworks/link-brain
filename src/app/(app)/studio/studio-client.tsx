@@ -246,6 +246,7 @@ export function StudioClient() {
     onSuccess: () => {
       toast.success('클립으로 저장되었습니다.');
       void queryClient.invalidateQueries({ queryKey: ['clips'] });
+      void queryClient.invalidateQueries({ queryKey: ['credits'] });
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, '클립 저장에 실패했습니다.'));

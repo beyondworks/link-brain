@@ -23,6 +23,6 @@ export function useCategories() {
       return data ?? [];
     },
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 300_000,
   });
 }

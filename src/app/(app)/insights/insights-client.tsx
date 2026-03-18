@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useInsights } from '@/lib/hooks/use-insights';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -359,6 +360,7 @@ function AiInsightsSection() {
   const [result, setResult] = useState<AiInsightResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const generateInsights = useCallback(async () => {
     setLoading(true);
@@ -375,12 +377,13 @@ function AiInsightsSection() {
       }
       const json = (await res.json()) as { data: { aiAnalysis: AiInsightResult } };
       setResult(json.data.aiAnalysis);
+      void queryClient.invalidateQueries({ queryKey: ['credits'] });
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   if (!result && !loading) {
     return (
