@@ -30,7 +30,7 @@ export type ApiRouteHandler = (
   params?: Record<string, string>
 ) => Promise<NextResponse>;
 
-const MASTER_EMAILS = ['beyondworks.br@gmail.com'];
+const ADMIN_EMAILS = ['beyondworks.br@gmail.com'];
 
 /**
  * Get subscription tier from users.plan column (set by 017_plan_system migration).
@@ -46,13 +46,13 @@ async function getUserTier(userId: string): Promise<SubscriptionTier> {
 
     const userRow = userData as Pick<User, 'email' | 'plan'> | null;
 
-    // Master email override
-    if (userRow?.email && MASTER_EMAILS.includes(userRow.email)) {
-      return 'master';
+    // Admin email override — grant pro tier
+    if (userRow?.email && ADMIN_EMAILS.includes(userRow.email)) {
+      return 'pro';
     }
 
     // Use users.plan column if available
-    if (userRow?.plan && ['free', 'pro', 'master'].includes(userRow.plan)) {
+    if (userRow?.plan && ['free', 'pro'].includes(userRow.plan)) {
       return userRow.plan as SubscriptionTier;
     }
 
@@ -64,8 +64,8 @@ async function getUserTier(userId: string): Promise<SubscriptionTier> {
       .single();
 
     const subRow = sub as Pick<Subscription, 'tier' | 'status'> | null;
-    if (subRow && subRow.status === 'active' && ['pro', 'master'].includes(subRow.tier)) {
-      return subRow.tier as SubscriptionTier;
+    if (subRow && subRow.status === 'active' && subRow.tier === 'pro') {
+      return 'pro';
     }
 
     return 'free';

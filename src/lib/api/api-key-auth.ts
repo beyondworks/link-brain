@@ -22,7 +22,6 @@ const API_KEY_PREFIX = 'lb_';
 export const KEY_LIMITS = {
   free: 0,
   pro: 5,
-  master: 10,
 } as const;
 
 export type ApiKeyTier = keyof typeof KEY_LIMITS;

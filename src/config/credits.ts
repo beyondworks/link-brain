@@ -35,19 +35,6 @@ export const PLAN_LIMITS = {
       'export', 'collection_sharing', 'mcp',
     ] as const,
   },
-  master: {
-    maxClips: Infinity,
-    maxCollections: Infinity,
-    maxApiKeys: 10,
-    monthlyAiCredits: Infinity,
-    monthlyStudioGenerations: Infinity,
-    features: [
-      'basic_search', 'basic_ai', 'community',
-      'semantic_search', 'knowledge_graph', 'annotations',
-      'export', 'collection_sharing', 'mcp',
-      'team_workspace', 'priority_support', 'early_access',
-    ] as const,
-  },
 } as const;
 
 export type PlanTier = keyof typeof PLAN_LIMITS;

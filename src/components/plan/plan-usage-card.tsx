@@ -8,13 +8,6 @@ import { usePlan } from '@/lib/hooks/use-plan';
 import { cn } from '@/lib/utils';
 
 function TierBadge({ tier }: { tier: string }) {
-  if (tier === 'master') {
-    return (
-      <span className="rounded-full bg-gradient-to-r from-violet-500 to-primary px-2.5 py-0.5 text-xs font-semibold text-white">
-        Master
-      </span>
-    );
-  }
   if (tier === 'pro') {
     return (
       <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white">
@@ -30,7 +23,7 @@ function TierBadge({ tier }: { tier: string }) {
 }
 
 export function PlanUsageCard({ className }: { className?: string }) {
-  const { tier, isMaster, isPro, isFree, usage, isLoading } = usePlan();
+  const { tier, isFree, usage, isLoading } = usePlan();
 
   if (isLoading) {
     return (
@@ -92,7 +85,7 @@ export function PlanUsageCard({ className }: { className?: string }) {
           <p className="text-xs text-muted-foreground">{resetDate}에 초기화</p>
         )}
 
-        {(isFree || isPro) && !isMaster && (
+        {isFree && (
           <Button asChild size="sm" className="w-full">
             <Link href="/pricing">업그레이드</Link>
           </Button>
