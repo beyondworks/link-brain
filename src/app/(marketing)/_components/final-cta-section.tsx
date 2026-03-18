@@ -75,7 +75,7 @@ export function FinalCTASection() {
           className="flex items-center justify-center gap-4 flex-wrap"
         >
           <motion.a
-            href="#"
+            href="/signup"
             whileHover={{ scale: 1.03, y: -2 }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
@@ -85,7 +85,7 @@ export function FinalCTASection() {
             무료로 시작하기
           </motion.a>
           <motion.a
-            href="#pricing"
+            href="/pricing"
             whileHover={{ scale: 1.03, y: -2 }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}

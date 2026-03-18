@@ -156,7 +156,7 @@ export function HeroSection() {
             className="mt-9 flex items-center justify-center gap-4 flex-wrap"
           >
             <a
-              href="#"
+              href="/signup"
               className="px-7 py-3 rounded-full text-[15px] text-white transition-all duration-300 hover:shadow-xl hover:shadow-[#21DBA4]/30 hover:-translate-y-0.5 active:scale-95"
               style={{
                 background: 'linear-gradient(100deg, #21DBA4 0%, #5DD5C3 100%)',
@@ -167,7 +167,7 @@ export function HeroSection() {
               무료로 시작하기
             </a>
             <a
-              href="#pricing"
+              href="/pricing"
               className="px-7 py-3 rounded-full text-[15px] text-[#666] border border-[#e5e5e5] hover:border-[#21DBA4]/50 hover:text-[#21DBA4] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
               style={{
                 fontFamily: "'Pretendard Variable', sans-serif",

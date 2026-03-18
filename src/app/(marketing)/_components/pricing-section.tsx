@@ -230,7 +230,7 @@ function PlanCard({
       {/* CTA Button */}
       {plan.ctaStyle === 'fill' ? (
         <motion.a
-          href="#"
+          href="/signup?plan=pro"
           whileTap={{ scale: 0.97 }}
           className="relative mb-7 w-full py-3 rounded-full text-[14px] text-white text-center overflow-hidden group"
           style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 600 }}
@@ -247,7 +247,7 @@ function PlanCard({
         </motion.a>
       ) : (
         <motion.a
-          href="#"
+          href="/signup"
           whileTap={{ scale: 0.97 }}
           className="mb-7 w-full py-3 rounded-full text-[14px] text-center border transition-all duration-200 hover:border-[#21DBA4]/50 hover:text-[#21DBA4]"
           style={{
