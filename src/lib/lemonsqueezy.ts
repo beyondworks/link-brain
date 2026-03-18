@@ -6,7 +6,6 @@
  */
 
 const LEMON_SQUEEZY_API = 'https://api.lemonsqueezy.com/v1';
-const API_KEY = process.env.LEMONSQUEEZY_API_KEY ?? '';
 
 interface LemonSqueezyResponse<T> {
   data: T;
@@ -40,12 +39,13 @@ async function lemonFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const apiKey = process.env.LEMONSQUEEZY_API_KEY ?? '';
   const res = await fetch(`${LEMON_SQUEEZY_API}${path}`, {
     ...options,
     headers: {
       Accept: 'application/vnd.api+json',
       'Content-Type': 'application/vnd.api+json',
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       ...options.headers,
     },
   });
