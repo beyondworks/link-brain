@@ -75,6 +75,29 @@ export default async function PublicClipPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: clip.title ?? clip.url,
+            description: clip.summary ?? undefined,
+            image: clip.image ?? undefined,
+            author: clip.author ? { '@type': 'Person', name: clip.author } : undefined,
+            datePublished: clip.created_at,
+            publisher: {
+              '@type': 'Organization',
+              name: 'Linkbrain',
+              url: 'https://linkbrain.cloud',
+            },
+            mainEntityOfPage: {
+              '@type': 'WebPage',
+              '@id': `https://linkbrain.cloud/p/${clip.id}`,
+            },
+          }),
+        }}
+      />
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto flex h-14 items-center justify-between px-4">

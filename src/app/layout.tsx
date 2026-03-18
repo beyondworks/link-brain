@@ -46,6 +46,9 @@ export const metadata: Metadata = {
     description: 'Save anything from the web, let AI organize it, and turn your bookmarks into a second brain.',
   },
   manifest: '/manifest.json',
+  alternates: {
+    canonical: 'https://linkbrain.cloud',
+  },
   icons: {
     icon: '/icons/favicon.svg',
   },
