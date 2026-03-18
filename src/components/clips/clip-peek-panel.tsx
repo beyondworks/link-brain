@@ -195,7 +195,7 @@ function PeekContent({
                 onClick={() =>
                   toggleFavorite.mutate({
                     clipId: clip.id,
-                    isFavorite: !clip.is_favorite,
+                    isFavorite: clip.is_favorite,
                   })
                 }
                 aria-label={clip.is_favorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
@@ -216,7 +216,7 @@ function PeekContent({
                 onClick={() =>
                   archiveClip.mutate({
                     clipId: clip.id,
-                    isArchived: !clip.is_archived,
+                    isArchived: clip.is_archived,
                   })
                 }
                 aria-label={clip.is_archived ? '아카이브 해제' : '아카이브'}
