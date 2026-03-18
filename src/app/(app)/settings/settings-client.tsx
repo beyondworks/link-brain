@@ -51,6 +51,7 @@ import {
   Check,
 } from 'lucide-react';
 import { UsageBar } from '@/components/plan/usage-bar';
+import { useCheckout } from '@/lib/hooks/use-checkout';
 import { exportClips } from '@/lib/utils/export';
 import { importClips } from '@/lib/utils/import';
 import { ProfileEditor } from '@/components/settings/profile-editor';
@@ -62,6 +63,77 @@ import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { useDuplicates } from '@/lib/hooks/use-duplicates';
 import type { DuplicateGroup } from '@/lib/hooks/use-duplicates';
 import type { ClipData } from '@/types/database';
+
+/* ─── Plan Actions ──────────────────────────────────────────────────── */
+function PlanActions({ tier }: { tier: string }) {
+  const { checkout, openPortal, isLoading } = useCheckout();
+
+  if (tier === 'pro') {
+    return (
+      <div className="space-y-3 pt-1">
+        <div className="flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-2">
+          <Check size={14} className="text-primary" />
+          <span className="text-sm text-foreground">Pro 플랜 이용 중</span>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer rounded-xl"
+            onClick={() => openPortal()}
+            disabled={isLoading}
+          >
+            구독 관리
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer rounded-xl text-muted-foreground"
+            onClick={() => openPortal()}
+            disabled={isLoading}
+          >
+            결제 수단 변경
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 pt-1">
+      <div className="rounded-xl border border-primary/20 bg-brand-muted p-3">
+        <p className="mb-2 text-sm font-medium text-foreground">
+          Pro로 업그레이드하면
+        </p>
+        <ul className="space-y-1 text-xs text-muted-foreground">
+          <li className="flex items-center gap-1.5"><Check size={12} className="text-primary" /> 클립 무제한 저장</li>
+          <li className="flex items-center gap-1.5"><Check size={12} className="text-primary" /> AI 크레딧 월 500회</li>
+          <li className="flex items-center gap-1.5"><Check size={12} className="text-primary" /> 시맨틱 검색 + 인사이트</li>
+          <li className="flex items-center gap-1.5"><Check size={12} className="text-primary" /> API 키 5개 + 내보내기</li>
+        </ul>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          className="cursor-pointer gap-1.5 rounded-xl bg-gradient-brand glow-brand text-white"
+          onClick={() => checkout('monthly')}
+          disabled={isLoading}
+        >
+          월 ₩9,900 시작
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="cursor-pointer rounded-xl"
+          onClick={() => checkout('yearly')}
+          disabled={isLoading}
+        >
+          연간 20% 할인
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
 
@@ -733,17 +805,8 @@ export function SettingsClient() {
                 })}
               </p>
 
-              {/* 업그레이드 CTA — pro 제외 */}
-              {credits.tier === 'free' && (
-                <div className="pt-1">
-                  <Button
-                    asChild
-                    className="bg-gradient-brand glow-brand gap-2 rounded-xl text-white"
-                  >
-                    <a href="/pricing">Pro로 업그레이드</a>
-                  </Button>
-                </div>
-              )}
+              {/* 플랜 액션 */}
+              <PlanActions tier={credits.tier} />
             </div>
           ) : null}
         </section>
