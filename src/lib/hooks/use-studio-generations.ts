@@ -71,7 +71,9 @@ export function useSaveGeneration() {
     onError: (err: unknown) => {
       const error = err as Error & { code?: string };
       if (error.code === 'INSUFFICIENT_CREDITS' || error.code === 'STUDIO_LIMIT_REACHED') {
-        toast.error('이번 달 스튜디오 생성 횟수를 초과했습니다. 플랜을 업그레이드하거나 다음 달에 다시 시도하세요.');
+        toast.error('이번 달 스튜디오 생성 한도에 도달했습니다.', {
+          action: { label: 'Pro 업그레이드', onClick: () => { window.location.href = '/pricing'; } },
+        });
       } else {
         toast.error('생성 기록 저장에 실패했습니다. 결과는 현재 세션에서 확인할 수 있습니다.');
       }
