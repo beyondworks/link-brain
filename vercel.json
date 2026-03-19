@@ -7,6 +7,18 @@
     {
       "path": "/api/cron/aggregate-patterns",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/notify-unread",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/notify-reminders",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/grant-credits",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

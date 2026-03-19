@@ -20,7 +20,7 @@ export function useWidgetSync() {
 
     syncStatsToWidget({
       totalClips: navCounts.total,
-      todayClips: 0,
+      todayClips: navCounts.today,
       favorites: navCounts.favorites,
     });
   }, [navCounts]);
