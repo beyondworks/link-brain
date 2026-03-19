@@ -249,7 +249,7 @@ function PlanCard({
         <motion.a
           href="/signup"
           whileTap={{ scale: 0.97 }}
-          className="mb-7 w-full py-3 rounded-full text-[14px] text-center border transition-all duration-200 hover:border-[#21DBA4]/50 hover:text-[#21DBA4]"
+          className="mb-7 w-full py-3 rounded-full text-[14px] text-center border transition-all duration-200 hover:border-[#21DBA4]/50 hover:text-[#1A9E7A]"
           style={{
             fontFamily: "'Pretendard Variable', sans-serif",
             fontWeight: 500,

@@ -141,7 +141,7 @@ function TestimonialCard({ name, role, initial, text, index }: { name: string; r
           }}
         >
           <span
-            className="text-[13px] text-[#21DBA4]"
+            className="text-[13px] text-[#1A9E7A]"
             style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 600 }}
           >
             {initial}

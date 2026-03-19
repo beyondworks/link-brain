@@ -47,9 +47,9 @@ function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <h3 className="mb-2 text-sm font-semibold text-foreground">관련 클립</h3>
-      <div className="space-y-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {clips.map((clip) => {
           const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
           const gradient = getGradient(clip.id);
@@ -58,10 +58,10 @@ function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
             <Card
               key={clip.id}
               onClick={() => router.push(`/clip/${clip.id}`)}
-              className="flex cursor-pointer items-start gap-3 p-3 transition-shadow hover:shadow-md"
+              className="flex cursor-pointer items-start gap-2 p-2.5 transition-shadow hover:shadow-md"
             >
               {/* 썸네일 */}
-              <div className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+              <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                 {clip.image ? (
                   <Image
                     src={clip.image}

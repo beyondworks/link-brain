@@ -842,13 +842,13 @@ export function SettingsClient() {
               </p>
             </div>
           ) : (
-            <div className="mb-4 overflow-hidden rounded-xl border border-border">
+            <div className="mb-4 overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">이름</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">프리픽스</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">마지막 사용</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">이름</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">프리픽스</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">마지막 사용</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground" />
                   </tr>
                 </thead>
@@ -886,7 +886,7 @@ export function SettingsClient() {
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               placeholder="키 이름 (예: iPhone Shortcuts)"
-              className="rounded-xl focus-visible:ring-primary/30 transition-spring"
+              className="flex-1 min-w-0 rounded-xl focus-visible:ring-primary/30 transition-spring"
               maxLength={64}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void handleCreateKey();

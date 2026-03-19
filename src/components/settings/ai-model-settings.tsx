@@ -351,12 +351,12 @@ export function AIModelSettings() {
       {/* Chat-specific Model */}
       <Card className="card-glow card-inner-glow rounded-2xl border border-border bg-card">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 ring-1 ring-blue-500/20">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="icon-glow relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 ring-1 ring-blue-500/20">
                 <MessageSquare size={15} className="text-blue-500" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <CardTitle className="text-base font-semibold text-foreground">
                   채팅 전용 모델
                 </CardTitle>

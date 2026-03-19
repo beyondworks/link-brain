@@ -1,9 +1,12 @@
 /**
  * API v1 Rate Limiter
  *
- * In-memory rate limiting with per-key sliding window counters.
- * Tracks usage per API key with tier-based limits.
+ * Upstash Redis-backed sliding window rate limiting.
+ * Falls back to allow-all when UPSTASH env vars are not configured (dev/CI).
  */
+
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 // Rate limit configuration by subscription tier
 export const RATE_LIMITS = {
@@ -24,111 +27,140 @@ export type SubscriptionTier = keyof typeof RATE_LIMITS;
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
-  resetAt: number; // Unix timestamp
+  resetAt: number; // Unix timestamp (seconds)
   retryAfter?: number; // seconds
 }
 
-interface WindowEntry {
-  count: number;
-  windowStart: number; // ms timestamp
+interface TierLimiters {
+  minute: Ratelimit;
+  day: Ratelimit;
+  aiDay: Ratelimit;
 }
 
-// In-memory stores (per-process; resets on cold start)
-const minuteWindows = new Map<string, WindowEntry>();
-const dayWindows = new Map<string, WindowEntry>();
-const aiDayWindows = new Map<string, WindowEntry>();
+type LimiterMap = {
+  free: TierLimiters;
+  pro: TierLimiters;
+};
 
-const MINUTE_MS = 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+let limiterMap: LimiterMap | null | undefined = undefined;
 
-function getWindow(
-  store: Map<string, WindowEntry>,
-  key: string,
-  windowMs: number
-): WindowEntry {
-  const now = Date.now();
-  const entry = store.get(key);
+function createLimiterMap(): LimiterMap | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (!entry || now - entry.windowStart >= windowMs) {
-    const fresh: WindowEntry = { count: 0, windowStart: now };
-    store.set(key, fresh);
-    return fresh;
+  if (!url || !token) {
+    console.warn('[RateLimit] UPSTASH_REDIS_REST_URL/TOKEN not configured — rate limiting disabled');
+    return null;
   }
 
-  return entry;
+  const redis = new Redis({ url, token });
+
+  const make = (tier: SubscriptionTier): TierLimiters => {
+    const limits = RATE_LIMITS[tier];
+    return {
+      minute: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(limits.requestsPerMinute, '1 m'),
+        prefix: `rl:min:${tier}`,
+      }),
+      day: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(limits.requestsPerDay, '1 d'),
+        prefix: `rl:day:${tier}`,
+      }),
+      aiDay: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(limits.aiRequestsPerDay, '1 d'),
+        prefix: `rl:ai:${tier}`,
+      }),
+    };
+  };
+
+  return {
+    free: make('free'),
+    pro: make('pro'),
+  };
 }
 
-function secondsUntilWindowReset(entry: WindowEntry, windowMs: number): number {
-  const resetAt = entry.windowStart + windowMs;
-  return Math.max(0, Math.ceil((resetAt - Date.now()) / 1000));
+function getLimiterMap(): LimiterMap | null {
+  if (limiterMap === undefined) {
+    limiterMap = createLimiterMap();
+  }
+  return limiterMap;
 }
 
 /**
- * Check and increment rate limit for an API key.
+ * Check and increment rate limit for a key.
+ * Returns RateLimitResult with the same shape as before (resetAt = Unix seconds).
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   keyId: string,
   tier: SubscriptionTier,
   isAiRequest: boolean = false
-): RateLimitResult {
-  const limits = RATE_LIMITS[tier];
+): Promise<RateLimitResult> {
+  const map = getLimiterMap();
+
+  // Upstash not configured — allow all (dev/CI)
+  if (!map) {
+    return {
+      allowed: true,
+      remaining: 999,
+      resetAt: Math.floor(Date.now() / 1000) + 60,
+    };
+  }
+
+  const limiters = map[tier];
 
   // Minute window
-  const minuteKey = `min:${keyId}`;
-  const minuteEntry = getWindow(minuteWindows, minuteKey, MINUTE_MS);
-
-  if (minuteEntry.count >= limits.requestsPerMinute) {
-    const retryAfter = secondsUntilWindowReset(minuteEntry, MINUTE_MS);
+  const minuteResult = await limiters.minute.limit(keyId);
+  if (!minuteResult.success) {
+    const resetSec = Math.floor(Number(minuteResult.reset) / 1000);
+    const retryAfter = Math.max(0, resetSec - Math.floor(Date.now() / 1000));
     return {
       allowed: false,
-      remaining: 0,
-      resetAt: Math.floor((minuteEntry.windowStart + MINUTE_MS) / 1000),
+      remaining: minuteResult.remaining,
+      resetAt: resetSec,
       retryAfter,
     };
   }
 
   // Day window
-  const dayKey = `day:${keyId}`;
-  const dayEntry = getWindow(dayWindows, dayKey, DAY_MS);
-
-  if (dayEntry.count >= limits.requestsPerDay) {
-    const retryAfter = secondsUntilWindowReset(dayEntry, DAY_MS);
+  const dayResult = await limiters.day.limit(keyId);
+  if (!dayResult.success) {
+    const resetSec = Math.floor(Number(dayResult.reset) / 1000);
+    const retryAfter = Math.max(0, resetSec - Math.floor(Date.now() / 1000));
     return {
       allowed: false,
-      remaining: 0,
-      resetAt: Math.floor((dayEntry.windowStart + DAY_MS) / 1000),
+      remaining: dayResult.remaining,
+      resetAt: resetSec,
       retryAfter,
     };
   }
 
   // AI day window
   if (isAiRequest) {
-    const aiKey = `ai:${keyId}`;
-    const aiEntry = getWindow(aiDayWindows, aiKey, DAY_MS);
-
-    if (aiEntry.count >= limits.aiRequestsPerDay) {
-      const retryAfter = secondsUntilWindowReset(aiEntry, DAY_MS);
+    const aiResult = await limiters.aiDay.limit(`ai:${keyId}`);
+    if (!aiResult.success) {
+      const resetSec = Math.floor(Number(aiResult.reset) / 1000);
+      const retryAfter = Math.max(0, resetSec - Math.floor(Date.now() / 1000));
       return {
         allowed: false,
-        remaining: 0,
-        resetAt: Math.floor((aiEntry.windowStart + DAY_MS) / 1000),
+        remaining: aiResult.remaining,
+        resetAt: resetSec,
         retryAfter,
       };
     }
-
-    aiEntry.count++;
   }
 
-  // Increment counters
-  minuteEntry.count++;
-  dayEntry.count++;
-
-  const remaining = Math.max(0, limits.requestsPerDay - dayEntry.count);
+  const remaining = Math.min(minuteResult.remaining, dayResult.remaining);
+  const resetSec = Math.floor(
+    Math.min(Number(minuteResult.reset), Number(dayResult.reset)) / 1000
+  );
 
   return {
     allowed: true,
     remaining,
-    resetAt: Math.floor((dayEntry.windowStart + DAY_MS) / 1000),
+    resetAt: resetSec,
   };
 }
 

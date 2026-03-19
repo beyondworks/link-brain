@@ -199,24 +199,26 @@ export function StudioOutputPanel({
       {/* ── 생성 결과 (간결한 알림 바) ─────────────────────────────── */}
       {output ? (
         <div className="card-glow animate-blur-in overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="rounded-lg bg-primary/10 p-1.5">
-              <Sparkles size={14} className="text-primary" />
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                <Sparkles size={14} className="text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="whitespace-nowrap text-sm font-semibold text-foreground">생성 완료</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {contentTypeLabel} · {output.length.toLocaleString()}자
+                </p>
+              </div>
+              {isGenerating && (
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary shrink-0" />
+              )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">생성 완료</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {contentTypeLabel} · {output.length.toLocaleString()}자
-              </p>
-            </div>
-            {isGenerating && (
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-            )}
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-xl text-xs"
+                className="h-8 min-w-[3rem] rounded-xl text-xs"
                 onClick={() => {
                   setModalItem({ prompt: contentTypeLabel, output, createdAt: new Date() });
                 }}
@@ -227,7 +229,7 @@ export function StudioOutputPanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-xl text-xs"
+                className="h-8 min-w-[3rem] rounded-xl text-xs"
                 onClick={onCopy}
               >
                 <Copy size={12} className="mr-1" />
@@ -236,7 +238,7 @@ export function StudioOutputPanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-xl text-xs"
+                className="h-8 min-w-[3rem] rounded-xl text-xs"
                 onClick={onReset}
               >
                 초기화
@@ -244,7 +246,7 @@ export function StudioOutputPanel({
               {!isGenerating && (
                 <Button
                   size="sm"
-                  className="h-8 rounded-xl text-xs bg-gradient-brand glow-brand-sm"
+                  className="h-8 min-w-[5rem] rounded-xl text-xs bg-gradient-brand glow-brand-sm"
                   onClick={onSave}
                   disabled={isSaving}
                 >

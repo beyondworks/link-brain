@@ -168,7 +168,7 @@ export function HeroSection() {
             </a>
             <a
               href="/pricing"
-              className="px-7 py-3 rounded-full text-[15px] text-[#666] border border-[#e5e5e5] hover:border-[#21DBA4]/50 hover:text-[#21DBA4] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
+              className="px-7 py-3 rounded-full text-[15px] text-[#666] border border-[#e5e5e5] hover:border-[#21DBA4]/50 hover:text-[#1A9E7A] transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
               style={{
                 fontFamily: "'Pretendard Variable', sans-serif",
                 fontWeight: 500,

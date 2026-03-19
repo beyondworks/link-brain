@@ -108,7 +108,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
         transition={{ duration: 0.2 }}
       >
         <span
-          className={`text-[16px] tracking-[-0.3px] transition-colors duration-200 ${open ? 'text-[#21DBA4]' : 'text-[#222] group-hover:text-[#333]'}`}
+          className={`text-[16px] tracking-[-0.3px] transition-colors duration-200 ${open ? 'text-[#1A9E7A]' : 'text-[#222] group-hover:text-[#333]'}`}
           style={{ fontFamily: "'Pretendard Variable', sans-serif", fontWeight: 500 }}
         >
           {q}

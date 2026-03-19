@@ -620,7 +620,7 @@ export function ClipDetailClient({ clipId }: Props) {
                 )}
               </div>
             )}
-            <h1 className="text-2xl font-bold leading-snug tracking-tight text-foreground">
+            <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
               {clip.title ?? '제목 없음'}
             </h1>
           </div>

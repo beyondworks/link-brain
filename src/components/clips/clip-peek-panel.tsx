@@ -62,7 +62,6 @@ const MODE_OPTIONS: { mode: ClipPeekMode; icon: React.ElementType; label: string
 function ImageSlideshow({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0);
   const [errored, setErrored] = useState<Set<number>>(new Set());
-  const [loaded, setLoaded] = useState(false);
 
   const validImages = images.filter((_, i) => !errored.has(i));
   if (validImages.length === 0) return null;
@@ -71,10 +70,7 @@ function ImageSlideshow({ images }: { images: string[] }) {
   const actualSrc = validImages[displayIdx];
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-xl border border-border/60 shadow-card transition-opacity duration-300",
-      loaded ? "opacity-100" : "opacity-0"
-    )}>
+    <div className="relative overflow-hidden rounded-xl border border-border/60 shadow-card">
       <div className="relative w-full" style={{ aspectRatio: '16/10' }}>
         <Image
           key={actualSrc}
@@ -82,9 +78,8 @@ function ImageSlideshow({ images }: { images: string[] }) {
           alt={`이미지 ${displayIdx + 1}/${validImages.length}`}
           fill
           unoptimized={!isProxiableImageUrl(actualSrc)}
-          className="object-cover transition-opacity duration-300"
+          className="object-cover"
           sizes="(max-width: 560px) 100vw, 560px"
-          onLoad={() => setLoaded(true)}
           onError={() => {
             const originalIdx = images.indexOf(actualSrc);
             if (originalIdx >= 0) setErrored((prev) => new Set(prev).add(originalIdx));
@@ -108,14 +103,14 @@ function ImageSlideshow({ images }: { images: string[] }) {
             ›
           </button>
           {/* Dots */}
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
             {validImages.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
                 className={cn(
-                  'h-1.5 w-1.5 rounded-full transition-all',
-                  i === displayIdx ? 'w-4 bg-white' : 'bg-white/50 hover:bg-white/70'
+                  'h-1.5 rounded-full p-0 transition-all',
+                  i === displayIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/70'
                 )}
                 aria-label={`이미지 ${i + 1}`}
               />

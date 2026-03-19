@@ -169,7 +169,7 @@ export function withAuth(
 
     // Rate limiting (API key + session auth)
     const rateLimitKey = keyId ?? `session:${auth!.userId}`;
-    const rateLimitResult = checkRateLimit(rateLimitKey, auth!.tier, isAiEndpoint);
+    const rateLimitResult = await checkRateLimit(rateLimitKey, auth!.tier, isAiEndpoint);
     const rlHeaders = rateLimitHeaders(rateLimitResult);
 
     if (!rateLimitResult.allowed) {
