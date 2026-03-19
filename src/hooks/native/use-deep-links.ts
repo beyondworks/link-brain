@@ -19,8 +19,15 @@ export function useDeepLinks() {
         return;
       }
 
-      if (path === '/quick-save') {
+      if (path === '/quick-save' || path === '/save-clipboard') {
         useUIStore.getState().openModal('addClip');
+        return;
+      }
+
+      // Widget: tap on recent clip → open peek
+      const clipMatch = path.match(/^\/clip\/([a-f0-9-]+)$/);
+      if (clipMatch) {
+        useUIStore.getState().openClipPeek(clipMatch[1]);
         return;
       }
 
