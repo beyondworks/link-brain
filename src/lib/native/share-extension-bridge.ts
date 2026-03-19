@@ -30,8 +30,8 @@ export async function syncAuthTokenToAppGroups() {
     if (!token) return;
 
     await WidgetBridge.setAppGroupValue({ key: 'supabase_access_token', value: token });
-  } catch {
-    // Silent fail — Share Extension will use pending queue as fallback
+  } catch (error) {
+    console.warn('[ShareExt] syncAuthToken failed:', error);
   }
 }
 
@@ -57,13 +57,14 @@ export async function processPendingSharedClips() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: clip.url, notes: clip.note }),
         });
-      } catch {
+      } catch (error) {
+        console.warn('[ShareExt] processPending clip failed:', error);
         return; // Will retry next app open
       }
     }
 
     await WidgetBridge.removeAppGroupValue({ key: 'pending_clips' });
-  } catch {
-    // Silent fail
+  } catch (error) {
+    console.warn('[ShareExt] processPendingSharedClips failed:', error);
   }
 }
