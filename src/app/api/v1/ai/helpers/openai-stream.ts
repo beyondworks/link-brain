@@ -1,107 +1,90 @@
-// ─── OpenAI fetch 헬퍼 ───────────────────────────────────────────────────────
+// ─── Multi-Provider AI 헬퍼 ──────────────────────────────────────────────────
+// 하위호환: 기존 streamOpenAI / callOpenAI 시그니처 유지
+// provider-client를 통해 OpenAI / Anthropic / Google 자동 라우팅
 
-interface OpenAIStreamChunk {
-  choices: Array<{
-    delta: { content?: string };
-    finish_reason: string | null;
-  }>;
+import { type ResolvedAIConfig } from '@/lib/ai/model-resolver';
+import {
+  chat as providerChat,
+  chatStream as providerChatStream,
+  chatWithTools as providerChatWithTools,
+  type ChatMessage,
+  type ToolDefinition,
+  type ChatWithToolsResponse,
+} from '@/lib/ai/provider-client';
+
+// ─── ResolvedAIConfig 기반 스트리밍 ─────────────────────────────────────────
+
+export async function* streamAI(
+  config: ResolvedAIConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): AsyncGenerator<string> {
+  yield* providerChatStream(config, systemPrompt, userPrompt);
 }
 
-export async function* streamOpenAI(systemPrompt: string, userPrompt: string, apiKey?: string, model?: string): AsyncGenerator<string> {
-  const key = apiKey ?? process.env.OPENAI_API_KEY;
-  if (!key) {
+// ─── ResolvedAIConfig 기반 비스트리밍 ───────────────────────────────────────
+
+export async function callAI(
+  config: ResolvedAIConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  return providerChat(config, systemPrompt, userPrompt);
+}
+
+// ─── ResolvedAIConfig 기반 Tool Calling ─────────────────────────────────────
+
+export async function callAIWithTools(
+  config: ResolvedAIConfig,
+  messages: ChatMessage[],
+  tools: ToolDefinition[],
+): Promise<ChatWithToolsResponse> {
+  return providerChatWithTools(config, messages, tools);
+}
+
+// ─── 하위호환: 기존 시그니처 (apiKey/model 직접 전달) ──────────────────────
+// 이 함수들은 항상 OpenAI 엔드포인트를 사용합니다.
+// provider-aware 버전은 위의 streamAI / callAI를 사용하세요.
+
+export async function* streamOpenAI(
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey?: string,
+  model?: string,
+): AsyncGenerator<string> {
+  const config: ResolvedAIConfig = {
+    provider: 'openai',
+    apiKey: apiKey ?? process.env.OPENAI_API_KEY ?? '',
+    model: model ?? 'gpt-4o-mini',
+    isUserKey: !!apiKey,
+  };
+
+  if (!config.apiKey) {
     throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
   }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: model ?? 'gpt-4o-mini',
-      stream: true,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    if (res.status === 429) {
-      throw Object.assign(new Error('OpenAI 크레딧 부족 또는 요청 한도 초과'), { status: 402 });
-    }
-    throw new Error(`OpenAI API 오류 (${res.status}): ${errText}`);
-  }
-
-  const reader = res.body?.getReader();
-  if (!reader) throw new Error('응답 스트림을 읽을 수 없습니다.');
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed === 'data: [DONE]') continue;
-        if (!trimmed.startsWith('data: ')) continue;
-
-        const jsonStr = trimmed.slice(6);
-        try {
-          const chunk = JSON.parse(jsonStr) as OpenAIStreamChunk;
-          const content = chunk.choices[0]?.delta?.content;
-          if (content) yield content;
-        } catch {
-          // JSON 파싱 실패 시 스킵
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
+  yield* providerChatStream(config, systemPrompt, userPrompt);
 }
 
-// ─── OpenAI 비스트리밍 헬퍼 ─────────────────────────────────────────────────
+export async function callOpenAI(
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey?: string,
+  model?: string,
+): Promise<string> {
+  const config: ResolvedAIConfig = {
+    provider: 'openai',
+    apiKey: apiKey ?? process.env.OPENAI_API_KEY ?? '',
+    model: model ?? 'gpt-4o-mini',
+    isUserKey: !!apiKey,
+  };
 
-export async function callOpenAI(systemPrompt: string, userPrompt: string, apiKey?: string, model?: string): Promise<string> {
-  const key = apiKey ?? process.env.OPENAI_API_KEY;
-  if (!key) throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: model ?? 'gpt-4o-mini',
-      stream: false,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    if (res.status === 429) {
-      throw Object.assign(new Error('OpenAI 크레딧 부족 또는 요청 한도 초과'), { status: 402 });
-    }
-    const errText = await res.text();
-    throw new Error(`OpenAI API 오류 (${res.status}): ${errText}`);
+  if (!config.apiKey) {
+    throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
   }
 
-  const json = await res.json() as { choices: Array<{ message: { content: string } }> };
-  return json.choices[0]?.message?.content ?? '';
+  return providerChat(config, systemPrompt, userPrompt);
 }
+
+// Re-export types for consumers
+export type { ChatMessage, ToolDefinition, ChatWithToolsResponse };

@@ -4,7 +4,7 @@ import { type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
-import { streamOpenAI } from '../helpers/openai-stream';
+import { streamAI } from '../helpers/openai-stream';
 import { type ContentStudioType, type AiRequestBody, type ClipRow } from '../types';
 import { loadGuide } from '@/lib/ai/guides';
 import { loadCollectivePatterns } from '@/lib/ai/guides/collective';
@@ -15,30 +15,24 @@ const db = supabaseAdmin;
 
 const TYPE_LABELS: Record<ContentStudioType, string> = {
   blog_post: '블로그 포스트',
-  sns_post: 'SNS 포스트',
+  threads_post: 'Threads 포스트',
+  instagram_feed: '인스타그램 피드',
   newsletter: '뉴스레터',
-  email_draft: '이메일 초안',
   executive_summary: '요약 보고서',
   key_concepts: '핵심 포인트',
-  review_notes: '학습 노트',
-  teach_back: '비교 분석',
-  quiz: 'Q&A',
-  mind_map: '마인드맵',
-  simplified_summary: '인포그래픽 텍스트',
+  presentation_text: '발표용 텍스트',
+  youtube_script: '유튜브 대본',
 };
 
 const TYPE_INSTRUCTIONS: Record<ContentStudioType, string> = {
-  blog_post: '서론-본론-결론 구조, 소제목 포함',
-  sns_post: '280자 이내, 해시태그 3-5개 포함',
-  newsletter: '인삿말-핵심내용-CTA 구조',
-  email_draft: '비즈니스 형식, 명확한 요청사항',
-  executive_summary: '불렛포인트 중심, 핵심 수치 강조',
-  key_concepts: '5-7개 핵심 개념, 각각 1-2줄 설명',
-  review_notes: 'Q&A 형식 또는 불렛 정리',
-  teach_back: '항목별 비교표 포함',
-  quiz: '질문 5-10개, 답변 포함',
-  mind_map: '중심 주제 → 하위 주제 → 세부사항 트리 구조',
-  simplified_summary: '짧은 문장, 시각화 적합한 키워드 중심',
+  blog_post: '서론-본론-결론 구조, 소제목 포함. SEO 키워드 자연 배치',
+  threads_post: '500자 이내 1개 포스트. 첫 줄 훅 필수. 줄바꿈으로 호흡 조절. 해시태그 3-5개',
+  instagram_feed: '캐러셀 슬라이드 구성 (1장=커버 훅, 2-8장=핵심 내용, 마지막=CTA). 슬라이드당 40자 이내',
+  newsletter: '인삿말-핵심내용-CTA 구조. 스캔 가능한 불렛 포인트 활용',
+  executive_summary: '불렛포인트 중심, 핵심 수치와 결론 선행. 의사결정에 필요한 정보만',
+  key_concepts: '5-7개 핵심 개념, 각각 1-2줄 설명. 개념 간 관계 명시',
+  presentation_text: '슬라이드별 제목+핵심 메시지+보조 설명. 슬라이드당 50자 이내. 발표자 노트 포함',
+  youtube_script: '인트로(15초 훅)-본론(챕터별)-아웃트로(CTA) 구조. 구어체. 타임스탬프 표기',
 };
 
 const TONE_LABELS: Record<string, string> = {
@@ -58,8 +52,8 @@ const LENGTH_GUIDES: Record<string, string> = {
 // ─── 유효성 검사 ──────────────────────────────────────────────────────────────
 
 const VALID_TYPES = new Set<ContentStudioType>([
-  'blog_post', 'sns_post', 'newsletter', 'email_draft', 'executive_summary',
-  'key_concepts', 'review_notes', 'teach_back', 'quiz', 'mind_map', 'simplified_summary',
+  'blog_post', 'threads_post', 'instagram_feed', 'newsletter',
+  'executive_summary', 'key_concepts', 'presentation_text', 'youtube_script',
 ]);
 
 const VALID_TONES = new Set(['professional', 'casual', 'academic', 'creative', 'concise']);
@@ -155,10 +149,9 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
 
   // Collective learning: load aggregated patterns + similar clips
   const typeToCategory: Record<string, string> = {
-    blog_post: 'blog', sns_post: 'sns', newsletter: 'newsletter',
-    email_draft: 'email', executive_summary: 'web', key_concepts: 'web',
-    review_notes: 'web', teach_back: 'web', quiz: 'web',
-    mind_map: 'web', simplified_summary: 'web',
+    blog_post: 'blog', threads_post: 'sns', instagram_feed: 'sns',
+    newsletter: 'newsletter', executive_summary: 'web', key_concepts: 'web',
+    presentation_text: 'web', youtube_script: 'youtube',
   };
   let collectiveSection = '';
   try {
@@ -189,7 +182,7 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
     async start(controller) {
       const encoder = new TextEncoder();
       try {
-        for await (const chunk of streamOpenAI(systemPrompt, userPrompt, aiConfig.apiKey, aiConfig.model)) {
+        for await (const chunk of streamAI(aiConfig, systemPrompt, userPrompt)) {
           controller.enqueue(encoder.encode(chunk));
         }
         controller.close();

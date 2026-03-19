@@ -166,6 +166,33 @@ export async function handleConfirm(rawBody: unknown, auth: AuthContext): Promis
         break;
       }
 
+      case 'add_to_image_album': {
+        if (!pending.targetId) {
+          return errors.invalidRequest('대상 앨범을 찾을 수 없습니다.');
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dbAny = db as { from: (t: string) => any };
+        // Verify album ownership
+        const { data: album, error: albumErr } = await dbAny.from('image_albums')
+          .select('id')
+          .eq('id', pending.targetId)
+          .eq('user_id', auth.publicUserId)
+          .single();
+        if (albumErr || !album) {
+          return errors.notFound('ImageAlbum');
+        }
+        const albumRows = ownedIds.map((clipId) => ({
+          clip_id: clipId,
+          album_id: pending.targetId as string,
+        }));
+        const { error: albumInsertErr } = await dbAny.from('image_album_clips')
+          .upsert(albumRows, { onConflict: 'clip_id,album_id', ignoreDuplicates: true });
+        if (albumInsertErr) throw albumInsertErr;
+        resultMessage = `${ownedIds.length}개 이미지를 "${pending.targetName}" 앨범에 추가했습니다.`;
+        invalidate.push('image-albums');
+        break;
+      }
+
       case 'bulk_tag': {
         const tags = Array.isArray(pending.tags) ? pending.tags.slice(0, 20) : [];
         if (tags.length === 0) {

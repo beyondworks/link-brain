@@ -4,7 +4,7 @@ import { type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
-import { callOpenAI } from '../helpers/openai-stream';
+import { callAI } from '../helpers/openai-stream';
 
 const db = supabaseAdmin;
 
@@ -135,7 +135,7 @@ export async function handleInsights(rawBody: unknown, auth: AuthContext): Promi
       `}\n` +
       `반드시 유효한 JSON만 응답하세요.`;
 
-    const aiContent = await callOpenAI(systemPrompt, statsSummary, aiConfig.apiKey, aiConfig.model);
+    const aiContent = await callAI(aiConfig, systemPrompt, statsSummary);
 
     let aiAnalysis: unknown;
     try {
