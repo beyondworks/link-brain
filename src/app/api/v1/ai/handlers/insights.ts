@@ -5,6 +5,7 @@ import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
 import { callAI } from '../helpers/openai-stream';
+import { notifyInsightsReady } from '@/lib/services/notification-triggers';
 
 const db = supabaseAdmin;
 
@@ -143,6 +144,9 @@ export async function handleInsights(rawBody: unknown, auth: AuthContext): Promi
     } catch {
       aiAnalysis = { raw: aiContent };
     }
+
+    // Notify user that insights are ready (fire-and-forget)
+    notifyInsightsReady(auth.publicUserId).catch(() => undefined);
 
     return sendSuccess({
       action: 'insights',

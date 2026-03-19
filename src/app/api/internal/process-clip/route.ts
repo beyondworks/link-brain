@@ -16,6 +16,7 @@ import { getValidToken } from '@/lib/oauth/token-manager';
 import { upsertClipEmbedding } from '@/lib/services/embedding-service';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
+import { notifyClipAnalyzed } from '@/lib/services/notification-triggers';
 
 const db = supabaseAdmin;
 
@@ -125,6 +126,19 @@ export async function POST(req: NextRequest) {
     } catch (embErr) {
       console.warn(`[ProcessClip] Embedding failed for clip ${clipId}:`, embErr);
       // Non-fatal: clip processing succeeded even if embedding fails
+    }
+
+    // Notify user that clip analysis is complete (fire-and-forget)
+    try {
+      const { data: clipRow } = await db
+        .from('clips')
+        .select('title')
+        .eq('id', clipId)
+        .single();
+      const clipTitle = (clipRow as { title: string | null } | null)?.title ?? url;
+      notifyClipAnalyzed(userId, clipId, clipTitle).catch(() => undefined);
+    } catch {
+      // Non-fatal
     }
 
     return NextResponse.json({ success: true, clipId });

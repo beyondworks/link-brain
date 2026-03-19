@@ -15,6 +15,7 @@ import {
   type CreditAction,
   type Feature,
 } from '@/config/credits';
+import { notifyCreditLow } from '@/lib/services/notification-triggers';
 
 const db = supabaseAdmin;
 
@@ -286,6 +287,13 @@ export async function deductCredits(
       used: result?.used ?? 0,
       limit: result?.limit ?? monthlyLimit,
     };
+  }
+
+  // Notify if remaining credits are at or below 20% of limit (fire-and-forget)
+  const remaining = result.limit - result.used;
+  const threshold = Math.ceil(result.limit * 0.2);
+  if (remaining <= threshold) {
+    notifyCreditLow(publicUserId, remaining, result.limit).catch(() => undefined);
   }
 
   return {
