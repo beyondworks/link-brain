@@ -1,9 +1,24 @@
 /**
  * Syncs Supabase auth token to App Groups UserDefaults
  * so Share Extension can use it for API calls.
+ *
+ * Uses WidgetBridge plugin's setAppGroupValue/getAppGroupValue
+ * which writes to UserDefaults(suiteName: "group.com.linkbrain.app").
  */
 import { isNative } from '@/lib/platform';
 import { supabase } from '@/lib/supabase/client';
+import { registerPlugin } from '@capacitor/core';
+
+interface WidgetBridgePlugin {
+  updateRecentClips(options: { clips: string }): Promise<{ success: boolean }>;
+  updateStats(options: { totalClips: number; todayClips: number; favorites: number }): Promise<{ success: boolean }>;
+  reloadWidgets(): Promise<{ success: boolean }>;
+  setAppGroupValue(options: { key: string; value: string }): Promise<{ success: boolean }>;
+  getAppGroupValue(options: { key: string }): Promise<{ value: string | null }>;
+  removeAppGroupValue(options: { key: string }): Promise<{ success: boolean }>;
+}
+
+const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge');
 
 export async function syncAuthTokenToAppGroups() {
   if (!isNative) return;
@@ -14,10 +29,7 @@ export async function syncAuthTokenToAppGroups() {
 
     if (!token) return;
 
-    // Use Capacitor Preferences to write to App Groups UserDefaults
-    const { Preferences } = await import('@capacitor/preferences');
-    await Preferences.configure({ group: 'group.com.linkbrain.app' });
-    await Preferences.set({ key: 'supabase_access_token', value: token });
+    await WidgetBridge.setAppGroupValue({ key: 'supabase_access_token', value: token });
   } catch {
     // Silent fail — Share Extension will use pending queue as fallback
   }
@@ -31,16 +43,13 @@ export async function processPendingSharedClips() {
   if (!isNative) return;
 
   try {
-    const { Preferences } = await import('@capacitor/preferences');
-    await Preferences.configure({ group: 'group.com.linkbrain.app' });
-    const { value } = await Preferences.get({ key: 'pending_clips' });
+    const { value } = await WidgetBridge.getAppGroupValue({ key: 'pending_clips' });
 
     if (!value) return;
 
     const pending = JSON.parse(value) as Array<{ url: string; note: string }>;
     if (pending.length === 0) return;
 
-    // Process each pending clip
     for (const clip of pending) {
       try {
         await fetch('/api/v1/clips', {
@@ -49,13 +58,11 @@ export async function processPendingSharedClips() {
           body: JSON.stringify({ url: clip.url, notes: clip.note }),
         });
       } catch {
-        // Will retry next app open
-        return;
+        return; // Will retry next app open
       }
     }
 
-    // Clear pending queue after successful processing
-    await Preferences.remove({ key: 'pending_clips' });
+    await WidgetBridge.removeAppGroupValue({ key: 'pending_clips' });
   } catch {
     // Silent fail
   }
