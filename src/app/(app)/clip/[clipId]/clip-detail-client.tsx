@@ -619,14 +619,8 @@ export function ClipDetailClient({ clipId }: Props) {
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-3">
-          {/* Title */}
-          <h1 className="min-w-0 flex-1 break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
-            {clip.title ?? '제목 없음'}
-          </h1>
-
-          {/* Action buttons */}
-          <div className="flex shrink-0 items-center gap-1">
+        {/* Action buttons — Row 2 */}
+        <div className="mb-3 flex items-center gap-1 flex-wrap">
             {!isSeed && (
               <>
                 <Button
@@ -720,8 +714,12 @@ export function ClipDetailClient({ clipId }: Props) {
                 </TooltipContent>
               </Tooltip>
             )}
-          </div>
         </div>
+
+        {/* Title — Row 3 */}
+        <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
+          {clip.title ?? '제목 없음'}
+        </h1>
 
         {/* Meta row */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
