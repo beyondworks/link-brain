@@ -1,0 +1,39 @@
+/* Native app overrides — applied when .native-app class is on html */
+
+.native-app {
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.native-app * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Disable pull-to-refresh on body (app has custom implementation) */
+.native-app body {
+  overscroll-behavior-y: contain;
+}
+
+/* Allow text selection in content areas */
+.native-app [data-selectable],
+.native-app .prose,
+.native-app textarea,
+.native-app input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Ensure minimum touch target size on native */
+.native-app button,
+.native-app [role="button"],
+.native-app a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Exclude icon-only buttons that have explicit sizing */
+.native-app .icon-btn-sm {
+  min-height: unset;
+  min-width: unset;
+}

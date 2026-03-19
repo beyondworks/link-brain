@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { SwRegister } from '@/components/pwa/sw-register';
 import { ThemeColorSync } from '@/components/layout/theme-color-sync';
 import { ThemeColorScript } from '@/components/layout/theme-color-script';
+import { NativeProvider } from '@/components/native/native-provider';
 import './globals.css';
 
 const inter = Inter({
@@ -101,17 +102,19 @@ export default function RootLayout({ children }: RootLayoutProps) {
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
         <SwRegister />
-        <QueryProvider>
-          <SupabaseProvider>
-            <ThemeProvider>
-              <ThemeColorSync />
-              <TooltipProvider delayDuration={300}>
-                {children}
-                <Toaster position="bottom-right" richColors />
-              </TooltipProvider>
-            </ThemeProvider>
-          </SupabaseProvider>
-        </QueryProvider>
+        <NativeProvider>
+          <QueryProvider>
+            <SupabaseProvider>
+              <ThemeProvider>
+                <ThemeColorSync />
+                <TooltipProvider delayDuration={300}>
+                  {children}
+                  <Toaster position="bottom-right" richColors />
+                </TooltipProvider>
+              </ThemeProvider>
+            </SupabaseProvider>
+          </QueryProvider>
+        </NativeProvider>
       </body>
     </html>
   );

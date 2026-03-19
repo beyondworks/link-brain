@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
+import { hapticLight, hapticWarning } from '@/lib/native/haptics';
 
 interface ClipPage {
   data: ClipData[];
@@ -57,6 +58,7 @@ export function useToggleFavorite() {
     },
 
     onMutate: async ({ clipId, isFavorite }) => {
+      hapticLight();
       await queryClient.cancelQueries({ queryKey: ['clips'] });
 
       const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
@@ -108,6 +110,7 @@ export function useToggleArchive() {
     },
 
     onMutate: async ({ clipId, isArchived }) => {
+      hapticLight();
       await queryClient.cancelQueries({ queryKey: ['clips'] });
 
       const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
@@ -205,6 +208,7 @@ export function useTogglePin() {
     },
 
     onMutate: async ({ clipId, isPinned }) => {
+      hapticLight();
       await queryClient.cancelQueries({ queryKey: ['clips'] });
 
       const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
@@ -332,6 +336,7 @@ export function useDeleteClip() {
     },
 
     onMutate: async ({ clipId }) => {
+      hapticWarning();
       await queryClient.cancelQueries({ queryKey: ['clips'] });
 
       const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({

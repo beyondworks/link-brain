@@ -32,6 +32,7 @@ const KeyboardShortcutsDialog = dynamic(() => import('@/components/layout/keyboa
 import { useEdgeSwipeNavigation } from '@/lib/hooks/use-edge-swipe-navigation';
 import { useStatusBarScrollTop } from '@/lib/hooks/use-status-bar-scroll-top';
 import { useStatusBarSync } from '@/lib/hooks/use-status-bar-sync';
+import { useNativeStatusBar, useDeepLinks, usePushNotifications } from '@/hooks/native';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSafeArea } from '@/lib/hooks/use-safe-area';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,9 @@ export function AppShell({ children }: AppShellProps) {
   useStatusBarScrollTop({ isEnabled: isMobile });
   useSafeArea();
   useStatusBarSync();
+  useNativeStatusBar();
+  useDeepLinks();
+  usePushNotifications();
 
   // Scroll-based header shadow — detect when #main-content has scrolled past 0
   const [isScrolled, setIsScrolled] = useState(false);

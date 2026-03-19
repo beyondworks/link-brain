@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAMID.cloud.linkbrain.app"],
+        "components": [
+          { "/": "/clip/*", "comment": "Clip detail pages" },
+          { "/": "/p/*", "comment": "Public clip pages" },
+          { "/": "/s/*", "comment": "Share link pages" },
+          { "/": "/c/*", "comment": "Collection share pages" },
+          { "/": "/dashboard", "comment": "Dashboard" },
+          { "/": "/login", "comment": "Login page" }
+        ]
+      }
+    ]
+  }
+}

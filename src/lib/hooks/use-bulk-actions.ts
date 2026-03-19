@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
+import { hapticLight, hapticWarning } from '@/lib/native/haptics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export function useBulkAddTags() {
 
   return useMutation({
     mutationFn: (vars: BulkTagVars) => fetchBulkTags('POST', vars),
+    onMutate: () => { hapticLight(); },
     onSuccess: (_data, { clipIds, tagIds }) => {
       toast.success(
         `${clipIds.length}개 클립에 태그 ${tagIds.length}개가 추가되었습니다.`
@@ -72,6 +74,7 @@ export function useBulkRemoveTags() {
 
   return useMutation({
     mutationFn: (vars: BulkTagVars) => fetchBulkTags('DELETE', vars),
+    onMutate: () => { hapticLight(); },
     onSuccess: (_data, { clipIds, tagIds }) => {
       toast.success(
         `${clipIds.length}개 클립에서 태그 ${tagIds.length}개가 제거되었습니다.`
@@ -89,6 +92,7 @@ export function useBulkMoveToCollection() {
 
   return useMutation({
     mutationFn: (vars: BulkCollectionVars) => fetchBulkCollection('POST', vars),
+    onMutate: () => { hapticLight(); },
     onSuccess: (_data, { clipIds }) => {
       toast.success(`${clipIds.length}개 클립이 컬렉션에 추가되었습니다.`);
       queryClient.invalidateQueries({ queryKey: ['clips'] });
@@ -105,6 +109,7 @@ export function useBulkRemoveFromCollection() {
 
   return useMutation({
     mutationFn: (vars: BulkCollectionVars) => fetchBulkCollection('DELETE', vars),
+    onMutate: () => { hapticWarning(); },
     onSuccess: (_data, { clipIds }) => {
       toast.success(`${clipIds.length}개 클립이 컬렉션에서 제거되었습니다.`);
       queryClient.invalidateQueries({ queryKey: ['clips'] });

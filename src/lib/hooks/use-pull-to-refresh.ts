@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { hapticMedium } from '@/lib/native/haptics';
 
 const THRESHOLD = 80;
 const MAX_PULL = 120;
@@ -115,6 +116,7 @@ export function usePullToRefresh({
     const currentPull = pullDistanceRef.current;
 
     if (currentPull >= THRESHOLD) {
+      hapticMedium();
       setIsRefreshing(true);
       setPullDistance(THRESHOLD);
       pullDistanceRef.current = THRESHOLD;
