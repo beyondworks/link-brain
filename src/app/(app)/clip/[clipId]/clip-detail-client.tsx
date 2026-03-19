@@ -592,38 +592,38 @@ export function ClipDetailClient({ clipId }: Props) {
 
       {/* Header card */}
       <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-100">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            {/* Platform badge inline */}
-            {(platformLabel || category) && (
-              <div className="mb-3 flex items-center gap-2">
-                {platformLabel && (
-                  <>
-                    <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
-                      {platformIcon}
-                    </span>
-                    <span className="text-xs font-semibold text-muted-foreground">{platformLabel}</span>
-                  </>
-                )}
-                {clip.author_handle && (
-                  <span className="text-xs text-muted-foreground/60">· {clip.author_handle}</span>
-                )}
-                {category && (
-                  <>
-                    {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: category.color ?? '#21DBA4' }}
-                    />
-                    <span className="text-xs font-semibold text-muted-foreground">{category.name}</span>
-                  </>
-                )}
-              </div>
+        {/* Platform badge + category */}
+        {(platformLabel || category) && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            {platformLabel && (
+              <>
+                <span className={cn('inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px]', platformColor)}>
+                  {platformIcon}
+                </span>
+                <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{platformLabel}</span>
+              </>
             )}
-            <h1 className="break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
-              {clip.title ?? '제목 없음'}
-            </h1>
+            {clip.author_handle && (
+              <span className="whitespace-nowrap text-xs text-muted-foreground/60">· {clip.author_handle}</span>
+            )}
+            {category && (
+              <>
+                {platformLabel && <span className="text-xs text-muted-foreground/40">·</span>}
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: category.color ?? '#21DBA4' }}
+                />
+                <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{category.name}</span>
+              </>
+            )}
           </div>
+        )}
+
+        <div className="flex items-start justify-between gap-3">
+          {/* Title */}
+          <h1 className="min-w-0 flex-1 break-keep text-2xl font-bold leading-snug tracking-tight text-foreground">
+            {clip.title ?? '제목 없음'}
+          </h1>
 
           {/* Action buttons */}
           <div className="flex shrink-0 items-center gap-1">
