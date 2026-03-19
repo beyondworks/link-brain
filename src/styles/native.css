@@ -24,16 +24,6 @@
   user-select: text;
 }
 
-/* Ensure minimum touch target size on native */
-.native-app button,
-.native-app [role="button"],
-.native-app a {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* Exclude icon-only buttons that have explicit sizing */
-.native-app .icon-btn-sm {
-  min-height: unset;
-  min-width: unset;
-}
+/* Touch target: padding-based approach instead of min-height/min-width.
+   44px targets are enforced by component sizing, not global CSS override.
+   This avoids breaking inline toggles, tags, and compact UI elements. */
