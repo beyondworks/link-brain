@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { AlertTriangle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 

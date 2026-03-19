@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Database, Key, Globe, Link2 } from 'lucide-react';
 
