@@ -54,13 +54,21 @@ function StudioClipPickerItemInner({
         <img
           src={clip.image}
           alt=""
-          className="h-10 w-10 shrink-0 rounded-md object-cover"
+          className="h-10 w-10 shrink-0 rounded-md object-cover bg-muted"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.style.display = 'none';
+            target.nextElementSibling?.classList.remove('hidden');
+          }}
         />
-      ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
-          {(clip.title ?? clip.url).charAt(0).toUpperCase()}
-        </div>
-      )}
+      ) : null}
+      <div className={cn(
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground',
+        clip.image && 'hidden'
+      )}>
+        {(clip.title ?? clip.url).charAt(0).toUpperCase()}
+      </div>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">

@@ -49,10 +49,12 @@ function HistoryItemRow({ item, onDelete, onOpenModal }: {
 
   return (
     <div className="border-b border-border/30 last:border-b-0">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(!isExpanded); } }}
+        className="flex w-full cursor-pointer items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40"
       >
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium text-foreground">
@@ -85,7 +87,7 @@ function HistoryItemRow({ item, onDelete, onOpenModal }: {
             </button>
           )}
         </div>
-      </button>
+      </div>
 
       {isExpanded && (
         <div className="px-4 pb-3 animate-fade-in">
