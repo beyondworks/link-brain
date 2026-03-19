@@ -11,9 +11,10 @@ export const FEATURE_FLAGS = {
   SEMANTIC_SEARCH: true,
   OMNI_SEARCH: true,
   CONTENT_STUDIO: true,
-  WEEKLY_DIGEST: false, // not yet implemented
-  BROWSER_EXTENSION: false, // not yet implemented
-  TEAM_WORKSPACE: false, // not yet implemented
+  // Future features — uncomment when implemented
+  // WEEKLY_DIGEST: false,
+  // BROWSER_EXTENSION: false,
+  // TEAM_WORKSPACE: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;

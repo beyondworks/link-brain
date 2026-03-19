@@ -5,7 +5,7 @@
  * This fetcher delegates to Puppeteer without modifications.
  */
 
-import { extractWithPuppeteer } from './puppeteer-extractor';
+// Puppeteer not available in serverless v2 — import removed
 import { validateUrl } from './url-validator';
 import type { FetchedUrlContent, PlatformFetcher } from './types';
 
@@ -18,13 +18,9 @@ export class InstagramFetcher implements PlatformFetcher {
         }
 
         try {
-            const result = await extractWithPuppeteer(url);
-
-            if (!result.rawText || result.rawText.length < 50) {
-                console.warn(`[Instagram Fetcher] Weak result: ${result.rawText?.length || 0} chars`);
-            }
-
-            return result;
+            // Puppeteer not available in serverless — return empty so orchestrator falls back to OG meta
+            console.warn('[Instagram Fetcher] Puppeteer unavailable in v2 — falling back to metadata');
+            return { rawText: '', images: [] } as FetchedUrlContent;
         } catch (error) {
             console.error('[Instagram Fetcher] Error:', error);
             return { rawText: '', images: [] };

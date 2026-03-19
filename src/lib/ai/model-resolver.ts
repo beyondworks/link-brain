@@ -34,12 +34,14 @@ const DEFAULT_MODELS: Record<string, string> = {
   anthropic: 'claude-sonnet-4-20250514',
 };
 
-const SERVER_DEFAULT: ResolvedAIConfig = {
-  provider: 'openai',
-  apiKey: process.env.OPENAI_API_KEY ?? '',
-  model: 'gpt-4o-mini',
-  isUserKey: false,
-};
+function getServerDefault(): ResolvedAIConfig {
+  return {
+    provider: 'openai',
+    apiKey: process.env.OPENAI_API_KEY ?? '',
+    model: 'gpt-4o-mini',
+    isUserKey: false,
+  };
+}
 
 type Feature = 'chat' | 'default';
 
@@ -64,7 +66,7 @@ export async function resolveAIConfig(
       .eq('user_id', userId)
       .single();
 
-    if (!config) return SERVER_DEFAULT;
+    if (!config) return getServerDefault();
 
     const cfg = config as {
       default_provider: string;
@@ -87,7 +89,7 @@ export async function resolveAIConfig(
 
     // Server fallback
     if (provider === 'server' || !provider) {
-      return SERVER_DEFAULT;
+      return getServerDefault();
     }
 
     // 3. Get user's API key for this provider
@@ -101,7 +103,7 @@ export async function resolveAIConfig(
 
     if (!keyRow) {
       console.warn(`[ModelResolver] No active key for ${provider}, falling back to server`);
-      return SERVER_DEFAULT;
+      return getServerDefault();
     }
 
     // 4. Decrypt the key
@@ -117,7 +119,7 @@ export async function resolveAIConfig(
     };
   } catch (err) {
     console.warn('[ModelResolver] Error resolving config, using server default:', err);
-    return SERVER_DEFAULT;
+    return getServerDefault();
   }
 }
 

@@ -29,6 +29,7 @@ yarn-error.log*
 # env files
 .env
 .env*.local
+.env.check
 !.env.local.example
 
 # vercel
@@ -41,6 +42,10 @@ next-env.d.ts
 # capacitor
 /ios
 /android
+ios/App/Pods/
+ios/App/DerivedData/
+ios/App/build/
+ios/App/App/public/
 
 # omc
 .omc/

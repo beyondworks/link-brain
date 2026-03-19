@@ -313,7 +313,8 @@ async function execListTags(userId: string, args: ToolArgs): Promise<string> {
     .from('clips')
     .select('keywords')
     .eq('user_id', userId)
-    .not('keywords', 'is', null);
+    .not('keywords', 'is', null)
+    .limit(500);
 
   if (error) return JSON.stringify({ error: error.message });
 

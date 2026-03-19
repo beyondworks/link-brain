@@ -9,7 +9,7 @@
  */
 
 import { normalizeNaverBlog } from './normalizers/naver';
-import { extractWithPuppeteer } from './puppeteer-extractor';
+// Puppeteer not available in serverless v2 — import removed
 import { validateUrl } from './url-validator';
 import { fetchWithTimeout, extractImagesFromMarkdown } from './utils';
 import type { FetchedUrlContent, PlatformFetcher } from './types';
@@ -86,20 +86,8 @@ export class NaverFetcher implements PlatformFetcher {
                 };
             }
 
-            // Strategy 2: Puppeteer fallback
-            console.warn('[Naver Fetcher] Jina weak, trying Puppeteer');
-            const puppeteerResult = await extractWithPuppeteer(mobileUrl);
-            if (puppeteerResult.rawText && puppeteerResult.rawText.length > 50) {
-                const normalizedText = normalizeNaverBlog(puppeteerResult.rawText);
-                return {
-                    ...puppeteerResult,
-                    rawText: normalizedText,
-                    finalUrl: url
-                };
-            }
-
-            // Both failed — return best available
-            console.warn('[Naver Fetcher] Both extraction methods weak');
+            // Puppeteer not available in serverless — skip to fallback
+            console.warn('[Naver Fetcher] Jina weak, Puppeteer unavailable in v2');
             return {
                 ...jinaResult,
                 rawText: normalizeNaverBlog(jinaResult.rawText || ''),

@@ -166,6 +166,9 @@ function LoginForm() {
             <Label htmlFor="password" className="text-sm font-semibold text-foreground">
               비밀번호
             </Label>
+            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+              비밀번호 찾기
+            </Link>
           </div>
           <div className="relative">
             {(() => {

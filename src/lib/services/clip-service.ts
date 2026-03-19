@@ -233,12 +233,15 @@ export const autoTagClip = async (
   if (keywords.length === 0) return [];
 
   try {
-    const { data: allTags } = await supabaseAdmin
+    // Only fetch tags matching the keywords (avoid full table scan)
+    const normalizedKeywords = keywords.map((k) => k.toLowerCase().trim()).filter(Boolean);
+    const { data: matchedTags } = await supabaseAdmin
       .from('tags')
-      .select('id, name');
+      .select('id, name')
+      .in('name', normalizedKeywords);
 
     const tagMap = new Map<string, string>(
-      ((allTags ?? []) as Pick<Tag, 'id' | 'name'>[]).map((t) => [t.name.toLowerCase(), t.id])
+      ((matchedTags ?? []) as Pick<Tag, 'id' | 'name'>[]).map((t) => [t.name.toLowerCase(), t.id])
     );
 
     const tagIds: string[] = [];
@@ -307,8 +310,9 @@ export { generateEmbedding } from '@/lib/ai/embeddings';
 
 const MAX_CONTENT_LENGTH = 100_000;
 const MAX_IMAGES = 10;
-const ENABLE_YT_DETAILED_SUMMARY_PREPEND =
-  process.env.ENABLE_YT_DETAILED_SUMMARY_PREPEND === 'true';
+function isYtDetailedSummaryEnabled(): boolean {
+  return process.env.ENABLE_YT_DETAILED_SUMMARY_PREPEND === 'true';
+}
 
 export interface ProcessNewClipResult {
   clipId: string;
@@ -398,7 +402,7 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
   }
   if (
     sourceType === 'youtube' &&
-    ENABLE_YT_DETAILED_SUMMARY_PREPEND &&
+    isYtDetailedSummaryEnabled() &&
     detailedSummary
   ) {
     const summaryTitle =

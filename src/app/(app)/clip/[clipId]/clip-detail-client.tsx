@@ -19,7 +19,6 @@ import {
   Eye,
   ThumbsUp,
   Sparkles,
-  GitFork,
   MessageSquare,
   Repeat2,
   ArrowUpRight,
@@ -112,18 +111,11 @@ function PlatformHero({ clip }: { clip: ClipData }) {
           </div>
           <p className="mt-3 text-sm leading-relaxed text-white/60">{clip.summary?.split('.')[0]}.</p>
           <div className="mt-4 flex items-center gap-5 border-t border-white/10 pt-4">
-            <span className="flex items-center gap-1.5 text-sm text-yellow-400">
-              <Star size={14} fill="currentColor" /> 12.4k
-            </span>
-            <span className="flex items-center gap-1.5 text-sm text-white/50">
-              <GitFork size={14} /> 1.8k
-            </span>
-            <span className="flex items-center gap-1.5 text-sm text-white/50">
-              <Eye size={14} /> {clip.views?.toLocaleString()}
-            </span>
-            <span className="ml-auto rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-400">
-              TypeScript
-            </span>
+            {clip.views != null && (
+              <span className="flex items-center gap-1.5 text-sm text-white/50">
+                <Eye size={14} /> {clip.views.toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
       );

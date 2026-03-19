@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Twitter, Github } from 'lucide-react';
+// Social icons removed until real accounts are set up
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 
 export default function MarketingLayout({
@@ -102,7 +102,7 @@ export default function MarketingLayout({
             Download Linkbrain for Mac OS / Windows
           </p>
           <Link
-            href="#"
+            href="/signup"
             className="px-6 py-2 rounded-full text-[14px] text-white transition-shadow hover:shadow-lg hover:shadow-[#21DBA4]/20"
             style={{
               background: 'linear-gradient(100deg, #C3EBF8 0%, #21DBA4 77%)',
@@ -110,7 +110,7 @@ export default function MarketingLayout({
               fontWeight: 500,
             }}
           >
-            Download
+            시작하기
           </Link>
         </div>
       </div>
@@ -130,25 +130,18 @@ export default function MarketingLayout({
               >
                 저장한 링크가 나만의 지식이 되는 세컨드 브레인 플랫폼.
               </p>
-              <div className="flex items-center gap-4">
-                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
-                  className="text-[#bbb] hover:text-[#666] transition-colors" aria-label="X">
-                  <Twitter className="h-4 w-4" />
-                </a>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-                  className="text-[#bbb] hover:text-[#666] transition-colors" aria-label="GitHub">
-                  <Github className="h-4 w-4" />
-                </a>
-              </div>
+              {/* Social links hidden until real accounts are set up */}
             </div>
 
             {/* 링크 */}
             <div className="space-y-4">
               <ul className="space-y-3">
-                {['업데이트', '문의하기', '도움말 센터', 'API 문서', '법적 고지'].map((label) => (
+                {[
+                  { label: '문의하기', href: 'mailto:beyondworks.br@gmail.com' },
+                ].map(({ label, href }) => (
                   <li key={label}>
                     <a
-                      href="#"
+                      href={href}
                       className="text-[14px] text-[#666] hover:text-[#222] transition-colors duration-200 tracking-[-0.2px]"
                       style={{ fontFamily: "'Pretendard Variable', sans-serif" }}
                     >

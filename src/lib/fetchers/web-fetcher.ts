@@ -192,7 +192,7 @@ export class WebFetcher implements PlatformFetcher {
                 const normalizedDefuddle = applyWebNormalization(defuddleResult);
 
                 if (!isWeakWebResult(normalizedDefuddle)) {
-                    console.log(`[Web Fetcher] Defuddle success (${normalizedDefuddle.rawText.length} chars)`);
+                    // Defuddle success
                     return normalizedDefuddle;
                 }
                 console.warn(`[Web Fetcher] Weak Defuddle result (${normalizedDefuddle.rawText.length} chars), falling back to Jina`);

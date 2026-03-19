@@ -15,7 +15,11 @@ import * as crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { User } from '@/types/database';
 
-const WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? '';
+function getWebhookSecret(): string {
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  if (!secret) throw new Error('LEMONSQUEEZY_WEBHOOK_SECRET not configured');
+  return secret;
+}
 
 // Escape strict Supabase generics
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,11 +68,12 @@ interface LemonSqueezyWebhookPayload {
  * Verify HMAC-SHA256 signature from Lemon Squeezy.
  */
 function verifySignature(rawBody: string, signature: string): boolean {
-  if (!WEBHOOK_SECRET) {
+  const webhookSecret = getWebhookSecret();
+  if (!webhookSecret) {
     console.error('[LemonSqueezy] Missing LEMONSQUEEZY_WEBHOOK_SECRET');
     return false;
   }
-  const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
+  const hmac = crypto.createHmac('sha256', webhookSecret);
   const digest = hmac.update(rawBody).digest('hex');
   try {
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));

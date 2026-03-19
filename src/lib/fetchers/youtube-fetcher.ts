@@ -9,7 +9,7 @@
  */
 
 import { extractYouTubeContent, buildYouTubeRichText } from './youtube-extractor';
-import { extractWithPuppeteer } from './puppeteer-extractor';
+// Puppeteer not available in serverless v2 — import removed
 import { isDefuddleEnabled, extractWithDefuddle } from './defuddle-extractor';
 import { validateUrl } from './url-validator';
 import { fetchWithTimeout, extractImagesFromMarkdown } from './utils';
@@ -166,7 +166,7 @@ export class YouTubeFetcher implements PlatformFetcher {
             if (isDefuddleEnabled()) {
                 const defuddleResult = await extractWithDefuddle(url);
                 if (defuddleResult.rawText && defuddleResult.rawText.length > 100) {
-                    console.log(`[YouTube Fetcher] Defuddle supplement success (${defuddleResult.rawText.length} chars)`);
+                    // Defuddle supplement success
                     supplementResult = defuddleResult;
                 }
             }
@@ -190,21 +190,7 @@ export class YouTubeFetcher implements PlatformFetcher {
                 };
             }
 
-            // Strategy 3: Puppeteer
-            const puppeteerResult = await extractWithPuppeteer(url);
-
-            if (ytData && puppeteerResult.rawText && puppeteerResult.rawText.length > 100) {
-                const cleanedPuppeteer = cleanYouTubePageText(puppeteerResult.rawText);
-                const enriched = { ...ytData, description: cleanedPuppeteer };
-                const richText = buildYouTubeRichText(enriched);
-                return {
-                    rawText: richText,
-                    images: ytData.thumbnailUrl ? [ytData.thumbnailUrl] : puppeteerResult.images,
-                    author: ytData.channelTitle || puppeteerResult.author || '',
-                    authorHandle: ytData.channelTitle || puppeteerResult.authorHandle || '',
-                    finalUrl: url
-                };
-            }
+            // Puppeteer not available in serverless — skip to ytData fallback
 
             if (ytData) {
                 const richText = buildYouTubeRichText(ytData);
@@ -219,10 +205,6 @@ export class YouTubeFetcher implements PlatformFetcher {
 
             if (supplementResult.rawText && supplementResult.rawText.length > 100) {
                 return supplementResult;
-            }
-
-            if (puppeteerResult.rawText && puppeteerResult.rawText.length > 30) {
-                return puppeteerResult;
             }
 
             // Strategy 4: Standalone oEmbed (last resort)

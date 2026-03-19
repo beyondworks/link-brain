@@ -15,17 +15,18 @@ import { upsertClipEmbedding } from '@/lib/services/embedding-service';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
 
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
+function getInternalSecret(): string {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) throw new Error('INTERNAL_API_SECRET not configured');
+  return secret;
+}
 
 export const maxDuration = 300; // 5 minutes
 
 export async function POST(req: NextRequest) {
-  if (!INTERNAL_SECRET) {
-    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
-  }
-
+  const internalSecret = getInternalSecret();
   const secret = req.headers.get('x-internal-secret');
-  if (secret !== INTERNAL_SECRET) {
+  if (secret !== internalSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

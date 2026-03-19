@@ -179,7 +179,6 @@ export function SettingsClient() {
   // 알림 상태
   const [emailNotif, setEmailNotif] = useState(true);
   const [aiNotif, setAiNotif] = useState(true);
-  const [followerNotif, setFollowerNotif] = useState(false);
 
   // 언어 상태
   const [language, setLanguage] = useState('ko');
@@ -219,7 +218,6 @@ export function SettingsClient() {
     const saved = loadNotifSettings();
     setEmailNotif(saved.emailNotif);
     setAiNotif(saved.aiNotif);
-    setFollowerNotif(saved.followerNotif);
   }, []);
 
   // API 키 목록 로드
@@ -622,7 +620,7 @@ export function SettingsClient() {
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="ko">한국어</SelectItem>
-                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="en" disabled>English (준비 중)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -658,16 +656,7 @@ export function SettingsClient() {
                 onCheckedChange={(v) => handleNotifChange('aiNotif', setAiNotif, v)}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">팔로워 활동</p>
-                <p className="text-xs text-muted-foreground">새 팔로워 및 좋아요 알림</p>
-              </div>
-              <Switch
-                checked={followerNotif}
-                onCheckedChange={(v) => handleNotifChange('followerNotif', setFollowerNotif, v)}
-              />
-            </div>
+            <p className="text-xs text-muted-foreground/60 pt-2">이 설정은 이 기기에만 적용됩니다.</p>
           </div>
         </section>
 
@@ -1035,16 +1024,15 @@ export function SettingsClient() {
           </div>
 
           <p className="mb-4 text-xs text-muted-foreground">
-            계정을 삭제하면 모든 클립, 컬렉션, 설정이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            계정 삭제를 원하시면 아래 이메일로 문의해 주세요. 모든 클립, 컬렉션, 설정이 영구적으로 삭제됩니다.
           </p>
-          <Button
-            variant="outline"
-            className="gap-2 rounded-xl border-destructive/40 text-destructive transition-spring hover:bg-destructive/10 hover:border-destructive/60"
-            onClick={() => toast.error('계정 삭제는 고객센터에 문의해 주세요.')}
+          <a
+            href="mailto:beyondworks.br@gmail.com?subject=계정 삭제 요청"
+            className="inline-flex items-center gap-2 rounded-xl border border-destructive/40 px-4 py-2 text-sm text-destructive transition-all hover:bg-destructive/10 hover:border-destructive/60"
           >
             <Trash2 size={15} />
-            계정 삭제
-          </Button>
+            계정 삭제 문의
+          </a>
         </section>
 
       </div>

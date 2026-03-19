@@ -20,7 +20,11 @@ import { resolveAIConfig } from '@/lib/ai/model-resolver';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
 
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
+function getInternalSecret(): string {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) throw new Error('INTERNAL_API_SECRET not configured');
+  return secret;
+}
 
 interface ProcessClipBody {
   clipId: string;
@@ -33,12 +37,9 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   // Internal authentication — always required
-  if (!INTERNAL_SECRET) {
-    console.error('[ProcessClip] INTERNAL_API_SECRET not configured');
-    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
-  }
+  const internalSecret = getInternalSecret();
   const secret = req.headers.get('x-internal-secret');
-  if (secret !== INTERNAL_SECRET) {
+  if (secret !== internalSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
