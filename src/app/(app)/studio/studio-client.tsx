@@ -23,15 +23,13 @@ import {
   Sparkles,
   Wand2,
   FileText,
-  Twitter,
+  AtSign,
+  Camera,
   Mail,
   BarChart2,
   Lightbulb,
-  BookOpen,
-  GitCompare,
-  HelpCircle,
-  Network,
-  Image,
+  Presentation,
+  Youtube,
   Link2,
   Check,
   X,
@@ -68,14 +66,21 @@ const STUDIO_META: Record<ContentStudioType, StudioTypeMeta> = {
     icon: FileText,
     gradient: 'from-primary/20 to-primary/5',
     iconColor: 'text-primary',
-    description: '심층 아티클',
+    description: 'SEO 최적 아티클',
   },
-  sns_post: {
-    label: 'SNS 포스트',
-    icon: Twitter,
+  threads_post: {
+    label: 'Threads 포스트',
+    icon: AtSign,
     gradient: 'from-sky-500/20 to-sky-500/5',
     iconColor: 'text-sky-500',
     description: '짧고 임팩트 있게',
+  },
+  instagram_feed: {
+    label: '인스타그램 피드',
+    icon: Camera,
+    gradient: 'from-pink-500/20 to-pink-500/5',
+    iconColor: 'text-pink-500',
+    description: '캐러셀 슬라이드',
   },
   newsletter: {
     label: '뉴스레터',
@@ -83,13 +88,6 @@ const STUDIO_META: Record<ContentStudioType, StudioTypeMeta> = {
     gradient: 'from-violet-500/20 to-violet-500/5',
     iconColor: 'text-violet-500',
     description: '구독자용 메일',
-  },
-  email_draft: {
-    label: '이메일 초안',
-    icon: Mail,
-    gradient: 'from-blue-500/20 to-blue-500/5',
-    iconColor: 'text-blue-500',
-    description: '비즈니스 메일',
   },
   executive_summary: {
     label: '요약 보고서',
@@ -105,40 +103,19 @@ const STUDIO_META: Record<ContentStudioType, StudioTypeMeta> = {
     iconColor: 'text-yellow-500',
     description: '주요 개념 추출',
   },
-  review_notes: {
-    label: '학습 노트',
-    icon: BookOpen,
-    gradient: 'from-emerald-500/20 to-emerald-500/5',
-    iconColor: 'text-emerald-500',
-    description: '복습용 정리',
-  },
-  teach_back: {
-    label: '비교 분석',
-    icon: GitCompare,
+  presentation_text: {
+    label: '발표용 텍스트',
+    icon: Presentation,
     gradient: 'from-orange-500/20 to-orange-500/5',
     iconColor: 'text-orange-500',
-    description: '항목 간 비교',
+    description: '슬라이드+발표 노트',
   },
-  quiz: {
-    label: 'Q&A',
-    icon: HelpCircle,
-    gradient: 'from-pink-500/20 to-pink-500/5',
-    iconColor: 'text-pink-500',
-    description: '질문과 답변',
-  },
-  mind_map: {
-    label: '마인드맵',
-    icon: Network,
-    gradient: 'from-cyan-500/20 to-cyan-500/5',
-    iconColor: 'text-cyan-500',
-    description: '개념 연결 구조',
-  },
-  simplified_summary: {
-    label: '인포그래픽 텍스트',
-    icon: Image,
-    gradient: 'from-rose-500/20 to-rose-500/5',
-    iconColor: 'text-rose-500',
-    description: '시각화용 텍스트',
+  youtube_script: {
+    label: '유튜브 대본',
+    icon: Youtube,
+    gradient: 'from-red-500/20 to-red-500/5',
+    iconColor: 'text-red-500',
+    description: '영상 스크립트',
   },
 };
 
@@ -192,7 +169,8 @@ export function StudioClient() {
     if (!restoredRef.current && generations && generations.length > 0 && !output) {
       const latest = generations[0]; // already sorted by created_at DESC
       setOutput(latest.output);
-      setSelectedType((latest.content_type as ContentStudioType) ?? 'blog_post');
+      const restoredType = latest.content_type as ContentStudioType;
+      setSelectedType(STUDIO_META[restoredType] ? restoredType : 'blog_post');
       setTone(latest.tone ?? 'professional');
       setLength(latest.length ?? 'medium');
       restoredRef.current = true;
@@ -307,7 +285,7 @@ export function StudioClient() {
     }
   };
 
-  const selectedMeta = STUDIO_META[selectedType];
+  const selectedMeta = STUDIO_META[selectedType] ?? STUDIO_META.blog_post;
   const SelectedIcon = selectedMeta.icon;
 
   return (

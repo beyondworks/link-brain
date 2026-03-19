@@ -196,10 +196,12 @@ export function ChatPanel() {
               <ul className="space-y-1 p-2">
                 {conversations.map((conv) => (
                   <li key={conv.id}>
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectConversation(conv.id)}
-                      className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-accent/60"
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectConversation(conv.id); }}
+                      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-accent/60"
                     >
                       <MessageSquare size={16} className="shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1">
@@ -218,7 +220,7 @@ export function ChatPanel() {
                       >
                         <Trash2 size={13} />
                       </button>
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>

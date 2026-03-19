@@ -4,7 +4,7 @@ import { type AuthContext } from '@/lib/api/middleware';
 import { errors, sendError, sendSuccess, ErrorCodes } from '@/lib/api/response';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
-import { callOpenAI } from '../helpers/openai-stream';
+import { callAI } from '../helpers/openai-stream';
 import { type ClipRow } from '../types';
 
 const db = supabaseAdmin;
@@ -64,7 +64,7 @@ export async function handleAnalyze(rawBody: unknown, auth: AuthContext): Promis
       '}\n' +
       '반드시 유효한 JSON만 응답하세요.';
 
-    const content = await callOpenAI(systemPrompt, `[소스 자료]\n\n${sourceMaterial}`, aiConfig.apiKey, aiConfig.model);
+    const content = await callAI(aiConfig, systemPrompt, `[소스 자료]\n\n${sourceMaterial}`);
 
     let parsed: unknown;
     try {

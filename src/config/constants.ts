@@ -126,16 +126,13 @@ export type AnnotationColor = (typeof ANNOTATION_COLORS)[number];
 
 export const CONTENT_STUDIO_TYPES = [
   'blog_post',
-  'sns_post',
+  'threads_post',
+  'instagram_feed',
   'newsletter',
-  'email_draft',
   'executive_summary',
   'key_concepts',
-  'quiz',
-  'mind_map',
-  'review_notes',
-  'teach_back',
-  'simplified_summary',
+  'presentation_text',
+  'youtube_script',
 ] as const;
 
 export type ContentStudioType = (typeof CONTENT_STUDIO_TYPES)[number];

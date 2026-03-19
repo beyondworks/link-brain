@@ -2,16 +2,13 @@
 
 export type ContentStudioType =
   | 'blog_post'
-  | 'sns_post'
+  | 'threads_post'
+  | 'instagram_feed'
   | 'newsletter'
-  | 'email_draft'
   | 'executive_summary'
   | 'key_concepts'
-  | 'review_notes'
-  | 'teach_back'
-  | 'quiz'
-  | 'mind_map'
-  | 'simplified_summary';
+  | 'presentation_text'
+  | 'youtube_script';
 
 export interface AiRequestBody {
   clipIds: string[];

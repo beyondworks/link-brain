@@ -80,7 +80,7 @@ export const CHAT_TOOL_DEFINITIONS = [
     type: 'function' as const,
     function: {
       name: 'list_collections',
-      description: '사용자의 모든 컬렉션(폴더) 목록과 각 컬렉션의 클립 수를 조회합니다.',
+      description: '사용자의 모든 컬렉션 목록과 각 컬렉션의 클립 수를 조회합니다.',
       parameters: {
         type: 'object',
         properties: {},
@@ -168,6 +168,17 @@ export const CHAT_TOOL_DEFINITIONS = [
   {
     type: 'function' as const,
     function: {
+      name: 'list_image_albums',
+      description: '사용자의 이미지 앨범 목록을 조회합니다. 이미지 페이지에서 관리하는 앨범입니다 (컬렉션과 별개).',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
       name: 'propose_action',
       description: '클립에 대한 변경 작업을 제안합니다. 실제로 실행하지 않고, 사용자에게 확인을 요청합니다. 클립을 이동/아카이브/컬렉션 추가/태그 일괄 추가 등 변경 전에 반드시 이 도구를 먼저 호출하세요.',
       parameters: {
@@ -175,7 +186,7 @@ export const CHAT_TOOL_DEFINITIONS = [
         properties: {
           action: {
             type: 'string',
-            enum: ['move_to_category', 'add_to_collection', 'archive', 'unarchive', 'favorite', 'unfavorite', 'bulk_tag'],
+            enum: ['move_to_category', 'add_to_collection', 'add_to_image_album', 'archive', 'unarchive', 'favorite', 'unfavorite', 'bulk_tag'],
             description: '수행할 작업 유형',
           },
           clipIds: {
@@ -228,6 +239,8 @@ export async function executeTool(
         return await execListCategories(userId);
       case 'list_tags':
         return await execListTags(userId, args);
+      case 'list_image_albums':
+        return await execListImageAlbums(userId);
       case 'create_collection':
         return await execCreateCollection(userId, args);
       case 'update_clip_notes':
@@ -256,7 +269,7 @@ async function execSearchClips(userId: string, args: ToolArgs): Promise<string> 
   // Try FTS first, fall back to ilike if FTS fails or returns empty
   const { data, error } = await db
     .from('clips')
-    .select('id, title, summary, url, platform, created_at, keywords')
+    .select('id, title, summary, url, platform, created_at')
     .eq('user_id', userId)
     .textSearch('fts', query, { type: 'websearch' })
     .order('created_at', { ascending: false })
@@ -266,15 +279,14 @@ async function execSearchClips(userId: string, args: ToolArgs): Promise<string> 
     return JSON.stringify({ clips: data, count: data.length });
   }
 
-  // Fallback: ilike search on title, summary, and keywords array
+  // Fallback: ilike search on title and summary
   const escaped = query.replace(/[%_\\]/g, '\\$&');
   const pattern = `%${escaped}%`;
-  const escapedQuery = query.replace(/["\\]/g, '\\$&');
   const { data: fallback, error: fbErr } = await db
     .from('clips')
-    .select('id, title, summary, url, platform, created_at, keywords')
+    .select('id, title, summary, url, platform, created_at')
     .eq('user_id', userId)
-    .or(`title.ilike.${pattern},summary.ilike.${pattern},keywords.cs.{"${escapedQuery}"}`)
+    .or(`title.ilike.${pattern},summary.ilike.${pattern}`)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -344,7 +356,7 @@ async function execListClips(userId: string, args: ToolArgs): Promise<string> {
 
   let query = db
     .from('clips')
-    .select('id, title, summary, url, platform, created_at, is_favorite, is_read_later, keywords, categories(name)')
+    .select('id, title, summary, url, platform, created_at, is_favorite, is_read_later, categories(name)')
     .eq('user_id', userId)
     .eq('is_archived', false);
 
@@ -410,22 +422,19 @@ async function execListCategories(userId: string): Promise<string> {
 async function execListTags(userId: string, args: ToolArgs): Promise<string> {
   const limit = Math.min(Number(args.limit) || 30, 100);
 
+  // Query via clip_tags join table + tags dictionary
   const { data, error } = await db
-    .from('clips')
-    .select('keywords' as 'id')
-    .eq('user_id', userId)
-    .not('keywords' as 'id', 'is', null)
-    .limit(500);
+    .from('clip_tags')
+    .select('tag_id, tags(name), clips!inner(user_id)')
+    .eq('clips.user_id', userId);
 
   if (error) return JSON.stringify({ error: error.message });
 
-  // Aggregate tags
+  // Aggregate tag counts
   const tagMap = new Map<string, number>();
-  for (const clip of (data ?? []) as unknown as Array<{ keywords: string[] | null }>) {
-    if (!clip.keywords) continue;
-    for (const tag of clip.keywords) {
-      tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
-    }
+  for (const row of (data ?? []) as Array<{ tags: { name: string } | null }>) {
+    const name = row.tags?.name;
+    if (name) tagMap.set(name, (tagMap.get(name) ?? 0) + 1);
   }
 
   const tags = Array.from(tagMap.entries())
@@ -672,6 +681,19 @@ async function execProposeAction(userId: string, args: ToolArgs): Promise<string
     } else {
       targetExists = false;
     }
+  } else if (action === 'add_to_image_album' && targetName) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: album } = await (db.from as (t: string) => any)('image_albums')
+      .select('id, name')
+      .eq('user_id', userId)
+      .ilike('name', targetName)
+      .limit(1)
+      .single();
+    if (album) {
+      targetId = (album as { id: string }).id;
+    } else {
+      targetExists = false;
+    }
   }
 
   return JSON.stringify({
@@ -685,4 +707,27 @@ async function execProposeAction(userId: string, args: ToolArgs): Promise<string
     clips,
     clipCount: clips.length,
   });
+}
+
+async function execListImageAlbums(userId: string): Promise<string> {
+  // image_albums table not yet in generated types — cast to bypass
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (db.from as (t: string) => any)('image_albums')
+    .select('id, name, color, sort_order')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: true });
+
+  if (error) return JSON.stringify({ error: error.message });
+
+  // Count clips per album
+  const albums = [];
+  for (const album of (data ?? []) as Array<{ id: string; name: string; color: string | null }>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count } = await (db.from as (t: string) => any)('image_album_clips')
+      .select('*', { count: 'exact', head: true })
+      .eq('album_id', album.id);
+    albums.push({ id: album.id, name: album.name, color: album.color, clipCount: count ?? 0 });
+  }
+
+  return JSON.stringify({ albums, count: albums.length });
 }

@@ -6,12 +6,13 @@ const cache = new Map<string, string>();
 
 const TYPE_TO_FILE: Record<string, string> = {
   blog_post: 'blog-post.md',
-  sns_post: 'sns-post.md',
+  threads_post: 'threads-post.md',
+  instagram_feed: 'instagram-feed.md',
   newsletter: 'newsletter.md',
   executive_summary: 'executive-summary.md',
   key_concepts: 'key-concepts.md',
-  comparison: 'comparison.md',
-  teach_back: 'comparison.md',
+  presentation_text: 'presentation-text.md',
+  youtube_script: 'youtube-script.md',
 };
 
 export function loadGuide(type: string): string {
