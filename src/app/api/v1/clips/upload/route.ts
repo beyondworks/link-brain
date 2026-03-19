@@ -12,8 +12,7 @@ import { validateBody } from '@/lib/api/validate';
 import { z } from 'zod';
 
 // Supabase typed client cast to escape strict insert/update generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // Validation schema for upload
 const uploadClipSchema = z.object({

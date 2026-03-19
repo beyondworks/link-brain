@@ -11,8 +11,7 @@ import { errors, sendSuccess, sendError, ErrorCodes } from '@/lib/api/response';
 import { encryptToken } from '@/lib/oauth/token-manager';
 import { AVAILABLE_MODELS } from '@/lib/ai/model-resolver';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 const routeHandler = withAuth(
   async (req, auth) => {
@@ -59,7 +58,7 @@ const routeHandler = withAuth(
 
       const { error } = await db
         .from('user_ai_config')
-        .upsert(upsertData, { onConflict: 'user_id' });
+        .upsert(upsertData as { user_id: string; default_provider: string }, { onConflict: 'user_id' });
 
       if (error) {
         console.error('[AI Config] Update error:', error);

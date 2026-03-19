@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '@/types/database';
 
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -7,14 +8,13 @@ function getSupabaseClient() {
   if (!url || !key) {
     // During build/SSG, env vars may not exist — return a dummy-safe client
     // that will be replaced at runtime when env vars are available
-    return createBrowserClient(
+    return createBrowserClient<Database>(
       'https://placeholder.supabase.co',
       'placeholder-key'
     );
   }
 
-  return createBrowserClient(url, key);
+  return createBrowserClient<Database>(url, key);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const supabase: any = getSupabaseClient();
+export const supabase = getSupabaseClient();

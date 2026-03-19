@@ -8,8 +8,7 @@
 import { createHash } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const MAX_INPUT_CHARS = 24000; // ~8000 tokens for text-embedding-3-small

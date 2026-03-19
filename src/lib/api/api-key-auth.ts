@@ -12,8 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { ApiKey } from '@/types/database';
 
 // Escape strict Supabase insert/update generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // API key format: lb_xxxxxxxxxxxxxxxxxxxxxxxx
 const API_KEY_PREFIX = 'lb_';

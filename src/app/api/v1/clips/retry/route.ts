@@ -10,8 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, sendError, ErrorCodes, errors } from '@/lib/api/response';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 async function handleRetry(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   let body: { clipId: string };

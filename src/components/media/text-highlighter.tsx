@@ -234,7 +234,7 @@ export function TextHighlighter({ clipId, children }: TextHighlighterProps) {
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    applyHighlights(container, annotations as Annotation[]);
+    applyHighlights(container, annotations as unknown as Annotation[]);
   }, [annotations]);
 
   // mark 클릭으로 삭제

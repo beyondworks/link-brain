@@ -21,8 +21,7 @@ export function useNavCounts() {
     queryFn: async (): Promise<NavCounts> => {
       if (!user) return { total: 0, favorites: 0, readLater: 0, archived: 0, collections: 0, images: 0 };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc('get_nav_counts', {
+      const { data, error } = await supabase.rpc('get_nav_counts', {
         p_user_id: user.id,
       });
 
@@ -30,7 +29,7 @@ export function useNavCounts() {
         return { total: 0, favorites: 0, readLater: 0, archived: 0, collections: 0, images: 0 };
       }
 
-      return data as NavCounts;
+      return data as unknown as NavCounts;
     },
     enabled: !!user,
     staleTime: 30_000,

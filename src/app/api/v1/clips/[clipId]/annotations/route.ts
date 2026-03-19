@@ -13,8 +13,7 @@ import type { ClipAnnotation } from '@/types/database';
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * GET /api/v1/clips/[clipId]/annotations

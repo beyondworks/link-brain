@@ -76,6 +76,7 @@ export function useCreateAnnotation() {
       ]);
 
       // optimistic annotation (임시 id)
+      const now = new Date().toISOString();
       const optimistic: ClipAnnotation = {
         id: `optimistic-${Date.now()}`,
         clip_id: input.clipId,
@@ -85,7 +86,8 @@ export function useCreateAnnotation() {
         note_text: input.note_text ?? null,
         position_data: (input.position_data ?? null) as Record<string, unknown> | null,
         color: input.color ?? 'yellow',
-        created_at: new Date().toISOString(),
+        timestamp: now,
+        created_at: now,
       };
 
       queryClient.setQueryData<ClipAnnotation[]>(

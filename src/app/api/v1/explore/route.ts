@@ -37,8 +37,7 @@ export interface ExploreClipResponse {
   category: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const origin = req.headers.get('origin');

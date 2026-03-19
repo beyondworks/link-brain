@@ -24,8 +24,7 @@ const clipDetailQuerySchema = z.object({
 });
 
 // Escape strict Supabase generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * GET /api/v1/clips-detail?id=CLIP_ID
@@ -37,19 +36,18 @@ async function handleGet(
 ): Promise<NextResponse> {
   const includeContent = req.nextUrl.searchParams.get('content') === 'true';
 
+  const selectStr = includeContent
+    ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
+    : '*';
   const { data, error } = await db
     .from('clips')
-    .select(
-      includeContent
-        ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
-        : '*'
-    )
+    .select(selectStr as '*')
     .eq('id', clipId)
     .single();
 
   if (error || !data) return errors.notFound('clip');
 
-  const clip = data as ClipData & { clip_contents?: Record<string, unknown> };
+  const clip = data as unknown as ClipData & { clip_contents?: Record<string, unknown> };
   if (clip.user_id !== auth.publicUserId) return errors.accessDenied();
 
   // Fetch collection memberships

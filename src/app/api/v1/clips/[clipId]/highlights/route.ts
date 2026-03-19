@@ -13,8 +13,7 @@ import { sendSuccess, errors } from '@/lib/api/response';
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 interface HighlightRow {
   id: string;
@@ -63,7 +62,7 @@ async function handleGet(
 
   try {
     const { data, error } = await db
-      .from('highlights')
+      .from('highlights' as 'clips')
       .select('*')
       .eq('clip_id', clipId)
       .eq('user_id', auth.publicUserId)
@@ -84,7 +83,7 @@ async function handleGet(
       return errors.internalError();
     }
 
-    return sendSuccess((data as HighlightRow[]) ?? []);
+    return sendSuccess((data as unknown as HighlightRow[]) ?? []);
   } catch (err) {
     console.error('[API v1 Highlights] Fetch error:', err);
     return errors.internalError();
@@ -133,17 +132,18 @@ async function handlePost(
   const normalizedColor = VALID_COLORS.includes(color) ? color : 'yellow';
 
   try {
+    const insertData = {
+      clip_id: clipId,
+      user_id: auth.publicUserId,
+      text: text.trim(),
+      start_offset: startOffset,
+      end_offset: endOffset,
+      color: normalizedColor,
+      note: note ?? null,
+    };
     const { data, error } = await db
-      .from('highlights')
-      .insert({
-        clip_id: clipId,
-        user_id: auth.publicUserId,
-        text: text.trim(),
-        start_offset: startOffset,
-        end_offset: endOffset,
-        color: normalizedColor,
-        note: note ?? null,
-      })
+      .from('highlights' as 'clips')
+      .insert(insertData as Record<string, unknown> as typeof insertData & { url: string })
       .select()
       .single();
 
@@ -160,7 +160,7 @@ async function handlePost(
       return errors.internalError();
     }
 
-    return sendSuccess(data as HighlightRow, 201);
+    return sendSuccess(data as unknown as HighlightRow, 201);
   } catch (err) {
     console.error('[API v1 Highlights] Insert error:', err);
     return errors.internalError();
@@ -185,7 +185,7 @@ async function handleDelete(
 
   try {
     const { error } = await db
-      .from('highlights')
+      .from('highlights' as 'clips')
       .delete()
       .eq('id', highlightId)
       .eq('clip_id', clipId)

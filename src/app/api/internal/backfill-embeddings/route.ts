@@ -12,8 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { upsertClipEmbedding } from '@/lib/services/embedding-service';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 function getInternalSecret(): string {
   const secret = process.env.INTERNAL_API_SECRET;

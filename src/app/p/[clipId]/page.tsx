@@ -12,8 +12,7 @@ interface Props {
   params: Promise<{ clipId: string }>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 async function getPublicClip(clipId: string) {
   const { data, error } = await db

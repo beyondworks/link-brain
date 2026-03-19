@@ -7,8 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth } from '@/lib/api/middleware';
 import { errors, sendSuccess } from '@/lib/api/response';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 const routeHandler = withAuth(
   async (req, auth) => {

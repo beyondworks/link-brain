@@ -11,8 +11,7 @@ import { sendSuccess, errors } from '@/lib/api/response';
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export type ClipActivityAction =
   | 'created'
@@ -68,7 +67,7 @@ async function handleGet(
 
   try {
     const { data, error } = await db
-      .from('clip_activity')
+      .from('clip_activity' as 'clips')
       .select('*')
       .eq('clip_id', clipId)
       .eq('user_id', auth.publicUserId)
@@ -88,7 +87,7 @@ async function handleGet(
       return errors.internalError();
     }
 
-    return sendSuccess((data as ClipActivityRow[]) ?? []);
+    return sendSuccess((data as unknown as ClipActivityRow[]) ?? []);
   } catch (err) {
     console.error('[API v1 Activity] Fetch error:', err);
     return errors.internalError();

@@ -13,8 +13,7 @@ import type { Category, Tag } from '@/types/database';
 
 // Raw client bypasses the Database generic for tables whose Insert types
 // resolve to `never` due to @supabase/supabase-js v2.49 schema constraints.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // ─── Interfaces ────────────────────────────────────────────────────────────────
 

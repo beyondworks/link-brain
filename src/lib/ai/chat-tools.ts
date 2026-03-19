@@ -8,8 +8,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { searchSimilarClips } from '@/lib/services/embedding-service';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // ─── OpenAI Tool Definitions ────────────────────────────────────────────────
 
@@ -313,16 +312,16 @@ async function execListTags(userId: string, args: ToolArgs): Promise<string> {
 
   const { data, error } = await db
     .from('clips')
-    .select('keywords')
+    .select('keywords' as 'id')
     .eq('user_id', userId)
-    .not('keywords', 'is', null)
+    .not('keywords' as 'id', 'is', null)
     .limit(500);
 
   if (error) return JSON.stringify({ error: error.message });
 
   // Aggregate tags
   const tagMap = new Map<string, number>();
-  for (const clip of (data ?? []) as Array<{ keywords: string[] | null }>) {
+  for (const clip of (data ?? []) as unknown as Array<{ keywords: string[] | null }>) {
     if (!clip.keywords) continue;
     for (const tag of clip.keywords) {
       tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);

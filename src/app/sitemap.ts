@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://linkbrain.cloud';

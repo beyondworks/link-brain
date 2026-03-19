@@ -13,8 +13,7 @@ import { sendSuccess, errors } from '@/lib/api/response';
 import { checkFeatureAccess } from '@/lib/services/plan-service';
 import type { ClipData } from '@/types/database';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export interface GraphNode {
   id: string;
@@ -91,19 +90,19 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
 
         if (rpcErr || !rpcData || !Array.isArray(rpcData)) return;
 
-        for (const row of rpcData as Array<{ id: string; similarity: number }>) {
+        for (const row of rpcData as Array<{ clip_id: string; similarity: number }>) {
           // 그래프 내 노드인지 확인
-          if (!clipIds.has(row.id)) continue;
+          if (!clipIds.has(row.clip_id)) continue;
 
           // 중복 엣지 방지
-          const [a, b] = clip.id < row.id ? [clip.id, row.id] : [row.id, clip.id];
+          const [a, b] = clip.id < row.clip_id ? [clip.id, row.clip_id] : [row.clip_id, clip.id];
           const key = `${a}::${b}`;
           if (edgeSet.has(key)) continue;
 
           edgeSet.add(key);
           edges.push({
             source: clip.id,
-            target: row.id,
+            target: row.clip_id,
             similarity: row.similarity,
           });
         }

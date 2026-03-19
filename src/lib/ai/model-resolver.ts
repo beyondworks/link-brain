@@ -9,8 +9,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { decryptToken } from '@/lib/oauth/token-manager';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export interface ResolvedAIConfig {
   provider: 'openai' | 'google' | 'anthropic';

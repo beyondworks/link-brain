@@ -54,7 +54,7 @@ async function countRows(
 ): Promise<number> {
   try {
     let query = supabaseAdmin
-      .from(table)
+      .from(table as 'clips')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte(dateColumn, gte);

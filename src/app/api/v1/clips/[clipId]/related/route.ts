@@ -14,8 +14,7 @@ import type { ClipData } from '@/types/database';
 type RouteContext = { params: Promise<{ clipId: string }> };
 
 // Escape strict Supabase generics for tables not fully typed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export interface RelatedClip {
   id: string;

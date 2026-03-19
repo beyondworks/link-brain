@@ -17,8 +17,7 @@ import { upsertClipEmbedding } from '@/lib/services/embedding-service';
 import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 function getInternalSecret(): string {
   const secret = process.env.INTERNAL_API_SECRET;

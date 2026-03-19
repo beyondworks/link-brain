@@ -8,8 +8,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import type { OAuthConnection, OAuthProvider } from '@/types/database';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // ─── Encryption ─────────────────────────────────────────────────────────────
 

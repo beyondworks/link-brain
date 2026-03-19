@@ -42,8 +42,7 @@ const SORT_COLUMN_MAP: Record<string, string> = {
 };
 
 // Supabase typed client cast to escape strict insert/update generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * GET /api/v1/clips
@@ -85,14 +84,12 @@ async function handleList(req: NextRequest, auth: AuthContext): Promise<NextResp
       categoryId = (catRow as Pick<Category, 'id'> | null)?.id;
     }
 
+    const selectStr = includeContent
+      ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
+      : '*';
     let query = db
       .from('clips')
-      .select(
-        includeContent
-          ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
-          : '*',
-        { count: 'exact' }
-      )
+      .select(selectStr as '*', { count: 'exact' })
       .eq('user_id', auth.publicUserId)
       .order(sortCol, { ascending: order === 'asc' });
 

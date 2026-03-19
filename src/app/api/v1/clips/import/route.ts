@@ -10,8 +10,7 @@ import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
 import { checkClipLimit } from '@/lib/services/plan-service';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 interface ImportRow {
   url: string;

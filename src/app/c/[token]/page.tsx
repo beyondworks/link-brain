@@ -13,8 +13,7 @@ import type { Metadata } from 'next';
 import type { ClipData } from '@/types/database';
 import { ExternalLink, Layers, Calendar } from 'lucide-react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 interface CollectionRow {
   id: string;
@@ -43,24 +42,24 @@ function formatDate(iso: string): string {
 async function getSharedCollection(token: string): Promise<SharedCollection | null> {
   const { data: colData, error: colError } = await db
     .from('collections')
-    .select('id, name, description, color, share_token')
-    .eq('share_token', token)
+    .select('id, name, description, color, share_token' as 'id, name, description, color')
+    .eq('share_token' as 'id', token)
     .single();
 
   if (colError || !colData) return null;
 
-  const collection = colData as CollectionRow;
+  const collection = colData as unknown as CollectionRow;
 
   // 컬렉션에 속한 클립 조회 (clip_collections 조인)
   const { data: clipRows, error: clipError } = await db
     .from('clip_collections')
-    .select('clips(*)')
+    .select('clips(*)' as '*')
     .eq('collection_id', collection.id)
-    .order('created_at', { ascending: false });
+    .order('created_at' as 'clip_id', { ascending: false });
 
   if (clipError) return null;
 
-  const clips: ClipData[] = ((clipRows as Array<{ clips: ClipData }>) ?? [])
+  const clips: ClipData[] = ((clipRows as unknown as Array<{ clips: ClipData }>) ?? [])
     .map((row) => row.clips)
     .filter(Boolean);
 

@@ -6,8 +6,7 @@ export const alt = 'Linkbrain Clip';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export default async function OGImage({ params }: { params: Promise<{ clipId: string }> }) {
   const { clipId } = await params;

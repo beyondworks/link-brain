@@ -15,8 +15,7 @@ import { autoTagClip, generateClipMetadata } from '@/lib/services/clip-service';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { generatePdf } from '@/lib/pdf/pdf-generator';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 function getInternalSecret(): string {
   const secret = process.env.INTERNAL_API_SECRET;

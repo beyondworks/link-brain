@@ -8,8 +8,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * Look up public.users by auth_id. If missing, create the row

@@ -17,8 +17,7 @@ const searchWithContentSchema = searchQuerySchema.extend({
 });
 
 // Escape strict Supabase generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 async function handleSearch(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const result = validateQuery(req.nextUrl.searchParams, searchWithContentSchema);
@@ -54,14 +53,12 @@ async function handleSearch(req: NextRequest, auth: AuthContext): Promise<NextRe
       categoryId = catRow ? (catRow as Pick<Category, 'id'>).id : undefined;
     }
 
+    const selectStr = includeContent
+      ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
+      : '*';
     let query = db
       .from('clips')
-      .select(
-        includeContent
-          ? '*, clip_contents(html_content, content_markdown, raw_markdown)'
-          : '*',
-        { count: 'exact' }
-      )
+      .select(selectStr as '*', { count: 'exact' })
       .eq('user_id', auth.publicUserId)
       .or(`fts.plfts(simple).${q},title.ilike.%${q.replace(/%/g, '\\%').replace(/_/g, '\\_')}%,summary.ilike.%${q.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`)
       .order('created_at', { ascending: false });

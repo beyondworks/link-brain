@@ -7,8 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // Raw Supabase client without Database generic constraints, used for
 // tables not yet present in the Database type definition (clip_embeddings).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * Generate a 1536-dimensional embedding vector for the given text.

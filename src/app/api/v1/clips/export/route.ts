@@ -11,8 +11,7 @@ import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { errors } from '@/lib/api/response';
 import { checkFeatureAccess } from '@/lib/services/plan-service';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 interface ExportClip {
   id: string;
@@ -77,7 +76,7 @@ async function handleExport(req: NextRequest, auth: AuthContext): Promise<NextRe
 
   const { data, error } = await db
     .from('clips')
-    .select('id, url, title, description, platform, tags, is_favorite, is_archived, created_at, summary')
+    .select('id, url, title, description, platform, tags, is_favorite, is_archived, created_at, summary' as '*')
     .eq('user_id', auth.publicUserId)
     .order('created_at', { ascending: false });
 
@@ -86,7 +85,7 @@ async function handleExport(req: NextRequest, auth: AuthContext): Promise<NextRe
     return errors.internalError();
   }
 
-  const clips = (data ?? []) as ExportClip[];
+  const clips = (data ?? []) as unknown as ExportClip[];
   const date = new Date().toISOString().slice(0, 10);
 
   if (format === 'csv') {

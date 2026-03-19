@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 const MAX_GENERATIONS = 50;
 
@@ -40,16 +39,17 @@ async function handler(req: Request, auth: AuthContext) {
       );
     }
 
+    const insertRow = {
+      user_id: auth.publicUserId,
+      content_type: content_type as string,
+      tone: (tone as string) ?? 'professional',
+      length: (length as string) ?? 'medium',
+      source_clip_ids: (source_clip_ids as string[]) ?? [],
+      output: output as string,
+    };
     const { data, error } = await db
       .from('studio_generations')
-      .insert({
-        user_id: auth.publicUserId,
-        content_type,
-        tone: tone ?? 'professional',
-        length: length ?? 'medium',
-        source_clip_ids: source_clip_ids ?? [],
-        output,
-      })
+      .insert(insertRow)
       .select('id, content_type, tone, length, source_clip_ids, output, created_at')
       .single();
 

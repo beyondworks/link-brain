@@ -18,8 +18,7 @@ const STORE_ID = process.env.LEMONSQUEEZY_STORE_ID ?? '';
 const MONTHLY_VARIANT_ID = process.env.LEMONSQUEEZY_PRO_MONTHLY_VARIANT_ID ?? '';
 const YEARLY_VARIANT_ID = process.env.LEMONSQUEEZY_PRO_YEARLY_VARIANT_ID ?? '';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {

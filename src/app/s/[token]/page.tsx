@@ -13,8 +13,7 @@ import type { Metadata } from 'next';
 import type { ClipData, ClipContent } from '@/types/database';
 import { ExternalLink, Clock, Calendar, ArrowUpRight } from 'lucide-react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 interface SharedClip extends ClipData {
   clip_contents: ClipContent[];
@@ -35,13 +34,13 @@ function formatDate(iso: string): string {
 async function getSharedClip(token: string): Promise<SharedClip | null> {
   const { data, error } = await db
     .from('clips')
-    .select('*, clip_contents(*)')
-    .eq('share_token', token)
+    .select('*, clip_contents(*)' as '*')
+    .eq('share_token' as 'id', token)
     .eq('is_public', true)
     .single();
 
   if (error || !data) return null;
-  return data as SharedClip;
+  return data as unknown as SharedClip;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

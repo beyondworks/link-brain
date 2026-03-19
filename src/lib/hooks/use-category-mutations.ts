@@ -20,7 +20,7 @@ export function useCreateCategory() {
         .eq('user_id', user.id)
         .order('sort_order', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const nextOrder = existing ? existing.sort_order + 1 : 0;
 

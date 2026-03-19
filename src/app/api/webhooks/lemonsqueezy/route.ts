@@ -22,8 +22,7 @@ function getWebhookSecret(): string {
 }
 
 // Escape strict Supabase generics
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // Lemon Squeezy event types
 type LemonSqueezyEventName =

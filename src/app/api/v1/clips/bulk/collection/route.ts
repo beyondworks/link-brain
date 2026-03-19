@@ -11,8 +11,7 @@ import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
 import { z } from 'zod';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 const bulkCollectionSchema = z.object({
   clipIds: z.array(z.string().uuid()).min(1).max(100),

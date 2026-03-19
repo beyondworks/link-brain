@@ -16,8 +16,7 @@ import {
   type Feature,
 } from '@/config/credits';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 export interface PlanStatus {
   tier: PlanTier;
@@ -264,7 +263,7 @@ export async function deductCredits(
     p_user_id: publicUserId,
     p_action: action,
     p_cost: cost,
-    p_clip_id: clipId ?? null,
+    p_clip_id: clipId ?? undefined,
     p_monthly_limit: monthlyLimit,
   });
 

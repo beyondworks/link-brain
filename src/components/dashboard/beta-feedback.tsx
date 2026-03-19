@@ -30,11 +30,12 @@ export function BetaFeedback() {
 
     setIsSending(true);
     try {
-      const { error } = await supabase.from('beta_feedback').insert({
+      const insertData = {
         user_id: user.id,
-        type: feedbackType,
+        type: feedbackType as string,
         message: message.trim(),
-      });
+      };
+      const { error } = await supabase.from('beta_feedback').insert(insertData);
 
       if (error) throw error;
 

@@ -2,6 +2,9 @@
 // Database types aligned with SQL schema (001_initial_schema.sql)
 // =============================================================================
 
+// Re-export Database type from auto-generated file (supabase gen types)
+export type { Database } from './database-generated';
+
 export type UserRole = 'user' | 'admin';
 export type SubscriptionTier = 'free' | 'pro';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'cancelled' | 'paused';
@@ -22,9 +25,9 @@ export interface User {
   avatar_url: string | null;
   bio: string | null;
   language: string;
-  theme: 'light' | 'dark' | 'system';
-  plan: SubscriptionTier;
-  role: UserRole;
+  theme: string;
+  plan: string;
+  role: string;
   openai_api_key: string | null;
   google_ai_key: string | null;
   created_at: string;
@@ -89,13 +92,13 @@ export interface ClipData {
   read_time: number | null;
   ai_score: number | null;
   is_favorite: boolean;
-  is_pinned?: boolean;
   is_read: boolean;
   is_read_later: boolean;
   is_archived: boolean;
   is_hidden: boolean;
+  is_pinned?: boolean;            // DB migration pending — column not yet in production
   is_public: boolean;
-  share_token: string | null;
+  share_token?: string | null;   // DB migration pending — column not yet in production
   category_id: string | null;
   views: number;
   likes_count: number;
@@ -169,11 +172,13 @@ export interface ClipAnnotation {
   id: string;
   clip_id: string;
   user_id: string;
-  type: 'highlight' | 'note' | 'bookmark';
+  type: string;
   selected_text: string | null;
   note_text: string | null;
   position_data: Record<string, unknown> | null;
   color: string;
+  timestamp: string;
+  /** Alias for timestamp — used throughout the codebase */
   created_at: string;
 }
 
@@ -249,33 +254,3 @@ export interface ReadingProgress {
   last_read_at: string;
 }
 
-// ─── Supabase Database shape ─────────────────────────────────────────────────
-
-export interface Database {
-  public: {
-    Tables: {
-      users: { Row: User; Insert: Partial<User> & Pick<User, 'auth_id' | 'email'>; Update: Partial<User>; Relationships: []; };
-      categories: { Row: Category; Insert: Partial<Category> & Pick<Category, 'user_id' | 'name'>; Update: Partial<Category>; Relationships: []; };
-      collections: { Row: Collection; Insert: Partial<Collection> & Pick<Collection, 'user_id' | 'name'>; Update: Partial<Collection>; Relationships: []; };
-      clips: { Row: ClipData; Insert: Partial<ClipData> & Pick<ClipData, 'user_id' | 'url'>; Update: Partial<ClipData>; Relationships: []; };
-      clip_images: { Row: ClipImage; Insert: Partial<ClipImage> & Pick<ClipImage, 'clip_id' | 'storage_path'>; Update: Partial<ClipImage>; Relationships: []; };
-      clip_contents: { Row: ClipContent; Insert: Partial<ClipContent> & Pick<ClipContent, 'clip_id'>; Update: Partial<ClipContent>; Relationships: []; };
-      tags: { Row: Tag; Insert: Partial<Tag> & Pick<Tag, 'name'>; Update: Partial<Tag>; Relationships: []; };
-      clip_tags: { Row: { clip_id: string; tag_id: string }; Insert: { clip_id: string; tag_id: string }; Update: never; Relationships: []; };
-      clip_collections: { Row: { clip_id: string; collection_id: string }; Insert: { clip_id: string; collection_id: string }; Update: never; Relationships: []; };
-      subscriptions: { Row: Subscription; Insert: Partial<Subscription> & Pick<Subscription, 'user_id'>; Update: Partial<Subscription>; Relationships: []; };
-      credits: { Row: Credits; Insert: Partial<Credits> & Pick<Credits, 'user_id'>; Update: Partial<Credits>; Relationships: []; };
-      notifications: { Row: Notification; Insert: Partial<Notification> & Pick<Notification, 'user_id' | 'type'>; Update: Partial<Notification>; Relationships: []; };
-      clip_annotations: { Row: ClipAnnotation; Insert: Partial<ClipAnnotation> & Pick<ClipAnnotation, 'clip_id' | 'user_id' | 'type'>; Update: Partial<ClipAnnotation>; Relationships: []; };
-      reading_progress: { Row: ReadingProgress; Insert: Partial<ReadingProgress> & Pick<ReadingProgress, 'clip_id' | 'user_id'>; Update: Partial<ReadingProgress>; Relationships: []; };
-      api_keys: { Row: ApiKey; Insert: Omit<ApiKey, 'id' | 'timestamp' | 'last_used_at'>; Update: Partial<ApiKey>; Relationships: []; };
-      webhooks: { Row: Webhook; Insert: Omit<Webhook, 'id' | 'timestamp'>; Update: Partial<Webhook>; Relationships: []; };
-      oauth_connections: { Row: OAuthConnection; Insert: Partial<OAuthConnection> & Pick<OAuthConnection, 'user_id' | 'provider' | 'provider_user_id' | 'access_token'>; Update: Partial<OAuthConnection>; Relationships: []; };
-      image_albums: { Row: ImageAlbum; Insert: Partial<ImageAlbum> & Pick<ImageAlbum, 'user_id' | 'name'>; Update: Partial<ImageAlbum>; Relationships: []; };
-      image_album_clips: { Row: { album_id: string; clip_id: string; added_at: string }; Insert: { album_id: string; clip_id: string }; Update: never; Relationships: []; };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-  };
-}

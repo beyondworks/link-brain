@@ -23,8 +23,7 @@ export interface DuplicatesResponse {
   totalDuplicates: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 async function handleGetDuplicates(
   _req: NextRequest,

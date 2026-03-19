@@ -72,7 +72,7 @@ export function useClips(options: UseClipsOptions = {}) {
       } else if (filters?.readStatus === 'read') {
         query = query.eq('is_read', true);
       }
-      if (filters?.isArchived !== undefined) {
+      if (filters?.isArchived != null) {
         query = query.eq('is_archived', filters.isArchived);
       } else {
         // Default: exclude archived
@@ -157,7 +157,7 @@ export function useClip(clipId: string | null) {
         .single();
 
       if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
-      return data as ClipData & { clip_contents: ClipContent[]; clip_images: unknown[] };
+      return data as unknown as ClipData & { clip_contents: ClipContent[]; clip_images: unknown[] };
     },
     enabled: !!clipId && !!user,
     staleTime: 60_000,

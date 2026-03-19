@@ -3,8 +3,7 @@ import { withAuth } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 // POST /api/v1/device-tokens — Register device token
 export const POST = withAuth(async (req: NextRequest, auth) => {

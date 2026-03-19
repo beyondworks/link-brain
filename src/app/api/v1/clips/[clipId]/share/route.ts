@@ -11,8 +11,7 @@ import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
 import type { ClipData } from '@/types/database';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /** Generate an 8-char random token */
 function generateShareToken(): string {
@@ -33,7 +32,7 @@ async function handleEnable(
   // Verify ownership
   const { data: existing, error: fetchError } = await db
     .from('clips')
-    .select('id, share_token, is_public')
+    .select('id, share_token, is_public' as 'id, is_public')
     .eq('id', clipId)
     .eq('user_id', auth.publicUserId)
     .single();
@@ -42,14 +41,14 @@ async function handleEnable(
     return errors.notFound('Clip');
   }
 
-  const clip = existing as Pick<ClipData, 'id' | 'share_token' | 'is_public'>;
+  const clip = existing as unknown as Pick<ClipData, 'id' | 'share_token' | 'is_public'>;
 
   // Reuse existing token if already shared
   const token = clip.share_token ?? generateShareToken();
 
   const { error: updateError } = await db
     .from('clips')
-    .update({ is_public: true, share_token: token })
+    .update({ is_public: true, share_token: token } as { is_public: boolean })
     .eq('id', clipId)
     .eq('user_id', auth.publicUserId);
 
@@ -87,7 +86,7 @@ async function handleDisable(
 
   const { error: updateError } = await db
     .from('clips')
-    .update({ is_public: false, share_token: null })
+    .update({ is_public: false, share_token: null } as { is_public: boolean })
     .eq('id', clipId)
     .eq('user_id', auth.publicUserId);
 

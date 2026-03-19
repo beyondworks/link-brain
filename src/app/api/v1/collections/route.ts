@@ -16,8 +16,7 @@ import { checkCollectionLimit } from '@/lib/services/plan-service';
 import type { Collection } from '@/types/database';
 
 // Escape strict Supabase generics for tables not fully typed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabaseAdmin as any;
+const db = supabaseAdmin;
 
 /**
  * GET /api/v1/collections

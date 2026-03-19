@@ -20,12 +20,11 @@ async function getCollectionWithOwnership(
   userId: string
 ): Promise<{ row: CollectionRow | null; error: string | null }> {
   const { supabaseAdmin } = await import('@/lib/supabase/admin');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabaseAdmin as any;
+    const db = supabaseAdmin;
 
   const { data, error } = await db
     .from('collections')
-    .select('id, user_id, share_token')
+    .select('id, user_id, share_token' as 'id, user_id')
     .eq('id', collectionId)
     .single();
 
@@ -33,7 +32,7 @@ async function getCollectionWithOwnership(
     return { row: null, error: 'not_found' };
   }
 
-  const row = data as CollectionRow;
+  const row = data as unknown as CollectionRow;
   if (row.user_id !== userId) {
     return { row: null, error: 'access_denied' };
   }
@@ -70,12 +69,11 @@ async function handleCreate(
 
   if (!row.share_token) {
     const { supabaseAdmin } = await import('@/lib/supabase/admin');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabaseAdmin as any;
+        const db = supabaseAdmin;
 
     const { error: updateError } = await db
       .from('collections')
-      .update({ share_token: token, updated_at: new Date().toISOString() })
+      .update({ share_token: token, updated_at: new Date().toISOString() } as { updated_at: string })
       .eq('id', collectionId);
 
     if (updateError) {
@@ -128,12 +126,11 @@ async function handleDelete(
   }
 
   const { supabaseAdmin } = await import('@/lib/supabase/admin');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabaseAdmin as any;
+    const db = supabaseAdmin;
 
   const { error: updateError } = await db
     .from('collections')
-    .update({ share_token: null, updated_at: new Date().toISOString() })
+    .update({ share_token: null, updated_at: new Date().toISOString() } as { updated_at: string })
     .eq('id', collectionId);
 
   if (updateError) {
