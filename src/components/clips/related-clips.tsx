@@ -4,7 +4,6 @@ import { memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ExternalLink, Hash } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getGradient } from '@/config/constants';
@@ -49,26 +48,26 @@ function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
   return (
     <div className="space-y-2">
       <h3 className="mb-2 text-sm font-semibold text-foreground">관련 클립</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div className="divide-y divide-border/60">
         {clips.map((clip) => {
           const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
           const gradient = getGradient(clip.id);
 
           return (
-            <Card
+            <div
               key={clip.id}
               onClick={() => router.push(`/clip/${clip.id}`)}
-              className="flex cursor-pointer items-start gap-2 p-2.5 transition-shadow hover:shadow-md"
+              className="flex cursor-pointer items-center gap-3 py-3 transition-colors hover:bg-muted/30"
             >
               {/* 썸네일 */}
-              <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                 {clip.image ? (
                   <Image
                     src={clip.image}
                     alt={clip.title ?? ''}
                     fill
                     className="object-cover"
-                    sizes="80px"
+                    sizes="48px"
                   />
                 ) : (
                   <div
@@ -77,61 +76,48 @@ function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
                       gradient
                     )}
                   >
-                    <span className="text-lg font-bold text-white">{firstLetter}</span>
+                    <span className="text-sm font-bold text-white">{firstLetter}</span>
                   </div>
                 )}
               </div>
 
               {/* 내용 */}
               <div className="flex-1 min-w-0">
-                <p className="line-clamp-2 text-xs font-medium leading-snug">
+                <p className="line-clamp-1 text-sm font-medium text-foreground">
                   {clip.title ?? clip.url}
                 </p>
-
-                {/* 공통 태그 뱃지 */}
-                {clip.commonTags.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {clip.commonTags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/8 px-1.5 py-0.5 text-[10px] font-medium text-primary"
-                      >
-                        <Hash size={8} />
-                        {tag}
-                      </span>
-                    ))}
-                    {clip.commonTags.length > 3 && (
-                      <span className="rounded-full border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        +{clip.commonTags.length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-0.5 flex items-center gap-2">
                   {clip.platform && (
                     <span className="text-xs text-muted-foreground capitalize">
                       {clip.platform}
                     </span>
                   )}
-                  {clip.similarity > 0 && (
-                    <span className="text-xs text-primary font-medium">
-                      {Math.round(clip.similarity * 100)}% 일치
+                  {clip.commonTags.length > 0 && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-primary">
+                      <Hash size={8} />
+                      {clip.commonTags[0]}
                     </span>
                   )}
-                  <a
-                    href={clip.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="ml-auto text-muted-foreground hover:text-foreground"
-                    aria-label="원본 링크 열기"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {clip.similarity > 0 && (
+                    <span className="text-xs text-primary font-medium">
+                      {Math.round(clip.similarity * 100)}%
+                    </span>
+                  )}
                 </div>
               </div>
-            </Card>
+
+              {/* 외부 링크 */}
+              <a
+                href={clip.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 p-1 text-muted-foreground/50 hover:text-foreground"
+                aria-label="원본 링크 열기"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
           );
         })}
       </div>
