@@ -1,73 +1,82 @@
 # Session Handover
 
-## 날짜: 2026-03-19 (최종)
+## 날짜: 2026-03-20
 ## 프로젝트: Link-brain
 ## 브랜치: main
-## 커밋 수: 35개 (이번 세션)
 
-## 완료 (전체)
+## 완료
 
-### Pre-Deploy Review + 수정 (27건)
-- 6개 에이전트 병렬 리뷰 → 87개 이슈 발견
-- Critical 12건, HIGH 9건, 빈 기능 6건 수정
-- `supabaseAdmin as any` 58건 전량 제거 (타입 재생성)
-- AI 라우트 940줄 → 7개 모듈 분리
-- 인메모리 rate limiter → Upstash Redis
-- Collections N+1 (51→2쿼리), Bulk ops (40→2쿼리)
-- SQL injection, import plan limit, 브랜드 대비 개선
+### PR #62 — ShareExtension 토큰 동기화 수정
+- `onAuthStateChange` 구독 추가 (TOKEN_REFRESHED, SIGNED_IN 시 즉시 App Group 동기화)
+- `visibilitychange` 리스너 참조 버그 수정 (메모리 누수 방지)
+- 앱 복귀 시 clips/nav-counts 쿼리 무효화 (공유된 클립 즉시 표시)
+- 빈 catch 블록에 console.warn 로깅 추가
 
-### MEDIUM 수정 (4건)
-- categories.is_hidden 마이그레이션
-- Realtime invalidation 최적화 (UPDATE시 2개만)
-- Cron 주석 수정, clip_contents 실패 → partial 상태
+### PR #63 — iOS 위젯 3종 + SaveClipIntent
+- **StatsWidget** (small): 전체 클립, 오늘 저장, 즐겨찾기 수
+- **RecentClipsWidget** (medium): 최근 클립 4개 (제목 + 플랫폼 아이콘)
+- **QuickSaveWidget** (small): 탭으로 클립보드 링크 저장
+- **SaveClipIntent**: 단축어/Siri/뒷면탭에서 클립보드 URL 저장
+- **useWidgetSync**: navCounts/clips 변경 시 App Group에 자동 동기화
 
-### Capacitor iOS 네이티브 앱
-- 전체 셋업 + 시뮬레이터 빌드/실행 확인
-- Haptics, StatusBar, Keyboard, Deep Links, Native UX
-- Face ID, Push Notification, Share Extension, Widget 3종
-- 앱 아이콘 (흰 배경 + 민트 심볼), allowNavigation
-- App Groups 토큰 공유 + 펜딩 클립 재처리
+### PR #64 — 위젯 딥링크 핸들러
+- `linkbrain://save-clipboard` → 클립 추가 모달 열기
+- `linkbrain://clip/{id}` → 클립 peek 열기
 
-### 스튜디오 기능 강화
-- 모달 피커 (검색+카테고리/플랫폼 필터+미리보기) 3개 컴포넌트
-- RAG 가이드 6종 (블로그 SEO, SNS 바이럴, 뉴스레터 오픈율)
-- 집단 학습 파이프라인 (content_patterns + 크론잡 + 임베딩 유사도)
+### PR #65 — 푸시 알림 시스템 + todayClips RPC + Cron Jobs
+- **todayClips**: get_nav_counts RPC에 today 카운트 추가 (027 마이그레이션)
+- **DB 테이블**: notification_preferences (사용자별 ON/OFF + quiet hours), notification_log (028 마이그레이션)
+- **push-service.ts**: APNs HTTP/2 발송 (키 미설정 시 graceful skip)
+- **notification-triggers.ts**: 8가지 알림 트리거 함수
+- **API**: /api/v1/notifications (GET/PATCH), /api/v1/notification-preferences (GET/PUT)
+- **Cron Jobs**: notify-unread(매 시간), notify-reminders(매 10분), grant-credits(매월 1일)
+- **기존 코드 트리거**: process-clip→분석완료, insights→인사이트완료, plan-service→크레딧부족
 
-### AI 채팅 도구 (12개)
-- 읽기 9개: search/find_similar/get_content/list_clips/collections/categories/tags/find_duplicates/get_stats
-- 쓰기 즉시 2개: create_collection, update_clip_notes
-- 쓰기 확인필요 1개: propose_action (move/collection/archive/favorite/bulk_tag)
-
-### UI/UX 수정 (10건+)
-- 클립 상세 3행 레이아웃, 관련 클립 리스트 뷰
-- 스튜디오 모바일 레이아웃 수정
-- 설정 API키 테이블, AI 모델 Switch 레이아웃
-- button 중첩 hydration, 이미지 깨짐, 본문 미표시 → summary fallback
-- native.css min-height 규칙 제거
-
-### DB 마이그레이션 적용
-- 025 remind_at, 026 device_tokens, 027 content_patterns, 028 category_is_hidden
+### 로컬 전용 (ios/ — git 미추적)
+- pbxproj: DEVELOPMENT_TEAM, IPHONEOS_DEPLOYMENT_TARGET(Widget 17.0, ShareExt 15.0), ProvisioningStyle, CODE_SIGN_ENTITLEMENTS
+- LinkbrainWidgetExtension.entitlements 생성 (App Group)
+- ShareViewController: pending_clips JSON 직렬화 + 409 성공 처리
+- BiometricPlugin: switch exhaustive (.none 케이스 추가)
+- ControlWidget/LiveActivity 템플릿 제거, @main 중복 해결
+- 구버전 ios/ShareExtension/ 삭제
+- SaveClipIntent.swift, 위젯 3종 Swift 코드
 
 ## 미완료
 
-### 인프라/설정
-1. **Upstash Redis 환경변수** — Vercel Marketplace에서 추가 → 키 등록 (코드 완성됨)
-2. **Apple Developer 코드 서명** — 실기기/App Store용 (수동)
-3. **AASA Team ID** — `public/.well-known/apple-app-site-association`에서 TEAMID 교체
+### Apple Developer 가입 후 진행
+1. **APNs `.p8` 키 발급** → 환경변수 등록 (APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_P8, APNS_BUNDLE_ID)
+2. **실기기 빌드/테스트**: 위젯, SaveClipIntent + 뒷면탭, 푸시 수신
+3. **App Store 배포 준비**: 프로비저닝 프로파일, 앱 심사
 
-### Pre-Deploy Review 잔여 (MEDIUM)
-4. Anthropic/Google 키로 OpenAI 엔드포인트 호출 (provider 분기)
-5. clip_contents INSERT 실패 시 불완전 클립 → partial 상태 (완료)
+### DB 마이그레이션 적용
+- 025 (remind_at), 026 (device_tokens), 027 (nav_counts today), 028 (notification tables) 미적용
+- `npx supabase login` → `npx supabase db push` 필요 (토큰 만료 상태)
 
-### 장기 계획
-6. 온보딩 화면 (최초 설치 시)
-7. Sign in with Apple
-8. Spotlight 검색 연동
-9. 오프라인 캐싱
+### QuickSaveWidget 클립보드 자동 저장
+- 현재: 위젯 탭 → 앱 열림 → 클립 추가 모달만 표시
+- 구현 필요: 딥링크 핸들러에서 클립보드 URL 읽어 자동 저장
+
+### Supabase 타입 재생성
+- `npx supabase gen types typescript --project-id ucflmznygocgdwreoygc --schema public > src/types/supabase.ts`
+
+## 에러/학습
+
+### Xcode Extension 빌드 실패 원인
+- Extension 타겟에 DEVELOPMENT_TEAM 누락 → 클린 빌드 시 서명 실패 → appex 탈락
+- Xcode 26.3 기본 배포 타겟 26.2 → 대부분 기기에서 Extension 로드 불가
+- ControlWidget은 iOS 18+ 전용 → 배포 타겟 15.0으로 낮추면 빌드 에러 → 제거하고 17.0으로
+
+### ShareExtension 401 원인 (복합)
+- access_token JWT 1시간 TTL + onAuthStateChange 미연결 → 만료 토큰 사용
+- 구버전 ShareViewController(Keychain 기반)가 잔존 → JS는 UserDefaults에만 쓰므로 항상 nil
+- pending_clips NSArray↔String 포맷 불일치 → JS에서 읽기 불가
+
+### pbxproj 직접 편집
+- Xcode GUI 권장이지만, DEVELOPMENT_TEAM/IPHONEOS_DEPLOYMENT_TARGET 등 단순 값 추가는 CLI에서도 안전
+- @main 중복은 Xcode가 fallback 코드 자동 생성할 때 발생 — 수동 정리 필수
 
 ## 다음 세션 시작 시
-1. `SESSION_HANDOVER.md` 읽기
-2. Upstash Redis 환경변수 등록 → rate limiter 활성화
-3. Apple Developer 계정으로 코드 서명 설정
-4. AASA Team ID 교체
-5. Supabase 타입 재생성 (`npx supabase gen types typescript`) → 027/028 테이블 포함
+1. Apple Developer 가입 여부 확인 → APNs 키 발급 및 환경변수 등록
+2. Supabase 마이그레이션 적용 (025~028)
+3. Vercel 배포 확인 (PR #62~#65 반영 여부)
+4. 실기기 빌드 테스트 (위젯/SaveClipIntent/푸시)
