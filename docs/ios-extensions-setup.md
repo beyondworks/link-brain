@@ -9,7 +9,7 @@
 1. Open `ios/App/App.xcworkspace` in Xcode
 2. Select the `App` target -> Signing & Capabilities
 3. Click `+ Capability` -> `App Groups`
-4. Add group: `group.cloud.linkbrain.app`
+4. Add group: `group.com.linkbrain.app`
 
 ## Step 2: Add Share Extension
 
@@ -20,7 +20,7 @@
 5. Add existing file: `ios/ShareExtension/ShareViewController.swift`
 6. Add existing file: `ios/ShareExtension/Info.plist` (replace auto-generated)
 7. Select ShareExtension target -> Signing & Capabilities -> Add `App Groups` -> same group
-8. Select ShareExtension target -> Signing & Capabilities -> Add `Keychain Sharing` -> access group: `group.cloud.linkbrain.app`
+8. Select ShareExtension target -> Signing & Capabilities -> Add `Keychain Sharing` -> access group: `group.com.linkbrain.app`
 
 ## Step 3: Add Widget Extension
 
@@ -38,7 +38,7 @@
 
 For the main App target:
 1. Signing & Capabilities -> Add `Keychain Sharing`
-2. Keychain Groups: `group.cloud.linkbrain.app`
+2. Keychain Groups: `group.com.linkbrain.app`
 
 ## Step 5: Build & Test
 

@@ -8,6 +8,7 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://linkbrain.cloud/dashboard',
     cleartext: false,
+    allowNavigation: ['linkbrain.cloud', '*.linkbrain.cloud', 'accounts.google.com', '*.google.com', '*.supabase.co'],
   },
   ios: {
     contentInset: 'automatic',
