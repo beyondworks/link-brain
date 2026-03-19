@@ -154,8 +154,14 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
     '- 도구 결과를 바탕으로 정확하고 구체적으로 답변하세요\n' +
     '- 어떤 클립을 참조했는지 답변에 포함하세요\n' +
     '- 관련 정보가 없으면 솔직히 알려주세요\n\n' +
+    '즉시 실행 도구:\n' +
+    '- create_collection: 새 컬렉션 생성 (즉시 실행, 확인 불필요)\n' +
+    '- update_clip_notes: 클립 메모 추가/수정 (즉시 실행)\n' +
+    '- find_duplicate_clips: 중복 클립 탐지\n' +
+    '- get_clip_stats: 클립 통계 요약\n\n' +
     '쓰기 도구 규칙:\n' +
-    '- 클립을 이동, 아카이브, 컬렉션 추가 등 변경하려면 반드시 propose_action을 먼저 호출\n' +
+    '- 클립을 이동, 아카이브, 컬렉션 추가, 태그 일괄 추가 등 변경하려면 반드시 propose_action을 먼저 호출\n' +
+    '- propose_action의 bulk_tag: 클립에 태그 일괄 추가 (tags 배열 필수)\n' +
     '- 직접 변경하지 말고 항상 계획을 먼저 제안\n' +
     '- 삭제(delete)는 지원하지 않음 — 사용자에게 직접 UI 안내\n' +
     '- 대상 클립을 search_clips 또는 list_clips로 먼저 찾은 후 propose_action 호출';

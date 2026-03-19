@@ -7,6 +7,7 @@ import { resolveAIConfig } from '@/lib/ai/model-resolver';
 import { streamOpenAI } from '../helpers/openai-stream';
 import { type ContentStudioType, type AiRequestBody, type ClipRow } from '../types';
 import { loadGuide } from '@/lib/ai/guides';
+import { loadCollectivePatterns } from '@/lib/ai/guides/collective';
 
 const db = supabaseAdmin;
 
@@ -152,6 +153,24 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
     ? `\n\n[콘텐츠 유형별 전문 가이드 — 상위 콘텐츠 패턴 분석 기반]\n${guide}\n`
     : '';
 
+  // Collective learning: load aggregated patterns + similar clips
+  const typeToCategory: Record<string, string> = {
+    blog_post: 'blog', sns_post: 'sns', newsletter: 'newsletter',
+    email_draft: 'email', executive_summary: 'web', key_concepts: 'web',
+    review_notes: 'web', teach_back: 'web', quiz: 'web',
+    mind_map: 'web', simplified_summary: 'web',
+  };
+  let collectiveSection = '';
+  try {
+    collectiveSection = await loadCollectivePatterns(
+      typeToCategory[type] ?? 'web',
+      clipIds,
+      auth.publicUserId
+    );
+  } catch {
+    /* collective patterns unavailable — continue without */
+  }
+
   const systemPrompt =
     `당신은 ${typeLabel} 전문 작가입니다.\n` +
     `다음 소스 자료를 바탕으로 ${toneLabel} 톤으로 ${lengthGuide}의 ${typeLabel}을(를) 작성하세요.\n\n` +
@@ -160,7 +179,8 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
     `- ${typeInstructions}\n` +
     `- 소스 자료의 핵심 내용을 충실히 반영할 것\n` +
     '- 마크다운 문법(#, **, - 등)을 사용하지 말 것. 순수 플레인 텍스트로만 작성할 것' +
-    guideSection;
+    guideSection +
+    collectiveSection;
 
   const userPrompt = `[소스 자료]\n\n${sourceMaterial}`;
 

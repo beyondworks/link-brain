@@ -16,6 +16,7 @@ interface PendingAction {
   targetName: string | null;
   targetId: string | null;
   targetExists: boolean;
+  tags?: string[];
   clips: Array<{ id: string; title: string }>;
   clipCount: number;
 }
@@ -162,6 +163,33 @@ export async function handleConfirm(rawBody: unknown, auth: AuthContext): Promis
         if (error) throw error;
         resultMessage = `${ownedIds.length}개 클립을 "${pending.targetName}" 컬렉션에 추가했습니다.`;
         invalidate.push('collections');
+        break;
+      }
+
+      case 'bulk_tag': {
+        const tags = Array.isArray(pending.tags) ? pending.tags.slice(0, 20) : [];
+        if (tags.length === 0) {
+          return errors.invalidRequest('추가할 태그가 없습니다.');
+        }
+        // Append tags to existing keywords (deduplicated)
+        for (const clipId of ownedIds) {
+          const { data: clip } = await db
+            .from('clips')
+            .select('keywords')
+            .eq('id', clipId)
+            .single();
+          const existing = Array.isArray((clip as unknown as { keywords: string[] | null } | null)?.keywords)
+            ? (clip as unknown as { keywords: string[] }).keywords
+            : [];
+          const merged = [...new Set([...existing, ...tags])];
+          const { error: updateErr } = await db
+            .from('clips')
+            .update({ keywords: merged } as never)
+            .eq('id', clipId)
+            .eq('user_id', auth.publicUserId);
+          if (updateErr) throw updateErr;
+        }
+        resultMessage = `${ownedIds.length}개 클립에 태그 [${tags.join(', ')}]를 추가했습니다.`;
         break;
       }
 

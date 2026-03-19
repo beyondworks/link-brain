@@ -1,7 +1,7 @@
 /**
  * Cron Job: Retry failed clip processing
  *
- * Runs every 15 minutes via Vercel Cron.
+ * Runs daily at 09:00 UTC via Vercel Cron (schedule: "0 9 * * *").
  * Picks up clips with processing_status = 'failed' and retry_count < 3.
  */
 

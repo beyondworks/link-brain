@@ -47,19 +47,21 @@ export function useRealtimeInvalidation(userId: string | null) {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'clips', filter: `user_id=eq.${userId}` },
-          () => {
-            invalidate(
-              'clips',
-              'clips-count',
-              'nav-counts',
-              'dashboard-stats',
-              'weekly-stats',
-              'credits',
-              'continue-reading',
-              'read-later-list',
-              'duplicates',
-              'recent-activity'
-            );
+          (payload: { eventType: 'INSERT' | 'UPDATE' | 'DELETE' }) => {
+            // Always invalidate the clip list and nav counts
+            invalidate('clips', 'nav-counts');
+            // Heavy stats only needed when clip count changes (not on plain UPDATE)
+            if (payload.eventType !== 'UPDATE') {
+              invalidate(
+                'clips-count',
+                'dashboard-stats',
+                'weekly-stats',
+                'continue-reading',
+                'read-later-list',
+                'duplicates',
+                'recent-activity'
+              );
+            }
           }
         )
         // ── collections ────────────────────────────────────────

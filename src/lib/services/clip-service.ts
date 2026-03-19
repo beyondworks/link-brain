@@ -530,6 +530,11 @@ export const enrichClipContent = async (
 
   if (contentError) {
     console.error('[ClipService] clip_contents insert error:', contentError);
+    // Mark clip as partial so it can be retried — do not leave it as 'ready' with no content
+    await db
+      .from('clips')
+      .update({ processing_status: 'partial' })
+      .eq('id', clipId);
   }
 
   // Auto-tag (non-fatal)
@@ -634,6 +639,11 @@ export const processNewClip = async (
 
   if (contentError) {
     console.error('[ClipService] clip_contents insert error:', contentError);
+    // Mark clip as partial so it can be retried — do not leave it as 'ready' with no content
+    await db
+      .from('clips')
+      .update({ processing_status: 'partial' })
+      .eq('id', clipId);
   }
 
   // Auto-tag asynchronously (non-fatal)
