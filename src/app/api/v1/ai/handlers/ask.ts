@@ -153,7 +153,12 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
     '- 컬렉션, 카테고리, 태그 현황 질문에는 해당 list_ 도구를 사용하세요\n' +
     '- 도구 결과를 바탕으로 정확하고 구체적으로 답변하세요\n' +
     '- 어떤 클립을 참조했는지 답변에 포함하세요\n' +
-    '- 관련 정보가 없으면 솔직히 알려주세요';
+    '- 관련 정보가 없으면 솔직히 알려주세요\n\n' +
+    '쓰기 도구 규칙:\n' +
+    '- 클립을 이동, 아카이브, 컬렉션 추가 등 변경하려면 반드시 propose_action을 먼저 호출\n' +
+    '- 직접 변경하지 말고 항상 계획을 먼저 제안\n' +
+    '- 삭제(delete)는 지원하지 않음 — 사용자에게 직접 UI 안내\n' +
+    '- 대상 클립을 search_clips 또는 list_clips로 먼저 찾은 후 propose_action 호출';
 
   const messages: Array<{ role: string; content?: string; tool_calls?: unknown[]; tool_call_id?: string; name?: string }> = [
     { role: 'system', content: systemPrompt },
@@ -171,6 +176,7 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
     // ─── Function calling loop (max 5 iterations) ──────────────────
     const collectedClipIds: string[] = [];
     let finalResponse = '';
+    let pendingAction: Record<string, unknown> | null = null;
     const MAX_TOOL_ROUNDS = 5;
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -240,7 +246,13 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
 
         // Collect clip IDs from results
         try {
-          const parsed = JSON.parse(result) as { clips?: Array<{ id?: string }> };
+          const parsed = JSON.parse(result) as { __type?: string; clips?: Array<{ id?: string }> };
+
+          // Detect pending_action from propose_action tool
+          if (parsed.__type === 'pending_action') {
+            pendingAction = parsed as Record<string, unknown>;
+          }
+
           if (parsed.clips) {
             for (const clip of parsed.clips) {
               if (clip.id && !collectedClipIds.includes(clip.id)) {
@@ -256,6 +268,35 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
           tool_call_id: toolCall.id,
           content: result,
         });
+      }
+
+      // If a pending action was detected, prompt AI to explain it and break
+      if (pendingAction) {
+        messages.push({
+          role: 'user',
+          content: '위 작업 계획을 사용자에게 자연스럽게 설명하고, 진행할지 물어보세요.',
+        });
+
+        // One more call to get the explanation text
+        const explainRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${aiConfig.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: aiConfig.model,
+            messages,
+          }),
+        });
+
+        if (explainRes.ok) {
+          const explainJson = await explainRes.json() as {
+            choices: Array<{ message: { content: string | null } }>;
+          };
+          finalResponse = explainJson.choices[0]?.message?.content ?? '';
+        }
+        break;
       }
 
       // If this was the last round, force a text response
@@ -304,6 +345,7 @@ export async function handleAsk(rawBody: unknown, auth: AuthContext): Promise<Ne
           clipIds: collectedClipIds.slice(0, 20),
           usedRag: false,
           usedTools: true,
+          ...(pendingAction ? { pendingAction } : {}),
         });
         controller.enqueue(encoder.encode(`data: ${meta}\n\n`));
         controller.enqueue(encoder.encode(finalResponse));

@@ -8,11 +8,17 @@ import {
   ChevronLeft,
   Trash2,
   Sparkles,
+  Archive,
+  Star,
+  FolderOpen,
+  Layers,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUIStore } from '@/stores/ui-store';
-import { useConversations, useChatMessages, useSendMessage, useDeleteConversation } from '@/lib/hooks/use-chat';
+import { useConversations, useChatMessages, useSendMessage, useDeleteConversation, type PendingAction } from '@/lib/hooks/use-chat';
 import { ChatMessage } from '@/components/chat/chat-message';
 import { ChatInput } from '@/components/chat/chat-input';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -28,7 +34,7 @@ export function ChatPanel() {
 
   const { data: conversations, isLoading: convLoading } = useConversations();
   const { data: messages, isLoading: msgLoading } = useChatMessages(activeConversationId);
-  const { sendMessage, abort, streamingContent, isStreaming, referencedClipIds } = useSendMessage();
+  const { sendMessage, abort, streamingContent, isStreaming, referencedClipIds, pendingAction, isConfirming, confirmAction, dismissAction } = useSendMessage();
   const deleteConversation = useDeleteConversation();
 
   // Scroll to bottom on new messages
@@ -284,6 +290,17 @@ export function ChatPanel() {
                     )
                   )}
 
+                  {/* Pending Action Confirmation Card */}
+                  {pendingAction && !isStreaming && (
+                    <ActionConfirmCard
+                      pendingAction={pendingAction}
+                      conversationId={activeConversationId}
+                      isConfirming={isConfirming}
+                      onConfirm={confirmAction}
+                      onDismiss={dismissAction}
+                    />
+                  )}
+
                   <div ref={messagesEndRef} />
                 </>
               )}
@@ -299,5 +316,128 @@ export function ChatPanel() {
         )}
       </aside>
     </>
+  );
+}
+
+// ─── Action Confirm Card ──────────────────────────────────────────────────────
+
+const ACTION_ICONS: Record<string, typeof Archive> = {
+  archive: Archive,
+  unarchive: Archive,
+  favorite: Star,
+  unfavorite: Star,
+  move_to_category: FolderOpen,
+  add_to_collection: Layers,
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  archive: '아카이브',
+  unarchive: '아카이브 해제',
+  favorite: '즐겨찾기 추가',
+  unfavorite: '즐겨찾기 해제',
+  move_to_category: '카테고리 이동',
+  add_to_collection: '컬렉션 추가',
+};
+
+function ActionConfirmCard({
+  pendingAction,
+  conversationId,
+  isConfirming,
+  onConfirm,
+  onDismiss,
+}: {
+  pendingAction: PendingAction;
+  conversationId: string | null;
+  isConfirming: boolean;
+  onConfirm: (action: PendingAction, conversationId: string | null) => Promise<{ success: boolean; message: string }>;
+  onDismiss: () => void;
+}) {
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const Icon = ACTION_ICONS[pendingAction.action] ?? Sparkles;
+  const label = ACTION_LABELS[pendingAction.action] ?? pendingAction.action;
+  const maxShow = 10;
+  const extraCount = pendingAction.clipCount - maxShow;
+
+  const handleConfirm = async () => {
+    const res = await onConfirm(pendingAction, conversationId);
+    setResult(res);
+  };
+
+  if (result) {
+    return (
+      <div className={cn(
+        'mx-4 mt-3 rounded-xl border p-4',
+        result.success
+          ? 'border-primary/20 bg-primary/5'
+          : 'border-destructive/20 bg-destructive/5'
+      )}>
+        <div className="flex items-center gap-2">
+          <Check size={16} className={result.success ? 'text-primary' : 'text-destructive'} />
+          <span className="text-sm font-medium">{result.message}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-4 mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-2">
+        <Icon size={16} className="text-primary" />
+        <span className="text-sm font-semibold">작업 확인 — {label}</span>
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-foreground mb-3">{pendingAction.description}</p>
+
+      {/* Clip list */}
+      <div className="space-y-1 mb-2">
+        {pendingAction.clips.slice(0, maxShow).map((clip) => (
+          <div key={clip.id} className="flex items-start gap-1.5">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40" />
+            <span className="text-sm text-muted-foreground truncate">{clip.title}</span>
+          </div>
+        ))}
+        {extraCount > 0 && (
+          <p className="text-xs text-muted-foreground/60 pl-3">+{extraCount}개 더</p>
+        )}
+      </div>
+
+      {/* Target info */}
+      {pendingAction.targetName && (
+        <p className="text-sm text-muted-foreground mb-3">
+          → {pendingAction.targetName}
+          {!pendingAction.targetExists && (
+            <span className="ml-1 text-xs text-amber-500">(존재하지 않음)</span>
+          )}
+        </p>
+      )}
+
+      {/* Buttons */}
+      <div className="flex gap-2 mt-3">
+        <Button
+          size="sm"
+          onClick={handleConfirm}
+          disabled={isConfirming || !pendingAction.targetExists && (pendingAction.action === 'move_to_category' || pendingAction.action === 'add_to_collection')}
+          className="rounded-lg"
+        >
+          {isConfirming ? (
+            <Loader2 size={14} className="mr-1.5 animate-spin" />
+          ) : (
+            <Check size={14} className="mr-1.5" />
+          )}
+          실행
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDismiss}
+          disabled={isConfirming}
+          className="rounded-lg"
+        >
+          취소
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import { deductCredits } from '@/lib/services/plan-service';
 import { resolveAIConfig } from '@/lib/ai/model-resolver';
 import { streamOpenAI } from '../helpers/openai-stream';
 import { type ContentStudioType, type AiRequestBody, type ClipRow } from '../types';
+import { loadGuide } from '@/lib/ai/guides';
 
 const db = supabaseAdmin;
 
@@ -146,6 +147,11 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
   const lengthGuide = LENGTH_GUIDES[length] ?? '500자 내외';
   const typeInstructions = TYPE_INSTRUCTIONS[type];
 
+  const guide = loadGuide(type);
+  const guideSection = guide
+    ? `\n\n[콘텐츠 유형별 전문 가이드 — 상위 콘텐츠 패턴 분석 기반]\n${guide}\n`
+    : '';
+
   const systemPrompt =
     `당신은 ${typeLabel} 전문 작가입니다.\n` +
     `다음 소스 자료를 바탕으로 ${toneLabel} 톤으로 ${lengthGuide}의 ${typeLabel}을(를) 작성하세요.\n\n` +
@@ -153,7 +159,8 @@ export async function handleGenerate(rawBody: unknown, auth: AuthContext): Promi
     `- 한국어로 작성\n` +
     `- ${typeInstructions}\n` +
     `- 소스 자료의 핵심 내용을 충실히 반영할 것\n` +
-    '- 마크다운 문법(#, **, - 등)을 사용하지 말 것. 순수 플레인 텍스트로만 작성할 것';
+    '- 마크다운 문법(#, **, - 등)을 사용하지 말 것. 순수 플레인 텍스트로만 작성할 것' +
+    guideSection;
 
   const userPrompt = `[소스 자료]\n\n${sourceMaterial}`;
 

@@ -111,6 +111,37 @@ export const CHAT_TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'propose_action',
+      description: '클립에 대한 변경 작업을 제안합니다. 실제로 실행하지 않고, 사용자에게 확인을 요청합니다. 클립을 이동/아카이브/컬렉션 추가 등 변경 전에 반드시 이 도구를 먼저 호출하세요.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            enum: ['move_to_category', 'add_to_collection', 'archive', 'unarchive', 'favorite', 'unfavorite'],
+            description: '수행할 작업 유형',
+          },
+          clipIds: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '대상 클립 ID 목록 (최대 50개)',
+          },
+          targetName: {
+            type: 'string',
+            description: '이동 대상 카테고리명 또는 컬렉션명 (move/collection 시)',
+          },
+          description: {
+            type: 'string',
+            description: '사용자에게 보여줄 작업 설명 (한국어)',
+          },
+        },
+        required: ['action', 'clipIds', 'description'],
+      },
+    },
+  },
 ] as const;
 
 // ─── Tool Executors ─────────────────────────────────────────────────────────
@@ -138,6 +169,8 @@ export async function executeTool(
         return await execListCategories(userId);
       case 'list_tags':
         return await execListTags(userId, args);
+      case 'propose_action':
+        return await execProposeAction(userId, args);
       default:
         return JSON.stringify({ error: `Unknown tool: ${toolName}` });
     }
@@ -334,4 +367,76 @@ async function execListTags(userId: string, args: ToolArgs): Promise<string> {
     .map(([name, count]) => ({ name, count }));
 
   return JSON.stringify({ tags, count: tags.length });
+}
+
+async function execProposeAction(userId: string, args: ToolArgs): Promise<string> {
+  const action = String(args.action ?? '');
+  const clipIds = Array.isArray(args.clipIds) ? (args.clipIds as string[]).slice(0, 50) : [];
+  const targetName = typeof args.targetName === 'string' ? args.targetName : undefined;
+  const description = String(args.description ?? '');
+
+  if (!action || clipIds.length === 0 || !description) {
+    return JSON.stringify({ error: 'action, clipIds, description are required' });
+  }
+
+  // Verify clip ownership and fetch titles
+  const { data: ownedClips, error: clipErr } = await db
+    .from('clips')
+    .select('id, title, url')
+    .eq('user_id', userId)
+    .in('id', clipIds);
+
+  if (clipErr) return JSON.stringify({ error: clipErr.message });
+
+  const clips = ((ownedClips as Array<{ id: string; title: string | null; url: string }>) ?? []).map((c) => ({
+    id: c.id,
+    title: c.title ?? c.url,
+  }));
+
+  if (clips.length === 0) {
+    return JSON.stringify({ error: '대상 클립을 찾을 수 없거나 접근 권한이 없습니다.' });
+  }
+
+  // Verify target exists for move/collection actions
+  let targetId: string | null = null;
+  let targetExists = true;
+
+  if (action === 'move_to_category' && targetName) {
+    const { data: cat } = await db
+      .from('categories')
+      .select('id, name')
+      .eq('user_id', userId)
+      .ilike('name', targetName)
+      .limit(1)
+      .single();
+    if (cat) {
+      targetId = (cat as { id: string }).id;
+    } else {
+      targetExists = false;
+    }
+  } else if (action === 'add_to_collection' && targetName) {
+    const { data: col } = await db
+      .from('collections')
+      .select('id, name')
+      .eq('user_id', userId)
+      .ilike('name', targetName)
+      .limit(1)
+      .single();
+    if (col) {
+      targetId = (col as { id: string }).id;
+    } else {
+      targetExists = false;
+    }
+  }
+
+  return JSON.stringify({
+    __type: 'pending_action',
+    action,
+    description,
+    targetName: targetName ?? null,
+    targetId,
+    targetExists,
+    clips,
+    clipCount: clips.length,
+  });
 }

@@ -16,6 +16,7 @@ import { errors, sendError, ErrorCodes } from '@/lib/api/response';
 import { handleGenerate } from './handlers/generate';
 import { handleAnalyze } from './handlers/analyze';
 import { handleAsk } from './handlers/ask';
+import { handleConfirm } from './handlers/confirm';
 import { handleInsights } from './handlers/insights';
 
 // ─── Export ──────────────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ const routeHandler = withAuth(
     switch (action) {
       case 'analyze':  return handleAnalyze(rawBody, auth);
       case 'ask':      return handleAsk(rawBody, auth);
+      case 'confirm':  return handleConfirm(rawBody, auth);
       case 'insights': return handleInsights(rawBody, auth);
       default:         return handleGenerate(rawBody, auth);
     }

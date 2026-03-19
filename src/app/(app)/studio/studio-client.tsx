@@ -35,13 +35,12 @@ import {
   Link2,
   Check,
   X,
-  ChevronDown,
-  ChevronUp,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { usePlan } from '@/lib/hooks/use-plan';
+import { StudioClipPickerDialog } from './studio-clip-picker-dialog';
 import { UpgradePrompt } from '@/components/plan/upgrade-prompt';
 import type { HistoryItem } from './studio-output-panel';
 import dynamic from 'next/dynamic';
@@ -169,7 +168,7 @@ export function StudioClient() {
   const [length, setLength] = useState('medium');
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showAllClips, setShowAllClips] = useState(false);
+  const [clipPickerOpen, setClipPickerOpen] = useState(false);
 
   // DB-backed generation history
   const { data: generations } = useStudioGenerations();
@@ -200,24 +199,15 @@ export function StudioClient() {
     }
   }, [generations, output]);
 
-  const { data, isLoading: clipsLoading } = useClips();
-  const allClips = useMemo(
-    () => data?.pages.flatMap((p) => p.data) ?? [],
-    [data]
-  );
-  const visibleClips = showAllClips ? allClips : allClips.slice(0, 6);
-
-  const toggleClip = (id: string) => {
-    setSelectedClipIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  // Fetch selected clips for display (only when we have selections)
+  const { data: selectedClipsData } = useClips({
+    enabled: selectedClipIds.size > 0,
+  });
+  const selectedClipsList = useMemo(() => {
+    if (selectedClipIds.size === 0) return [];
+    const all = selectedClipsData?.pages.flatMap((p) => p.data) ?? [];
+    return all.filter((c) => selectedClipIds.has(c.id));
+  }, [selectedClipsData, selectedClipIds]);
 
   const clearClips = () => setSelectedClipIds(new Set());
 
@@ -443,82 +433,50 @@ export function StudioClient() {
               </div>
             </div>
 
-            {clipsLoading ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 rounded-xl shimmer" />
+            {/* Selected clips chips */}
+            {selectedClipsList.length > 0 && (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+                {selectedClipsList.map((clip) => (
+                  <span
+                    key={clip.id}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/6 px-2.5 py-1 text-xs font-medium text-foreground"
+                  >
+                    <span className="max-w-[120px] truncate">
+                      {clip.title ?? clip.url}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setSelectedClipIds((prev) => {
+                          const next = new Set(prev);
+                          next.delete(clip.id);
+                          return next;
+                        })
+                      }
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
                 ))}
               </div>
-            ) : allClips.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 py-8 text-center">
-                <Link2 size={20} className="mx-auto mb-2 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">저장된 클립이 없습니다</p>
-                <p className="mt-0.5 text-xs text-muted-foreground/60">먼저 클립을 저장해 주세요</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {visibleClips.map((clip) => {
-                    const isSelected = selectedClipIds.has(clip.id);
-                    return (
-                      <button
-                        key={clip.id}
-                        onClick={() => toggleClip(clip.id)}
-                        className={cn(
-                          'group relative flex items-start gap-3 overflow-hidden rounded-xl border p-3 text-left transition-spring',
-                          isSelected
-                            ? 'border-primary/40 bg-primary/6 glow-brand-sm'
-                            : 'border-border bg-muted/10 hover:border-primary/20 hover:bg-muted/30'
-                        )}
-                      >
-                        {/* 체크박스 */}
-                        <div className={cn(
-                          'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md border transition-spring',
-                          isSelected
-                            ? 'border-primary bg-primary'
-                            : 'border-border bg-background group-hover:border-primary/50'
-                        )}>
-                          {isSelected && <Check size={10} className="text-primary-foreground" strokeWidth={3} />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={cn(
-                            'truncate text-xs font-medium leading-snug',
-                            isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
-                          )}>
-                            {clip.title ?? clip.url}
-                          </p>
-                          {clip.platform && (
-                            <span className="mt-0.5 inline-block text-[10px] text-muted-foreground/60 capitalize">
-                              {clip.platform}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {allClips.length > 6 && (
-                  <button
-                    onClick={() => setShowAllClips((v) => !v)}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border/60 py-2 text-xs text-muted-foreground transition-spring hover:border-primary/30 hover:text-foreground"
-                  >
-                    {showAllClips ? (
-                      <>
-                        <ChevronUp size={13} />
-                        접기
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown size={13} />
-                        {allClips.length - 6}개 더 보기
-                      </>
-                    )}
-                  </button>
-                )}
-              </>
             )}
+
+            <Button
+              variant="outline"
+              onClick={() => setClipPickerOpen(true)}
+              className="w-full rounded-xl border-dashed"
+            >
+              <Link2 size={14} className="mr-2" />
+              소스 클립 선택
+            </Button>
           </section>
+
+          <StudioClipPickerDialog
+            open={clipPickerOpen}
+            onOpenChange={setClipPickerOpen}
+            selectedIds={selectedClipIds}
+            onConfirm={setSelectedClipIds}
+          />
 
           {/* ── 3. 톤 / 길이 설정 ───────────────────────────────────── */}
           <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-200 rounded-2xl border border-border bg-card p-6">
