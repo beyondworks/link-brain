@@ -68,6 +68,11 @@ function RelatedClipsComponent({ clipId }: RelatedClipsProps) {
                     fill
                     className="object-cover"
                     sizes="48px"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div

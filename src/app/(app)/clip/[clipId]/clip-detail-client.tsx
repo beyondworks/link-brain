@@ -336,13 +336,32 @@ function ImageSlideshow({ images }: { images: string[] }) {
 
 
 /* ─── Real content renderer ──────────────────────────────────────────── */
-function RealContent({ clipContents, url, platform }: { clipContents: ClipContent[]; url: string; platform?: string }) {
+function RealContent({ clipContents, url, platform, summary }: { clipContents: ClipContent[]; url: string; platform?: string; summary?: string | null }) {
   const first = clipContents[0];
   const text = first?.content_markdown ?? first?.raw_markdown;
   const rawContent = text || (first?.html_content ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   const displayContent = cleanDisplayContent(rawContent);
 
   if (!displayContent) {
+    // summary가 있으면 fallback으로 표시
+    if (summary) {
+      return (
+        <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
+          <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap leading-relaxed">
+            {summary}
+          </div>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
+            <ArrowUpRight size={13} />
+            원본 페이지에서 전문 읽기
+          </a>
+        </div>
+      );
+    }
     return (
       <div className="mb-5 rounded-2xl border border-border/60 bg-glass card-inner-glow p-6 shadow-card animate-fade-in-up animation-delay-300">
         <p className="text-sm text-muted-foreground">본문 콘텐츠가 아직 수집되지 않았습니다.</p>
@@ -832,14 +851,14 @@ export function ClipDetailClient({ clipId }: Props) {
       )}
 
       {/* Full content (real clips) — wrapped with TextHighlighter */}
-      {clipContents && (
+      {(clipContents || clip.summary) && (
         <TextHighlighter
           highlights={highlights}
           onCreateHighlight={(input) => createHighlight.mutate(input)}
           onDeleteHighlight={(id) => deleteHighlight.mutate(id)}
           disabled={isSeed}
         >
-          <RealContent clipContents={clipContents} url={clip.url} platform={clip.platform ?? undefined} />
+          <RealContent clipContents={clipContents ?? []} url={clip.url} platform={clip.platform ?? undefined} summary={clip.summary} />
         </TextHighlighter>
       )}
 
