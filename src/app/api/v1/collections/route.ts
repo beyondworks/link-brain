@@ -34,25 +34,27 @@ async function handleList(_req: NextRequest, auth: AuthContext): Promise<NextRes
     return errors.internalError();
   }
 
-  // Get clip counts via clip_collections
-  const collections = await Promise.all(
-    ((data as Collection[]) ?? []).map(async (col) => {
-      const { count } = await db
-        .from('clip_collections')
-        .select('*', { count: 'exact', head: true })
-        .eq('collection_id', col.id);
-      return {
-        id: col.id,
-        name: col.name,
-        description: col.description ?? null,
-        color: col.color ?? '#6B7280',
-        isPublic: col.is_public ?? false,
-        clipCount: count ?? 0,
-        createdAt: col.created_at,
-        updatedAt: col.updated_at,
-      };
-    })
-  );
+  // Get clip counts via a single batch query (avoids N+1)
+  const collectionIds = ((data as Collection[]) ?? []).map((c) => c.id);
+  const { data: countRows } = collectionIds.length
+    ? await db.from('clip_collections').select('collection_id').in('collection_id', collectionIds)
+    : { data: [] as { collection_id: string }[] };
+
+  const countMap = new Map<string, number>();
+  for (const row of countRows ?? []) {
+    countMap.set(row.collection_id, (countMap.get(row.collection_id) ?? 0) + 1);
+  }
+
+  const collections = ((data as Collection[]) ?? []).map((col) => ({
+    id: col.id,
+    name: col.name,
+    description: col.description ?? null,
+    color: col.color ?? '#6B7280',
+    isPublic: col.is_public ?? false,
+    clipCount: countMap.get(col.id) ?? 0,
+    createdAt: col.created_at,
+    updatedAt: col.updated_at,
+  }));
 
   return sendSuccess(collections);
 }

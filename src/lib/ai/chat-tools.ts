@@ -168,12 +168,14 @@ async function execSearchClips(userId: string, args: ToolArgs): Promise<string> 
   }
 
   // Fallback: ilike search on title, summary, and keywords array
-  const pattern = `%${query}%`;
+  const escaped = query.replace(/[%_\\]/g, '\\$&');
+  const pattern = `%${escaped}%`;
+  const escapedQuery = query.replace(/["\\]/g, '\\$&');
   const { data: fallback, error: fbErr } = await db
     .from('clips')
     .select('id, title, summary, url, platform, created_at, keywords')
     .eq('user_id', userId)
-    .or(`title.ilike.${pattern},summary.ilike.${pattern},keywords.cs.{"${query}"}`)
+    .or(`title.ilike.${pattern},summary.ilike.${pattern},keywords.cs.{"${escapedQuery}"}`)
     .order('created_at', { ascending: false })
     .limit(limit);
 

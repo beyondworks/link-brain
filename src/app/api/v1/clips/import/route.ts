@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
+import { checkClipLimit } from '@/lib/services/plan-service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabaseAdmin as any;
@@ -213,6 +214,12 @@ async function handleImport(req: NextRequest, auth: AuthContext): Promise<NextRe
     return sendSuccess<ImportStats>({ imported: 0, skipped: 0, errors: 0 });
   }
 
+  // Check plan clip limit before inserting
+  const clipLimit = await checkClipLimit(auth.publicUserId);
+  if (!clipLimit.allowed) {
+    return errors.planLimitReached('clip', clipLimit.used ?? 0, clipLimit.limit ?? 0);
+  }
+
   // Fetch existing URLs for this user to detect duplicates
   const { data: existing } = (await db
     .from('clips')
@@ -250,6 +257,15 @@ async function handleImport(req: NextRequest, auth: AuthContext): Promise<NextRe
       is_favorite: parseBool(row.is_favorite),
       is_archived: parseBool(row.is_archived),
     });
+  }
+
+  // Truncate to remaining plan slots so we never exceed the limit
+  if (clipLimit.limit !== undefined) {
+    const remaining = clipLimit.limit - (clipLimit.used ?? 0);
+    if (remaining > 0 && toInsert.length > remaining) {
+      skipped += toInsert.length - remaining;
+      toInsert.splice(remaining);
+    }
   }
 
   let imported = 0;

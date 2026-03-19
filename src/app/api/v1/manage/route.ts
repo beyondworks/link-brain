@@ -219,94 +219,119 @@ async function handleBulk(req: NextRequest, auth: AuthContext): Promise<NextResp
   if (!bodyResult.ok) return bodyResult.response;
   const { action, ids, category, tags: bulkTags, value } = bodyResult.value;
 
-  let processed = 0;
-  let failed = 0;
+  // Batch ownership verification — one query instead of N
+  const { data: ownedClips, error: ownershipErr } = await db
+    .from('clips')
+    .select('id')
+    .in('id', ids)
+    .eq('user_id', auth.publicUserId);
 
-  for (const clipId of ids) {
-    const { data: clip, error: fetchErr } = await db
-      .from('clips')
-      .select('id, user_id')
-      .eq('id', clipId)
-      .single();
+  if (ownershipErr) {
+    console.error('[API v1 Manage] Bulk ownership check error:', ownershipErr);
+    return errors.internalError();
+  }
 
-    if (fetchErr || !clip || (clip as { user_id: string }).user_id !== auth.publicUserId) {
-      failed++;
-      continue;
+  const verifiedIds: string[] = ((ownedClips ?? []) as { id: string }[]).map((c) => c.id);
+  const skipped = ids.length - verifiedIds.length;
+
+  if (verifiedIds.length === 0) {
+    return sendSuccess({ processed: 0, failed: skipped });
+  }
+
+  const now = new Date().toISOString();
+
+  switch (action) {
+    case 'delete': {
+      const { error } = await db.from('clips').delete().in('id', verifiedIds);
+      if (error) {
+        console.error('[API v1 Manage] Bulk delete error:', error);
+        return errors.internalError();
+      }
+      return sendSuccess({ processed: verifiedIds.length, failed: skipped });
     }
 
-    switch (action) {
-      case 'delete': {
-        const { error } = await db.from('clips').delete().eq('id', clipId);
-        if (error) failed++;
-        else processed++;
-        break;
+    case 'move': {
+      if (!category) return sendSuccess({ processed: 0, failed: ids.length });
+
+      const { data: catRow } = await db
+        .from('categories')
+        .select('id')
+        .eq('user_id', auth.publicUserId)
+        .eq('name', category)
+        .single();
+
+      if (!catRow) return sendSuccess({ processed: 0, failed: ids.length });
+
+      const { error } = await db
+        .from('clips')
+        .update({ category_id: (catRow as Pick<Category, 'id'>).id, updated_at: now })
+        .in('id', verifiedIds);
+
+      if (error) {
+        console.error('[API v1 Manage] Bulk move error:', error);
+        return errors.internalError();
+      }
+      return sendSuccess({ processed: verifiedIds.length, failed: skipped });
+    }
+
+    case 'tag': {
+      if (!bulkTags || bulkTags.length === 0) {
+        return sendSuccess({ processed: 0, failed: ids.length });
       }
 
-      case 'move': {
-        if (!category) { failed++; break; }
-        const { data: catRow } = await db
-          .from('categories')
-          .select('id')
-          .eq('user_id', auth.publicUserId)
-          .eq('name', category)
-          .single();
-        if (!catRow) { failed++; break; }
-        const { error } = await db
-          .from('clips')
-          .update({ category_id: (catRow as Pick<Category, 'id'>).id, updated_at: new Date().toISOString() })
-          .eq('id', clipId);
-        if (error) failed++;
-        else processed++;
-        break;
-      }
-
-      case 'tag': {
-        if (!bulkTags || bulkTags.length === 0) { failed++; break; }
-        for (const tagName of bulkTags) {
+      // Upsert all tags in one pass, then batch-insert clip_tags
+      const tagInserts = await Promise.all(
+        bulkTags.map(async (tagName: string) => {
           const { data: tagRow } = await db
             .from('tags')
             .upsert({ name: tagName }, { onConflict: 'name' })
             .select('id')
             .single();
-          if (tagRow) {
-            await db
-              .from('clip_tags')
-              .upsert(
-                { clip_id: clipId, tag_id: (tagRow as { id: string }).id },
-                { onConflict: 'clip_id,tag_id' }
-              );
-          }
-        }
-        processed++;
-        break;
+          return tagRow ? (tagRow as { id: string }).id : null;
+        })
+      );
+
+      const resolvedTagIds = tagInserts.filter((id): id is string => id !== null);
+
+      if (resolvedTagIds.length > 0) {
+        const clipTagRows = verifiedIds.flatMap((clipId) =>
+          resolvedTagIds.map((tagId) => ({ clip_id: clipId, tag_id: tagId }))
+        );
+        await db
+          .from('clip_tags')
+          .upsert(clipTagRows, { onConflict: 'clip_id,tag_id' });
       }
 
-      case 'favorite': {
-        const { error } = await db
-          .from('clips')
-          .update({ is_favorite: value ?? true, updated_at: new Date().toISOString() })
-          .eq('id', clipId);
-        if (error) failed++;
-        else processed++;
-        break;
-      }
-
-      case 'archive': {
-        const { error } = await db
-          .from('clips')
-          .update({ is_archived: value ?? true, updated_at: new Date().toISOString() })
-          .eq('id', clipId);
-        if (error) failed++;
-        else processed++;
-        break;
-      }
-
-      default:
-        failed++;
+      return sendSuccess({ processed: verifiedIds.length, failed: skipped });
     }
-  }
 
-  return sendSuccess({ processed, failed });
+    case 'favorite': {
+      const { error } = await db
+        .from('clips')
+        .update({ is_favorite: value ?? true, updated_at: now })
+        .in('id', verifiedIds);
+      if (error) {
+        console.error('[API v1 Manage] Bulk favorite error:', error);
+        return errors.internalError();
+      }
+      return sendSuccess({ processed: verifiedIds.length, failed: skipped });
+    }
+
+    case 'archive': {
+      const { error } = await db
+        .from('clips')
+        .update({ is_archived: value ?? true, updated_at: now })
+        .in('id', verifiedIds);
+      if (error) {
+        console.error('[API v1 Manage] Bulk archive error:', error);
+        return errors.internalError();
+      }
+      return sendSuccess({ processed: verifiedIds.length, failed: skipped });
+    }
+
+    default:
+      return sendSuccess({ processed: 0, failed: ids.length });
+  }
 }
 
 // ============================================
