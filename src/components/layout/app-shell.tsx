@@ -21,6 +21,7 @@ import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
 import { AdvancedFilters } from '@/components/layout/advanced-filters';
+import { NotificationCenter } from '@/components/layout/notification-center';
 import { LinkbrainLogo } from '@/components/brand/linkbrain-logo';
 import dynamic from 'next/dynamic';
 
@@ -445,6 +446,7 @@ export function AppShell({ children }: AppShellProps) {
             </Link>
             <div className="ml-auto flex items-center gap-1">
               <AdvancedFilters />
+              <NotificationCenter />
               <Button
                 variant="ghost"
                 size="icon"
