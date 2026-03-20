@@ -286,8 +286,6 @@
 
   html {
     @apply bg-background;
-    height: 100dvh;
-    overflow: hidden;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -295,8 +293,6 @@
 
   body {
     @apply bg-background text-foreground;
-    height: 100dvh;
-    overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
