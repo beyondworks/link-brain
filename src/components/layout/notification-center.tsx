@@ -106,7 +106,7 @@ export function NotificationCenter() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="flex w-80 max-h-[min(480px,calc(100vh-100px))] flex-col overflow-hidden rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
+          className="flex w-[calc(100vw-2rem)] sm:w-80 max-h-[min(480px,calc(100vh-100px))] flex-col overflow-hidden rounded-2xl border-border/50 bg-glass-heavy p-0 shadow-elevated"
           role="dialog"
           aria-label="알림 목록"
         >
