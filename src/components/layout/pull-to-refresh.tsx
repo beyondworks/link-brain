@@ -43,7 +43,7 @@ export function PullToRefreshWrapper({ children, stickyHeader, className }: Pull
       id="main-content"
       aria-label="메인 콘텐츠"
       className={cn(
-        'relative flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain',
+        'relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain',
         'pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0',
         className,
       )}
