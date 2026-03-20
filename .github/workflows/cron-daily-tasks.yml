@@ -1,0 +1,19 @@
+name: "Cron: Daily Tasks"
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      APP_URL: ${{ secrets.APP_URL }}
+    steps:
+      - name: Trigger daily tasks cron
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/daily-tasks"
