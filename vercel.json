@@ -1,24 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/cron/retry-failed-clips",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/aggregate-patterns",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/notify-unread",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/notify-reminders",
+      "path": "/api/cron/notifications",
       "schedule": "*/10 * * * *"
     },
     {
-      "path": "/api/cron/grant-credits",
-      "schedule": "0 0 1 * *"
+      "path": "/api/cron/daily-tasks",
+      "schedule": "0 3 * * *"
     }
   ]
 }
