@@ -159,8 +159,8 @@ function PeekContent({
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header toolbar — safe area padding for native/PWA status bar */}
       <div className="flex items-center justify-between border-b border-border/50 px-5 py-3" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}>
-        {/* Mode switcher */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/30 p-0.5">
+        {/* Mode switcher — desktop only */}
+        <div className="hidden sm:flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/30 p-0.5">
           {MODE_OPTIONS.map(({ mode, icon: Icon, label }) => (
             <button
               key={mode}
