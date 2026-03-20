@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
     allowNavigation: ['linkbrain.cloud', '*.linkbrain.cloud', 'accounts.google.com', '*.google.com', '*.supabase.co'],
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     scheme: 'Linkbrain',
     allowsLinkPreview: false,
   },
