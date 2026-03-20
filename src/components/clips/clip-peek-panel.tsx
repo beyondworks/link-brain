@@ -179,8 +179,8 @@ function PeekContent({
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1">
+        {/* Actions — ml-auto keeps right-aligned when mode switcher is hidden on mobile */}
+        <div className="ml-auto flex items-center gap-1">
           {!isSeed && (
             <>
               <Button
