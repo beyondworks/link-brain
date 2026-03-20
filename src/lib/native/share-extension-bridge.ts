@@ -36,6 +36,41 @@ export async function syncAuthTokenToAppGroups() {
 }
 
 /**
+ * Check if Share Extension just shared a clip.
+ * Reads and clears the last_shared_url flag (written by ShareViewController).
+ * Returns the URL if shared within the last 30 seconds, null otherwise.
+ */
+export async function checkSharedClipFlag(): Promise<string | null> {
+  if (!isNative) return null;
+
+  try {
+    const [urlResult, atResult] = await Promise.all([
+      WidgetBridge.getAppGroupValue({ key: 'last_shared_url' }),
+      WidgetBridge.getAppGroupValue({ key: 'last_shared_at' }),
+    ]);
+
+    if (!urlResult.value || !atResult.value) return null;
+
+    const sharedAt = parseFloat(atResult.value);
+    const now = Date.now() / 1000;
+
+    // Only show toast if shared within the last 30 seconds
+    if (now - sharedAt > 30) return null;
+
+    // Clear the flag so it doesn't show again
+    await Promise.all([
+      WidgetBridge.removeAppGroupValue({ key: 'last_shared_url' }),
+      WidgetBridge.removeAppGroupValue({ key: 'last_shared_at' }),
+    ]);
+
+    return urlResult.value;
+  } catch (error) {
+    console.warn('[ShareExt] checkSharedClipFlag failed:', error);
+    return null;
+  }
+}
+
+/**
  * Check for pending clips saved by Share Extension while offline/unauthorized.
  * Process them into the app when the user opens it.
  */

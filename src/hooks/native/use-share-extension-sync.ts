@@ -2,9 +2,10 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { isNative } from '@/lib/platform';
 import { supabase } from '@/lib/supabase/client';
-import { syncAuthTokenToAppGroups, processPendingSharedClips } from '@/lib/native/share-extension-bridge';
+import { syncAuthTokenToAppGroups, processPendingSharedClips, checkSharedClipFlag } from '@/lib/native/share-extension-bridge';
 
 /**
  * Syncs auth token to App Groups on app focus, auth state change,
@@ -22,11 +23,21 @@ export function useShareExtensionSync() {
     processPendingSharedClips();
 
     // Re-sync when app returns to foreground + refresh clips list
-    const handleVisibility = () => {
+    const handleVisibility = async () => {
       if (document.visibilityState === 'visible') {
         syncAuthTokenToAppGroups();
         processPendingSharedClips();
-        // Refresh clips list so newly shared clips (with processing_status: pending) appear
+
+        // Check if a clip was shared via extension
+        const sharedUrl = await checkSharedClipFlag();
+        if (sharedUrl) {
+          toast.success('링크를 받았습니다', {
+            description: sharedUrl.length > 60 ? sharedUrl.slice(0, 60) + '…' : sharedUrl,
+            duration: 3000,
+          });
+        }
+
+        // Refresh clips list so newly shared clips appear
         queryClient.invalidateQueries({ queryKey: ['clips'] });
         queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
       }
