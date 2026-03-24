@@ -93,6 +93,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
           className="fixed top-0 left-0 right-0 z-[9999] bg-background pointer-events-none"
           style={{ height: 'env(safe-area-inset-top, 0px)' }}
         />
+        {/* Bottom safe area cover — fills the home indicator zone with app background */}
+        <div
+          aria-hidden="true"
+          className="fixed bottom-0 left-0 right-0 z-[9999] bg-background pointer-events-none lg:hidden"
+          style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+        />
         <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
