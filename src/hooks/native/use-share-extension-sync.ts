@@ -22,7 +22,8 @@ export function useShareExtensionSync() {
     syncAuthTokenToAppGroups();
     processPendingSharedClips();
 
-    // Re-sync when app returns to foreground + refresh clips list
+    // Re-sync when app returns to foreground
+    // 핵심 쿼리 invalidation은 useAppFocusRefresh가 처리 → 여기서는 공유 감지 시에만 추가 invalidate
     const handleVisibility = async () => {
       if (document.visibilityState === 'visible') {
         syncAuthTokenToAppGroups();
@@ -35,11 +36,10 @@ export function useShareExtensionSync() {
             description: sharedUrl.length > 60 ? sharedUrl.slice(0, 60) + '…' : sharedUrl,
             duration: 3000,
           });
+          // 공유된 클립이 있을 때만 추가 invalidate (useAppFocusRefresh와 시점 차이 보완)
+          queryClient.invalidateQueries({ queryKey: ['clips'] });
+          queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
         }
-
-        // Refresh clips list so newly shared clips appear
-        queryClient.invalidateQueries({ queryKey: ['clips'] });
-        queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
       }
     };
 

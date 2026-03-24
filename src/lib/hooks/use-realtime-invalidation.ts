@@ -124,7 +124,25 @@ export function useRealtimeInvalidation(userId: string | null) {
 
     setupChannel();
 
+    // 앱 포커스 복귀 시 채널 상태 확인 → 끊어졌으면 재연결
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const ch = channelRef.current;
+      if (!ch) {
+        setupChannel();
+        return;
+      }
+      // Supabase channel state: 'joined' | 'joining' | 'closed' | 'errored' | 'leaving'
+      const state = (ch as unknown as { state?: string }).state;
+      if (state && state !== 'joined' && state !== 'joining') {
+        setupChannel();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (channelRef.current) {
         void supabase.removeChannel(channelRef.current);
         channelRef.current = null;

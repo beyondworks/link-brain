@@ -5,3 +5,4 @@ export { useBiometric } from './use-biometric';
 export { usePushNotifications } from './use-push-notifications';
 export { useShareExtensionSync } from './use-share-extension-sync';
 export { useWidgetSync } from './use-widget-sync';
+export { useAppFocusRefresh } from './use-app-focus-refresh';

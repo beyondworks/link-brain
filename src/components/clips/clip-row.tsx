@@ -7,6 +7,7 @@ import { shareClip } from '@/lib/utils/share';
 import { useUIStore } from '@/stores/ui-store';
 import { useTogglePin, useToggleReadLater } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
+import { usePrefetchClip } from '@/lib/hooks/use-clips';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { PLATFORM_COLORS, PLATFORM_LABELS_EN } from '@/config/constants';
@@ -43,6 +44,7 @@ export const ClipRow = memo(function ClipRow({
   const togglePin = useTogglePin();
   const toggleReadLater = useToggleReadLater();
   const retryClip = useRetryClip();
+  const prefetchClip = usePrefetchClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
 
   const longPressHandlers = useLongPress({
@@ -62,6 +64,7 @@ export const ClipRow = memo(function ClipRow({
     if (onSelect) {
       onSelect(clip.id);
     } else {
+      prefetchClip(clip.id);
       openClipPeek(clip.id);
     }
   }

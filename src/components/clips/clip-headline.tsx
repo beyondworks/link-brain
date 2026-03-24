@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
+import { usePrefetchClip } from '@/lib/hooks/use-clips';
 import type { ClipData } from '@/types/database';
 
 interface ClipHeadlineProps {
@@ -33,11 +34,13 @@ export const ClipHeadline = memo(function ClipHeadline({
   onSelect,
 }: ClipHeadlineProps) {
   const openClipPeek = useUIStore((s) => s.openClipPeek);
+  const prefetchClip = usePrefetchClip();
 
   function handleClick() {
     if (onSelect) {
       onSelect(clip.id);
     } else {
+      prefetchClip(clip.id);
       openClipPeek(clip.id);
     }
   }

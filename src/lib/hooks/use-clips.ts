@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useSupabase } from '@/components/providers/supabase-provider';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { supabase } from '@/lib/supabase/client';
@@ -142,7 +143,7 @@ export function useClips(options: UseClipsOptions = {}) {
   });
 }
 
-export function useClip(clipId: string | null) {
+export function useClip(clipId: string | null, initialData?: ClipData | null) {
   const { user } = useCurrentUser();
 
   return useQuery({
@@ -161,6 +162,8 @@ export function useClip(clipId: string | null) {
     },
     enabled: !!clipId && !!user,
     staleTime: 60_000,
+    // 리스트 데이터를 즉시 표시하고 백그라운드에서 상세 데이터 fetch
+    ...(initialData ? { initialData: initialData as ClipData & { clip_contents: ClipContent[]; clip_images: unknown[] }, initialDataUpdatedAt: Date.now() } : {}),
     // Poll every 3s while clip is still being processed
     refetchInterval: (query) => {
       const clip = query.state.data;
@@ -170,6 +173,33 @@ export function useClip(clipId: string | null) {
         : false;
     },
   });
+}
+
+/**
+ * 클립 상세 데이터를 미리 fetch하는 훅.
+ * 리스트에서 hover 또는 클릭 직전에 호출하여 peek panel 로딩을 최소화한다.
+ */
+export function usePrefetchClip() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (clipId: string) => {
+      void queryClient.prefetchQuery({
+        queryKey: ['clip', clipId],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('clips')
+            .select('*, clip_contents(*), clip_images(*)')
+            .eq('id', clipId)
+            .single();
+          if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
+          return data as unknown as ClipData & { clip_contents: ClipContent[]; clip_images: unknown[] };
+        },
+        staleTime: 60_000,
+      });
+    },
+    [queryClient]
+  );
 }
 
 export function useFavoriteClips() {

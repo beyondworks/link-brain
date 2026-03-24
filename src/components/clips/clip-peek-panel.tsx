@@ -39,6 +39,7 @@ import { useUIStore } from '@/stores/ui-store';
 import { useSwipeDismiss } from '@/lib/hooks/use-swipe-dismiss';
 import type { ClipPeekMode } from '@/stores/ui-store';
 import { useClip } from '@/lib/hooks/use-clips';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCategories } from '@/lib/hooks/use-categories';
 import { useToggleFavorite, useToggleArchive, useToggleReadLater, useMarkAsRead } from '@/lib/hooks/use-clip-mutations';
 import { useRetryClip } from '@/lib/hooks/use-retry-clip';
@@ -606,8 +607,24 @@ export function ClipPeekPanel() {
   const isSeed = peekClipId?.startsWith('seed-') ?? false;
   const seedClip = isSeed && peekClipId ? getSeedClip(peekClipId) : undefined;
 
+  // 리스트 캐시에서 기본 클립 데이터를 찾아 initialData로 전달 → 스켈레톤 최소화
+  const queryClient = useQueryClient();
+  const listClip = (() => {
+    if (!peekClipId || isSeed) return undefined;
+    const allQueries = queryClient.getQueriesData<{ pages: { data: ClipData[] }[] }>({ queryKey: ['clips'] });
+    for (const [, qData] of allQueries) {
+      if (!qData?.pages) continue;
+      for (const page of qData.pages) {
+        const found = page.data.find((c) => c.id === peekClipId);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  })();
+
   const { data: apiClip, isLoading } = useClip(
-    isSeed || !peekClipId ? '' : peekClipId
+    isSeed || !peekClipId ? '' : peekClipId,
+    listClip
   );
 
   const clip = seedClip ?? apiClip;
