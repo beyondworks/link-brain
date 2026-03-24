@@ -46,24 +46,16 @@ async function getStats() {
       .from('clips')
       .select('id', { count: 'exact', head: true })
       .eq('processing_status', 'failed'),
-    // Platform distribution (top 10)
-    (db as typeof supabaseAdmin)
-      .from('clips')
-      .select('platform')
-      .not('platform', 'is', null)
-      .limit(1000),
+    // Platform distribution via server-side aggregation
+    (db as never as typeof supabaseAdmin).rpc('get_platform_distribution' as never),
   ]);
 
-  // Aggregate platform counts
-  const platformCounts: Record<string, number> = {};
-  if (platformResult.data) {
-    for (const row of platformResult.data as { platform: string }[]) {
-      platformCounts[row.platform] = (platformCounts[row.platform] ?? 0) + 1;
-    }
-  }
-  const platforms = Object.entries(platformCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8);
+  const platforms: [string, number][] = (
+    (platformResult.data ?? []) as { platform: string; count: number }[]
+  )
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+    .map((r) => [r.platform, r.count]);
 
   return {
     totalUsers: usersResult.count ?? 0,

@@ -1,19 +1,7 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/admin/auth';
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Activity,
-  ArrowLeft,
-} from 'lucide-react';
-
-const NAV_ITEMS = [
-  { href: '/admin', label: '대시보드', icon: LayoutDashboard },
-  { href: '/admin/users', label: '사용자', icon: Users },
-  { href: '/admin/clips', label: '클립 처리', icon: FileText },
-  { href: '/admin/system', label: '시스템', icon: Activity },
-];
+import { ArrowLeft } from 'lucide-react';
+import { AdminMobileNav, AdminSidebarNav } from './_components/admin-nav';
 
 export default async function AdminLayout({
   children,
@@ -44,21 +32,7 @@ export default async function AdminLayout({
             앱으로
           </Link>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-2">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-              >
-                <Icon size={14} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <AdminMobileNav />
       </header>
 
       {/* Desktop sidebar */}
@@ -70,24 +44,7 @@ export default async function AdminLayout({
           </span>
         </div>
 
-        <nav className="flex-1 px-3 py-4">
-          <ul className="space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
-                  >
-                    <Icon size={16} />
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <AdminSidebarNav />
 
         <div className="border-t border-border/50 p-3">
           <p className="truncate px-3 text-[11px] text-muted-foreground/60">
