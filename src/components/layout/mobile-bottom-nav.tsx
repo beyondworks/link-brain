@@ -42,8 +42,10 @@ function MobileBottomNavComponent() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 flex h-16 items-center border-t border-border/50 bg-background lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background lg:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
+      <div className="flex h-16 items-center">
       {/* First two items */}
       {NAV_ITEMS.slice(0, 2).map((item) => {
         const Icon = item.icon;
@@ -142,6 +144,7 @@ function MobileBottomNavComponent() {
           </Link>
         );
       })}
+      </div>
     </nav>
   );
 }

@@ -44,7 +44,7 @@ export function PullToRefreshWrapper({ children, stickyHeader, className }: Pull
       aria-label="메인 콘텐츠"
       className={cn(
         'relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain',
-        'pb-16 lg:pb-0',
+        'pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-0',
         className,
       )}
     >
