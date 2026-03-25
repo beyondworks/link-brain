@@ -262,7 +262,10 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         {/* Bottom section — collapse toggle + user profile */}
-        <div className="border-t border-border/50 p-3">
+        <div
+          className="border-t border-border/50 p-3"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
+        >
           {/* AI Chat button */}
           <button
             type="button"
