@@ -32,7 +32,13 @@ function MobileBottomNavComponent() {
     [],
   );
 
-  if (sidebarOpen) return null;
+  // Only show on app routes (not marketing, login, signup, etc.)
+  const isAppRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/favorites') ||
+    pathname.startsWith('/explore') || pathname.startsWith('/settings') ||
+    pathname.startsWith('/clip/') || pathname.startsWith('/read-later') ||
+    pathname.startsWith('/archive') || pathname.startsWith('/studio') ||
+    pathname.startsWith('/insights');
+  if (!isAppRoute || sidebarOpen) return null;
 
   return (
     <nav

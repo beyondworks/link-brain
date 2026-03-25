@@ -16,7 +16,6 @@ import { useNavCounts } from '@/lib/hooks/use-nav-counts';
 import { usePlan } from '@/lib/hooks/use-plan';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
-import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
@@ -127,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="fixed inset-0 flex overflow-x-hidden bg-background">
+    <div className="fixed inset-0 flex overflow-hidden bg-background">
       {/* Safe area fill is now in root layout (body direct child) for correct
            stacking context with Radix portals. See src/app/layout.tsx */}
       {/* Skip navigation link */}
@@ -511,8 +510,7 @@ export function AppShell({ children }: AppShellProps) {
         <EdgeSwipeIndicator activeEdge={activeEdge} swipeOffset={swipeOffset} />
       </div>
 
-      {/* Mobile bottom nav — OUTSIDE #app-content to avoid filter containing block issue */}
-      <MobileBottomNav />
+      {/* MobileBottomNav is now in root layout.tsx (outside all overflow containers) */}
     </div>
   );
 }
