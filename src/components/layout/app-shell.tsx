@@ -16,6 +16,7 @@ import { useNavCounts } from '@/lib/hooks/use-nav-counts';
 import { usePlan } from '@/lib/hooks/use-plan';
 import { AppHeader } from '@/components/layout/app-header';
 import { OmniSearch } from '@/components/layout/omni-search';
+import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
 import { PullToRefreshWrapper } from '@/components/layout/pull-to-refresh';
 import { EdgeSwipeIndicator } from '@/components/layout/edge-swipe-indicator';
 import { SidebarCategories } from '@/components/layout/sidebar-categories';
@@ -510,8 +511,8 @@ export function AppShell({ children }: AppShellProps) {
         <EdgeSwipeIndicator activeEdge={activeEdge} swipeOffset={swipeOffset} />
       </div>
 
-      {/* MobileBottomNav moved to (app)/layout.tsx — outside AppShell's
-          fixed inset-0 overflow-hidden container to avoid iOS PWA clipping */}
+      {/* Mobile bottom nav — OUTSIDE #app-content to avoid filter containing block issue */}
+      <MobileBottomNav />
     </div>
   );
 }

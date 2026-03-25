@@ -36,8 +36,14 @@ function MobileBottomNavComponent() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background lg:hidden"
+      className="fixed left-0 right-0 z-30 border-t border-border/50 bg-background lg:hidden"
+      style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
+      {/* Safe area background extension — fills gap between nav and screen bottom */}
+      <div
+        className="absolute left-0 right-0 top-full bg-background"
+        style={{ height: 'env(safe-area-inset-bottom, 0px)' }}
+      />
       <div className="flex h-16 items-center">
       {/* First two items */}
       {NAV_ITEMS.slice(0, 2).map((item) => {
