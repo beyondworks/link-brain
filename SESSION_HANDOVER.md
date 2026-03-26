@@ -1,83 +1,77 @@
 # Session Handover
 
-## 날짜: 2026-03-21 (오후, 세션 2)
+## 날짜: 2026-03-26
 ## 프로젝트: Link-brain
 ## 브랜치: main
 
 ## 완료
 
-### 비동기 최적화 4가지 (데스크톱/PWA/네이티브 공통)
+### 1. 미커밋 변경 커밋 분리 (2개 커밋)
+- `f0c3dab` feat: 비동기 최적화 (10개 파일)
+- `d799458` style: PWA safe-area 수정 (3개 파일)
 
-#### 1. useAppFocusRefresh 훅 신설
-- `visibilitychange` + Capacitor `appStateChange` 통합 처리
-- 핵심 4개 쿼리만 선택 invalidate: `clips`, `nav-counts`, `categories`, `collections`
-- 5초 debounce로 빠른 앱 전환 시 중복 요청 방지
-- 파일: `src/hooks/native/use-app-focus-refresh.ts` (신규)
+### 2. Admin 대시보드 성능 + UI 개선
+- `2464ce7` feat: Admin 대시보드 성능 최적화 + UI 개선
+- 플랫폼 분포: 1000행 클라이언트 집계 → `get_platform_distribution` RPC 서버 집계
+- 클립 카운트: 5000행 클라이언트 집계 → `get_user_clip_counts` RPC 서버 집계
+- nav를 Client Component 분리 (`admin/_components/admin-nav.tsx`) + usePathname active 하이라이트
+- 사용자 테이블에 플랜 칼럼 추가
+- DB 마이그레이션: `029_admin_platform_distribution.sql` (2개 RPC 함수)
 
-#### 2. Realtime 채널 복구 강화
-- `useRealtimeInvalidation`에 `visibilitychange` 리스너 추가
-- 앱 복귀 시 채널 상태 확인 → joined/joining이 아니면 `setupChannel()` 재호출
-- 파일: `src/lib/hooks/use-realtime-invalidation.ts`
+### 3. Screenshot → AI Vision URL 추출 API
+- `c5f4d4f` feat: POST /api/v1/screenshot-save
+- `extractUrlsFromScreenshot()` — GPT-4o-mini vision으로 스크린샷 URL 추출
+- URL 정규화 + 중복 제거 + SSRF 방어
+- autoSave 옵션: 추출 URL 자동 클립 저장
 
-#### 3. 시트패널(peek panel) 프리페치 + initialData
-- `usePrefetchClip()` 훅 추가 — 클립 클릭 시 상세 데이터 미리 fetch
-- `useClip()`에 `initialData` 파라미터 추가 — 리스트 캐시 데이터로 즉시 표시
-- `clip-peek-panel`에서 TanStack Query 캐시의 InfiniteData에서 클립 데이터 추출하여 initialData 전달
-- 적용 파일: `clip-card.tsx`, `clip-row.tsx`, `clip-headline.tsx`, `clip-peek-panel.tsx`, `use-clips.ts`
+### 4. 하단 메뉴바(MobileBottomNav) iOS safe area 대응 (다수 커밋)
+- **근본 원인**: AppShell의 `fixed inset-0 overflow-hidden`이 iOS WebKit에서 nav를 수직 클리핑 + layout.tsx 하단 커버 div `z-[9999]`가 nav 위를 덮음
+- **최종 해결**:
+  - MobileBottomNav를 root `layout.tsx`로 이동 (overflow-hidden 조상 없음)
+  - `bottom: 0` + `paddingBottom: env(safe-area-inset-bottom)` (네이티브 env=0, PWA env=34pt)
+  - 커버 div z-index `9999→20` (nav z-30 아래)
+  - 앱 경로에서만 표시하도록 pathname 체크 추가
+- 관련 커밋: f87ddfb → 72529ec → 6d8b73b → c9bc94b → 89bc65c → 5e5e769 → f77c417 → c0c8b7e → 9043444 → 236da34
 
-#### 4. Share Extension 응답성 개선
-- 기존: visibilitychange마다 clips+nav-counts 무조건 invalidate
-- 개선: 공유 감지 시에만 추가 invalidate (useAppFocusRefresh와 중복 방지)
-- 파일: `src/hooks/native/use-share-extension-sync.ts`
-
-#### 5. 레이아웃 통합
-- `app-shell.tsx`에 `useAppFocusRefresh` 연결
-- barrel export 추가 (`src/hooks/native/index.ts`)
-
-### 병렬 세션 완료 (PWA UI 개선)
-- PWA 하단 메뉴바 safe-area 여백 수정 (`mobile-bottom-nav.tsx`, `layout.tsx`)
-- 관리자 대시보드 모바일 헤더 safe area 대응 (`admin/layout.tsx`)
-
-### 검증
-- TypeScript 타입 체크: 통과
-- Next.js 프로덕션 빌드: 통과
-- Vercel 프로덕션 배포: `linkbrain.cloud` 정상
-- iOS 시뮬레이터(iPhone 17 Pro): 앱 실행, 백그라운드→포그라운드 복귀, 데이터 로딩 정상
+### 5. 사이드바 하단 safe area 패딩
+- `c03c7de` fix: 사이드바 bottom section에 `paddingBottom: env(safe-area-inset-bottom)` 추가
 
 ## 미완료
 
-### 관리자 대시보드 문제 (사용자 마지막 요청, 우선순위 높음)
-- 전환 시 느림, 상단 UI 짤림, 일부 사용자 정보 미표시
-- `src/app/admin/layout.tsx` 존재 확인됨
-- **다음 단계**: admin 라우트 전체 구조 파악 → UI 수정
+### PWA 하단 여백 미세 조정
+- 네이티브: 정상 (bottom: 0, env=0)
+- PWA: nav 배경이 safe area까지 확장되지만 여전히 home indicator 영역(34pt) 여백 존재
+- 사용자 피드백 기반으로 추가 조정 필요할 수 있음
+- **다음 단계**: 배포 후 PWA 스크린샷 확인
 
-### 미커밋 변경사항
-- 12개 파일 수정 + 1개 신규 — 논리적 단위로 커밋 분리 필요
-  - 비동기 최적화: `use-app-focus-refresh.ts`(신규), `use-realtime-invalidation.ts`, `use-clips.ts`, `use-share-extension-sync.ts`, `app-shell.tsx`, `index.ts`, `clip-card.tsx`, `clip-row.tsx`, `clip-headline.tsx`, `clip-peek-panel.tsx`
-  - PWA UI: `mobile-bottom-nav.tsx`, `layout.tsx`, `admin/layout.tsx`
-
-### 이전 세션 미완료 (변동 없음)
-- 스크린샷 + AI Vision URL 추출 API (`screenshot-save`)
+### 이전 세션 미완료
 - Apple Developer 가입 후 APNs, 실기기 빌드/테스트
-- DB 마이그레이션 025~028 미적용
-- Supabase 타입 재생성
+- DB 마이그레이션 025~028 미적용 (029는 적용)
+- Supabase 타입 재생성 (`supabaseAdmin as any` 30개 제거용)
 
 ## 에러/학습
 
-### 비동기 최적화 설계 판단
-- `refetchOnWindowFocus: 'always'` (전체 refetch)보다 선택적 invalidation이 효율적
-- 23개+ query 훅 동시 refetch → Supabase 연결 풀 부하
-- 핵심 4개만 invalidate + Realtime 채널 재연결이 균형점
+### iOS WebKit overflow-hidden 클리핑 (핵심)
+- `position: fixed` + `overflow: hidden` 조합에서 iOS WebKit은 fixed 자식도 수직 클리핑
+- Chrome/Firefox와 다른 동작 (CSS 스펙 위반)
+- `overflow-x: hidden`도 CSS 스펙상 overflow-y를 auto로 변환하여 여전히 클리핑
+- **해결**: fixed position 요소를 overflow-hidden 컨테이너 밖에 배치
 
-### Xcode 시뮬레이터 이름
-- `iPhone 16 Pro` → 미설치, `iPhone 17 Pro` 사용 가능 (Xcode 최신)
+### z-index 커버 div 함정
+- layout.tsx 하단 커버 div가 z-[9999]로 모든 fixed 요소 위에 불투명 렌더
+- nav를 bottom: 0으로 내렸을 때 커버 div가 nav 하단 34px을 가림
+- **해결**: z-[9999] → z-20 (nav z-30 아래)
 
-### PWA safe-area-inset-bottom 처리 패턴
-- `paddingBottom: env(safe-area-inset-bottom)` → 아이콘 아래 큰 여백 생성
-- 더 나은 패턴: `bottom: env(safe-area-inset-bottom)` 으로 위치 올리기 + 별도 커버 div
+### env(safe-area-inset-bottom) 플랫폼 차이
+- Capacitor native (`contentInset: "never"`): env() = 0
+- PWA (viewport-fit: cover): env() = 34pt
+- 동일 CSS로 두 환경 모두 대응: `paddingBottom: env()` (0이면 효과 없음)
+
+### z-sticky 미정의
+- Tailwind v4에서 `z-sticky`는 기본 유틸리티 아님 (globals.css @theme에도 미정의)
+- `z-30` 하드코딩으로 교체
 
 ## 다음 세션 시작 시
 1. `SESSION_HANDOVER.md` 읽기
-2. 미커밋 12+1개 파일 → 2개 커밋으로 분리 (비동기 최적화 / PWA UI)
-3. 관리자 대시보드 (`/admin`) 경로/컴포넌트 구조 파악 → UI 문제 수정
-4. 실기기 체감 테스트 결과 확인 (시트패널 로딩 속도, 앱 복귀 반응성, PWA 하단 메뉴바)
+2. PWA 하단 여백 사용자 피드백 확인 → 추가 조정 필요 여부
+3. 남은 미완료 작업 우선순위 확인
