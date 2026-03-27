@@ -45,7 +45,7 @@ function MobileBottomNavComponent() {
       className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/50 bg-background lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex h-16 items-center">
+      <div className="flex h-14 items-center">
       {/* First two items */}
       {NAV_ITEMS.slice(0, 2).map((item) => {
         const Icon = item.icon;
@@ -94,7 +94,7 @@ function MobileBottomNavComponent() {
         <button
           type="button"
           onClick={() => openModal('addClip')}
-          className="bg-gradient-brand glow-brand relative flex h-12 w-12 items-center justify-center rounded-full text-primary-foreground shadow-none transition-spring active:scale-95 hover:glow-brand hover-scale"
+          className="bg-gradient-brand glow-brand relative flex h-11 w-11 items-center justify-center rounded-full text-primary-foreground shadow-none transition-spring active:scale-95 hover:glow-brand hover-scale"
           aria-label="클립 추가"
           style={{ touchAction: 'manipulation' }}
         >
