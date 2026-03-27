@@ -1,77 +1,67 @@
 # Session Handover
 
-## 날짜: 2026-03-26
+## 날짜: 2026-03-27
 ## 프로젝트: Link-brain
 ## 브랜치: main
 
 ## 완료
 
-### 1. 미커밋 변경 커밋 분리 (2개 커밋)
-- `f0c3dab` feat: 비동기 최적화 (10개 파일)
-- `d799458` style: PWA safe-area 수정 (3개 파일)
+### 1. Maestro UI 테스트 환경 구축
+- Maestro CLI 2.3.0 설치 (`~/.maestro/bin/maestro`)
+- `.maestro/` 디렉토리에 테스트 플로우 YAML 5개 작성
+- simctl + Maestro 조합으로 시뮬레이터 스크린샷 자동 캡처 파이프라인 구축
+- iPhone 17 Pro 시뮬레이터 (iOS 26.1)에서 PWA 홈화면 추가 후 풀스크린 테스트
 
-### 2. Admin 대시보드 성능 + UI 개선
-- `2464ce7` feat: Admin 대시보드 성능 최적화 + UI 개선
-- 플랫폼 분포: 1000행 클라이언트 집계 → `get_platform_distribution` RPC 서버 집계
-- 클립 카운트: 5000행 클라이언트 집계 → `get_user_clip_counts` RPC 서버 집계
-- nav를 Client Component 분리 (`admin/_components/admin-nav.tsx`) + usePathname active 하이라이트
-- 사용자 테이블에 플랜 칼럼 추가
-- DB 마이그레이션: `029_admin_platform_distribution.sql` (2개 RPC 함수)
+### 2. PWA/모바일 UI 검토 (스크린샷 기반)
+- 랜딩, 로그인, 탐색, 요금제, 대시보드, 즐겨찾기, 설정 페이지 캡처 및 분석
+- 실기기 스크린샷 2장 수신 → 하단 Nav 아래 과도한 여백 이슈 확인
 
-### 3. Screenshot → AI Vision URL 추출 API
-- `c5f4d4f` feat: POST /api/v1/screenshot-save
-- `extractUrlsFromScreenshot()` — GPT-4o-mini vision으로 스크린샷 URL 추출
-- URL 정규화 + 중복 제거 + SSRF 방어
-- autoSave 옵션: 추출 URL 자동 클립 저장
-
-### 4. 하단 메뉴바(MobileBottomNav) iOS safe area 대응 (다수 커밋)
-- **근본 원인**: AppShell의 `fixed inset-0 overflow-hidden`이 iOS WebKit에서 nav를 수직 클리핑 + layout.tsx 하단 커버 div `z-[9999]`가 nav 위를 덮음
-- **최종 해결**:
-  - MobileBottomNav를 root `layout.tsx`로 이동 (overflow-hidden 조상 없음)
-  - `bottom: 0` + `paddingBottom: env(safe-area-inset-bottom)` (네이티브 env=0, PWA env=34pt)
-  - 커버 div z-index `9999→20` (nav z-30 아래)
-  - 앱 경로에서만 표시하도록 pathname 체크 추가
-- 관련 커밋: f87ddfb → 72529ec → 6d8b73b → c9bc94b → 89bc65c → 5e5e769 → f77c417 → c0c8b7e → 9043444 → 236da34
-
-### 5. 사이드바 하단 safe area 패딩
-- `c03c7de` fix: 사이드바 bottom section에 `paddingBottom: env(safe-area-inset-bottom)` 추가
+### 3. 하단 Nav safe area 여백 축소 (1차 시도)
+- `aba4ab4` fix: 하단 Nav safe area 여백 축소
+  - layout.tsx: 불필요한 하단 커버 div 제거
+  - mobile-bottom-nav: h-16→h-14, +버튼 h-12→h-11
+  - pull-to-refresh: 콘텐츠 하단 패딩 4rem→3.5rem
+- **결과: 실기기에서 여전히 문제 미해결** — 추가 조정 필요
 
 ## 미완료
 
-### PWA 하단 여백 미세 조정
-- 네이티브: 정상 (bottom: 0, env=0)
-- PWA: nav 배경이 safe area까지 확장되지만 여전히 home indicator 영역(34pt) 여백 존재
-- 사용자 피드백 기반으로 추가 조정 필요할 수 있음
-- **다음 단계**: 배포 후 PWA 스크린샷 확인
+### P0: 하단 Nav 여백 실기기 문제 (진행 중)
+- 1차 수정(8px 감소)으로 불충분
+- **근본 원인 후보**:
+  1. env(safe-area-inset-bottom)이 기기별로 34pt보다 클 수 있음
+  2. nav paddingBottom(34pt) 자체가 시각적으로 과도
+  3. 콘텐츠 영역의 추가 padding이 누적될 가능성
+- **다음 단계**:
+  1. 실기기 현재 스크린샷 확인하여 정확한 문제 영역 파악
+  2. JS로 실제 env() 값을 표시하는 디버그 오버레이 추가하여 배포 → 실측
+  3. 또는 nav 구조 자체 변경: `bottom: env(safe-area-inset-bottom)` 방식으로 nav를 safe area 위에 배치 + 아래는 bg 확장만
+- **사용자에게 현재 상태 스크린샷 요청한 상태**
 
-### 이전 세션 미완료
+### 네이티브 앱 시뮬레이터 빌드 실패
+- Xcode 프로젝트 scheme이 시뮬레이터 destination 미지원
+- CLI 빌드 설정 오버라이드 (`SUPPORTED_PLATFORMS`) 도 작동하지 않음
+- **해결**: Xcode GUI에서 직접 빌드하거나 scheme 설정 수정 필요
+
+### 이전 세션 미완료 (변동 없음)
 - Apple Developer 가입 후 APNs, 실기기 빌드/테스트
-- DB 마이그레이션 025~028 미적용 (029는 적용)
+- DB 마이그레이션 025~028 미적용 (번호 충돌 정리 필요)
 - Supabase 타입 재생성 (`supabaseAdmin as any` 30개 제거용)
 
 ## 에러/학습
 
-### iOS WebKit overflow-hidden 클리핑 (핵심)
-- `position: fixed` + `overflow: hidden` 조합에서 iOS WebKit은 fixed 자식도 수직 클리핑
-- Chrome/Firefox와 다른 동작 (CSS 스펙 위반)
-- `overflow-x: hidden`도 CSS 스펙상 overflow-y를 auto로 변환하여 여전히 클리핑
-- **해결**: fixed position 요소를 overflow-hidden 컨테이너 밖에 배치
+### Maestro + iOS 시뮬레이터 주의사항
+- `swipe direction: UP` → Safari 탭 뷰 전환 트리거. `start/end` 좌표 지정 필요
+- Safari 시스템 앱은 `clearState: true` 불가
+- 시뮬레이터 erase 후 Safari 쿠키 초기화됨 → 로그인 필요
+- `takeScreenshot` 저장 경로가 불확실 → `xcrun simctl io booted screenshot` 조합이 더 신뢰성 높음
+- 시뮬레이터와 실기기의 env(safe-area-inset-bottom) 값이 다를 수 있음
 
-### z-index 커버 div 함정
-- layout.tsx 하단 커버 div가 z-[9999]로 모든 fixed 요소 위에 불투명 렌더
-- nav를 bottom: 0으로 내렸을 때 커버 div가 nav 하단 34px을 가림
-- **해결**: z-[9999] → z-20 (nav z-30 아래)
-
-### env(safe-area-inset-bottom) 플랫폼 차이
-- Capacitor native (`contentInset: "never"`): env() = 0
-- PWA (viewport-fit: cover): env() = 34pt
-- 동일 CSS로 두 환경 모두 대응: `paddingBottom: env()` (0이면 효과 없음)
-
-### z-sticky 미정의
-- Tailwind v4에서 `z-sticky`는 기본 유틸리티 아님 (globals.css @theme에도 미정의)
-- `z-30` 하드코딩으로 교체
+### Xcode CLI 빌드 한계
+- scheme에 시뮬레이터 destination이 없으면 `SUPPORTED_PLATFORMS` CLI 오버라이드가 무시됨
+- scheme 설정은 Xcode GUI에서만 안전하게 수정 가능 (MEMORY 규칙 준수)
 
 ## 다음 세션 시작 시
 1. `SESSION_HANDOVER.md` 읽기
-2. PWA 하단 여백 사용자 피드백 확인 → 추가 조정 필요 여부
-3. 남은 미완료 작업 우선순위 확인
+2. **최우선**: 실기기 하단 여백 스크린샷 확인 → 디버그 오버레이 배포하여 env() 실측값 파악
+3. 측정 결과 기반으로 nav 구조 변경 (paddingBottom 방식 → bottom 위치 방식 등)
+4. 수정 후 실기기 재확인
