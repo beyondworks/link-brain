@@ -215,6 +215,7 @@ export function CollectionsClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
       setCreateOpen(false);
       setCreateName('');
       setCreateDescription('');

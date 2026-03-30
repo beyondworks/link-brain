@@ -71,6 +71,7 @@ export function useUpdateCollection() {
     onSettled: (_data, _err, { collectionId }) => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
     },
   });
 }
@@ -118,6 +119,7 @@ export function useDeleteCollection() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
     },
   });
 }
