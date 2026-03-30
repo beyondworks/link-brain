@@ -14,9 +14,10 @@ export interface UserRow {
   created_at: string;
   updated_at: string;
   clip_count: number;
+  last_active: string | null;
 }
 
-type SortField = 'name' | 'created_at' | 'clip_count' | 'plan' | 'role';
+type SortField = 'name' | 'created_at' | 'clip_count' | 'plan' | 'role' | 'last_active';
 type SortDir = 'asc' | 'desc';
 
 const PLAN_STYLES: Record<string, string> = {
@@ -31,6 +32,7 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
   { field: 'clip_count', label: '클립수순' },
   { field: 'plan', label: '플랜순' },
   { field: 'role', label: '역할순' },
+  { field: 'last_active', label: '최근 사용순' },
 ];
 
 export function AdminUsersClient({ users }: { users: UserRow[] }) {
@@ -79,6 +81,9 @@ export function AdminUsersClient({ users }: { users: UserRow[] }) {
         }
         case 'role':
           cmp = a.role.localeCompare(b.role);
+          break;
+        case 'last_active':
+          cmp = new Date(a.last_active ?? '1970-01-01').getTime() - new Date(b.last_active ?? '1970-01-01').getTime();
           break;
       }
       return sortDir === 'desc' ? -cmp : cmp;
@@ -157,7 +162,7 @@ export function AdminUsersClient({ users }: { users: UserRow[] }) {
       {/* Table */}
       <div className="mt-2 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[780px] text-sm">
             <thead>
               <tr className="border-b border-border/50 bg-muted/30">
                 <th
@@ -188,6 +193,12 @@ export function AdminUsersClient({ users }: { users: UserRow[] }) {
                   클립 {sortField === 'clip_count' && (sortDir === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
+                  className="cursor-pointer whitespace-nowrap px-3 py-2.5 text-center text-xs font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => setSortField('last_active')}
+                >
+                  최근 사용 {sortField === 'last_active' && (sortDir === 'asc' ? '↑' : '↓')}
+                </th>
+                <th
                   className="cursor-pointer whitespace-nowrap px-3 py-2.5 text-right text-xs font-medium text-muted-foreground hover:text-foreground"
                   onClick={() => setSortField('created_at')}
                 >
@@ -198,7 +209,7 @@ export function AdminUsersClient({ users }: { users: UserRow[] }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     조건에 맞는 사용자가 없습니다.
                   </td>
                 </tr>
@@ -240,6 +251,11 @@ export function AdminUsersClient({ users }: { users: UserRow[] }) {
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-center tabular-nums text-sm text-foreground">
                       {user.clip_count.toLocaleString()}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-center text-xs text-muted-foreground" suppressHydrationWarning>
+                      {user.last_active
+                        ? new Date(user.last_active).toLocaleDateString('ko-KR')
+                        : '-'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs text-muted-foreground" suppressHydrationWarning>
                       {new Date(user.created_at).toLocaleDateString('ko-KR')}
