@@ -94,8 +94,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           className="fixed top-0 left-0 right-0 z-[9999] bg-background pointer-events-none"
           style={{ height: 'env(safe-area-inset-top, 0px)' }}
         />
-        {/* Bottom safe area is handled by MobileBottomNav paddingBottom
-            and sidebar paddingBottom — no separate cover div needed. */}
+        {/* Bottom safe area is handled by sidebar paddingBottom — no separate cover div needed. */}
         <ThemeColorScript />
         {/* Pretendard from CDN - preconnect for performance */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
