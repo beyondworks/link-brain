@@ -20,11 +20,12 @@ function MobileBottomNavComponent() {
     <button
       type="button"
       onClick={() => openModal('addClip')}
-      className="fixed bottom-6 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-lg transition-spring active:scale-95 lg:hidden"
+      className="fixed z-30 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-lg transition-spring active:scale-95 lg:hidden"
       aria-label="클립 추가"
       style={{
         touchAction: 'manipulation',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        right: '20px',
       }}
     >
       <Plus size={24} />
