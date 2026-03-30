@@ -11,7 +11,7 @@ export default async function AdminLayout({
   const admin = await requireAdmin();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background lg:flex-row">
+    <div className="flex h-screen flex-col bg-background lg:flex-row">
       {/* Mobile top nav */}
       <header
         className="sticky top-0 z-30 border-b border-border/50 bg-card lg:hidden"
