@@ -24,7 +24,7 @@ function MobileBottomNavComponent() {
       aria-label="클립 추가"
       style={{
         touchAction: 'manipulation',
-        bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+        bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
         right: '20px',
       }}
     >
