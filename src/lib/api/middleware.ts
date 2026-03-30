@@ -117,26 +117,35 @@ export function withAuth(
       // 1. Try X-API-Key header
       const apiKey = req.headers.get('x-api-key');
       if (apiKey) {
-        const userId = await validateApiKey(apiKey);
-        if (!userId) {
+        // validateApiKey returns public users.id (api_keys.user_id FK → users.id)
+        const publicUserId = await validateApiKey(apiKey);
+        if (!publicUserId) {
           const res = errors.invalidApiKey();
           Object.entries(cors).forEach(([k, v]) => res.headers.set(k, v));
           return res;
         }
-        const tier = await getUserTier(userId);
+
+        // Resolve auth_id from public user record
+        const { data: userRow } = await supabaseAdmin
+          .from('users')
+          .select('auth_id')
+          .eq('id', publicUserId)
+          .single();
+        const authId = (userRow as Pick<User, 'auth_id'> | null)?.auth_id ?? publicUserId;
+
+        const tier = await getUserTier(authId);
 
         // Get the key's DB id for rate limiting
         const { data: keyRow } = await supabaseAdmin
           .from('api_keys')
           .select('id')
-          .eq('user_id', userId)
+          .eq('user_id', publicUserId)
           .order('timestamp', { ascending: false })
           .limit(1)
           .single();
 
         keyId = keyRow ? (keyRow as Pick<ApiKey, 'id'>).id : undefined;
-        const publicUserId = await ensurePublicUser(userId);
-        auth = { userId, publicUserId, keyId, tier, method: 'apiKey' };
+        auth = { userId: authId, publicUserId, keyId, tier, method: 'apiKey' };
       } else {
         // 2. Try Bearer token
         const authHeader = req.headers.get('authorization');
