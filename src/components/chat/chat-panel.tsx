@@ -31,20 +31,6 @@ export function ChatPanel() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'chat'>('list');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
-
-  // Mobile keyboard: adjust panel height via visualViewport
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv || !panelRef.current) return;
-    const onResize = () => {
-      if (panelRef.current) {
-        panelRef.current.style.height = `${vv.height}px`;
-      }
-    };
-    vv.addEventListener('resize', onResize);
-    return () => vv.removeEventListener('resize', onResize);
-  }, []);
 
   const { data: conversations, isLoading: convLoading } = useConversations();
   const { data: messages, isLoading: msgLoading } = useChatMessages(activeConversationId);
@@ -120,14 +106,15 @@ export function ChatPanel() {
 
       {/* Panel */}
       <aside
-        ref={panelRef}
         className={cn(
-          'fixed right-0 top-0 z-[50] flex h-dvh flex-col',
+          'fixed right-0 bottom-0 z-[50] flex flex-col',
           'w-full sm:w-96 lg:w-[420px]',
           'border-l border-border/50 bg-background shadow-2xl',
           'animate-slide-in',
         )}
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        style={{
+          top: 'env(safe-area-inset-top, 0px)',
+        }}
       >
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-border/50 px-4">

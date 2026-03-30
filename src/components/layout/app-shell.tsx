@@ -269,7 +269,7 @@ export function AppShell({ children }: AppShellProps) {
           {/* AI Chat button */}
           <button
             type="button"
-            onClick={openChat}
+            onClick={() => { openChat(); setSidebarOpen(false); }}
             title={isSidebarCollapsed ? 'AI 채팅' : undefined}
             className={[
               'mb-1 flex w-full items-center rounded-xl text-xs font-medium text-muted-foreground transition-spring hover:bg-accent/60 hover:text-foreground',
