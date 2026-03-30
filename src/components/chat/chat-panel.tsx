@@ -31,6 +31,36 @@ export function ChatPanel() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'chat'>('list');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Keyboard height detection (Capacitor + web fallback)
+  useEffect(() => {
+    // Capacitor Keyboard plugin
+    let cleanupNative: (() => void) | undefined;
+    import('@capacitor/keyboard').then(({ Keyboard }) => {
+      const showHandle = Keyboard.addListener('keyboardWillShow', (info) => {
+        setKeyboardHeight(info.keyboardHeight);
+      });
+      const hideHandle = Keyboard.addListener('keyboardWillHide', () => {
+        setKeyboardHeight(0);
+      });
+      cleanupNative = () => {
+        showHandle.then(h => h.remove());
+        hideHandle.then(h => h.remove());
+      };
+    }).catch(() => {
+      // Web fallback: visualViewport
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const onResize = () => {
+        const diff = window.innerHeight - vv.height;
+        setKeyboardHeight(diff > 50 ? diff : 0);
+      };
+      vv.addEventListener('resize', onResize);
+      cleanupNative = () => vv.removeEventListener('resize', onResize);
+    });
+    return () => cleanupNative?.();
+  }, []);
 
   const { data: conversations, isLoading: convLoading } = useConversations();
   const { data: messages, isLoading: msgLoading } = useChatMessages(activeConversationId);
@@ -107,13 +137,15 @@ export function ChatPanel() {
       {/* Panel */}
       <aside
         className={cn(
-          'fixed right-0 bottom-0 z-[50] flex flex-col',
+          'fixed right-0 z-[50] flex flex-col',
           'w-full sm:w-96 lg:w-[420px]',
           'border-l border-border/50 bg-background shadow-2xl',
           'animate-slide-in',
         )}
         style={{
           top: 'env(safe-area-inset-top, 0px)',
+          bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+          transition: 'bottom 0.25s ease-out',
         }}
       >
         {/* Header */}
