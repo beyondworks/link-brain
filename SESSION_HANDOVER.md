@@ -1,70 +1,38 @@
 # Session Handover
-
-## 날짜: 2026-03-28
-## 프로젝트: Link-brain
-## 브랜치: main
+## 날짜: 2026-03-31
 
 ## 완료
-
-### 1. 하단 Nav 디버그 — 근본 원인 확정
-- 실기기 디버그 오버레이 배포하여 env() 값 실측:
-  ```
-  innerH: 812, screen: 402x874, safeBot: 0, standalone: true
-  ```
-- **근본 원인 확정**: iOS standalone PWA 모드에서 `viewport-fit: cover`가 작동하지 않음
-  - `env(safe-area-inset-bottom)` = **0px** (CSS safe area 완전 무효)
-  - 뷰포트 812px, 화면 874px → 하단 ~34px는 OS가 theme-color로 채우는 영역
-  - 앱 코드로 접근 불가 (뷰포트 밖)
-- PWA 삭제 → 재추가, `apple-mobile-web-app-capable` 메타 태그 추가 등 모두 시도 → **효과 없음**
-
-### 2. layout.tsx / globals.css 변경 원복
-- `apple-mobile-web-app-capable` 메타 태그 추가 → 테마 색상 깨짐 → 원복
-- bottom safe area cover div 추가 → 효과 없음 → 원복
-- `height: 100dvh` 추가 → 효과 없음 → 원복
-- **현재 layout.tsx, globals.css는 원본 상태와 동일** (diff 없음)
-
-### 3. mobile-bottom-nav.tsx 정리
-- 디버그 오버레이 추가/제거 (최종 제거 완료)
-- nav 높이: h-12 (48px), 아이콘 20px, 라벨 10px
-- `paddingBottom: env(safe-area-inset-bottom, 0px)` 유지 (Capacitor에서 정상 작동 대비)
-- 불필요한 래퍼 div, glow 효과 등 정리
+- **하단 Nav → FAB 전환**: 하단 메뉴바 제거, 우하단 FAB 버튼(+)으로 교체 (bottom 12px + safe-area, 중앙 정렬)
+- **MCP 서버 인증 버그 수정**: `validateApiKey`가 반환하는 public users.id를 미들웨어가 auth_id로 오인 → ghost user 생성 → 빈 데이터 반환. 미들웨어에서 users 테이블로 auth_id 역조회하도록 수정. ghost user 삭제 완료
+- **MCP 정상 작동 확인**: 새 API 키 `lb_ef25...`로 검색 성공 (Claude 관련 47개 클립 확인)
+- **컬렉션 카운트 미갱신 수정**: 컬렉션 CRUD 시 `nav-counts` TanStack Query 캐시 무효화 추가
+- **AI 채팅 키보드 가림 수정**: Capacitor Keyboard 플러그인 이벤트로 패널 bottom 동적 조정 + 웹 visualViewport fallback
+- **사이드바 AI 채팅 클릭 시 사이드바 자동 닫기**
+- **관리자 대시보드 전면 개선**:
+  - 스크롤 안 되는 문제: min-h-screen → h-screen
+  - 사용자 100명만 표시: .limit(100) 제거 → 전체 표시
+  - 클립 수 0 표시: `get_user_clip_counts` RPC 함수 DB에 생성
+  - 필터/정렬 추가: 검색(이름/이메일), 플랜/역할 필터, 6종 정렬(가입일/이름/클립수/플랜/역할/최근사용)
+  - 마지막 사용일 컬럼 추가 (auth.admin.listUsers → last_sign_in_at)
+  - 텍스트 가로 정렬 강제 (whitespace-nowrap + truncate)
+- **macOS 복사 잔여물 삭제**: `.maestro/`, `... 2/` 파일들 삭제
 
 ## 미완료
-
-### P0: 하단 Nav 여백 — Capacitor 네이티브 빌드로 전환
-- **iOS standalone PWA에서는 해결 불가능** (OS 한계 확정)
-- **Capacitor 네이티브 빌드가 유일한 해결책**:
-  - `capacitor.config.ts`에 `contentInset: 'never'` 설정됨 (WebView 전체 화면)
-  - 라이브 서버 모드 (`linkbrain.cloud`) 사용 중 → 배포된 코드 즉시 반영
-  - Xcode GUI에서 빌드 필요 (CLI scheme 문제 미해결)
-- **다음 단계**:
-  1. Xcode에서 `ios/App/App.xcworkspace` 열기
-  2. 실기기 선택 → Run (Personal Team 서명 필요)
-  3. Capacitor WebView에서 `env(safe-area-inset-bottom)` 정상 반환되는지 확인
-  4. 정상이면 nav가 safe area 위에 배치되고 하단 여백 해결
-
-### 이전 세션 미완료 (변동 없음)
-- Apple Developer 가입 후 APNs, TestFlight 배포
-- DB 마이그레이션 025~028 미적용 (번호 충돌 정리 필요)
-- Supabase 타입 재생성 (`supabaseAdmin as any` 30개 제거)
-- Xcode scheme에 시뮬레이터 destination 추가 (GUI에서)
+| 우선순위 | 항목 | 다음 단계 |
+|----------|------|-----------|
+| P1 | YouTube 썸네일 깨짐 | maxresdefault → hqdefault fallback + Image onError 핸들러 추가 |
+| P1 | DB 마이그레이션 025~028 | 번호 충돌 정리 후 `supabase db push` |
+| P1 | Supabase 타입 재생성 | `as any` 30개 제거 |
+| P2 | Apple Developer 가입 | APNs + TestFlight |
+| P2 | 관리자 클립/시스템 페이지 필터링 | 사용자 페이지와 동일 패턴 적용 |
 
 ## 에러/학습
-
-### iOS standalone PWA의 viewport-fit 한계 (핵심 발견)
-- `viewport-fit: cover` 메타 태그가 있어도 standalone PWA에서 뷰포트가 safe area로 확장되지 않음
-- `env(safe-area-inset-bottom)` = 0 → 모든 safe area CSS 무효
-- `apple-mobile-web-app-capable` 추가해도 변함없음
-- PWA 삭제 → 재추가해도 변함없음
-- **결론**: iOS PWA에서 하단 safe area 제어는 불가능. Capacitor 네이티브만 가능.
-
-### `apple-mobile-web-app-capable` 메타 태그 사이드이펙트
-- Next.js의 `other` 메타데이터로 추가 시 기존 `mobile-web-app-capable`과 충돌
-- 테마 모드 무시하고 배경/노치 색상이 다크모드로 고정되는 현상 발생
-- **교훈**: Next.js metadata API의 apple 관련 태그는 `appleWebApp` 필드만 사용, `other`로 직접 추가 금지
+- **API 키 인증 설계 결함**: `api_keys.user_id`는 FK → `users.id` (public). 미들웨어는 이를 auth_id로 간주해 `ensurePublicUser` 호출 → ghost user 생성. 수정: apiKey 분기에서 users 테이블로 auth_id 역조회, ensurePublicUser 호출 제거
+- **Capacitor fixed 요소 + 키보드**: `KeyboardResize.Body`는 body만 줄이고 viewport는 유지. `position: fixed; bottom: 0`은 viewport 기준이라 body resize를 따르지 않음. 해결: Capacitor Keyboard 플러그인 이벤트에서 keyboardHeight를 감지해 bottom을 동적 설정
+- **RPC 함수 누락**: `get_user_clip_counts`가 코드에서 호출되지만 DB에 미생성 → 에러가 조용히 0으로 처리됨. 항상 RPC 존재 여부를 먼저 확인할 것
+- **Xcode CLI 빌드 한계**: Capacitor SPM 의존성은 CLI에서 modulemap 생성 불가 → GUI에서만 빌드 가능
 
 ## 다음 세션 시작 시
-1. `SESSION_HANDOVER.md` 읽기
-2. **최우선**: Xcode에서 Capacitor 앱 빌드 → 실기기에서 하단 여백 확인
-3. Capacitor에서 해결 확인되면 → PWA 하단 여백은 "iOS 한계" 문서화하고 close
-4. 미해결 시 → Capacitor WebView의 safe area 설정 디버깅
+1. YouTube 썸네일 fallback 구현 (maxresdefault → hqdefault → placeholder)
+2. `admin/clips`, `admin/system` 페이지 필터링 추가 (사용자 페이지 패턴 재사용)
+3. DB 마이그레이션 번호 충돌 정리
