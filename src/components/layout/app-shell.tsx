@@ -126,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden bg-background">
+    <div data-app-viewport className="fixed inset-0 flex overflow-hidden bg-background">
       {/* Safe area fill is now in root layout (body direct child) for correct
            stacking context with Radix portals. See src/app/layout.tsx */}
       {/* Skip navigation link */}
