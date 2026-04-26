@@ -24,8 +24,9 @@ async function getUsers(): Promise<UserRow[]> {
   ]);
 
   const clipCounts: Record<string, number> = {};
-  if (clipCountResult.data) {
-    for (const row of clipCountResult.data as { user_id: string; clip_count: number }[]) {
+  const clipRows = (clipCountResult as { data: { user_id: string; clip_count: number }[] | null }).data;
+  if (clipRows) {
+    for (const row of clipRows) {
       clipCounts[row.user_id] = row.clip_count;
     }
   }
