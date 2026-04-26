@@ -9,9 +9,10 @@ function matchesRoutes(pathname: string, routes: string[]) {
 }
 
 function hasAuthCookie(request: NextRequest): boolean {
-  return request.cookies.getAll().some(
-    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'),
-  );
+  // Supabase SSR cookie names: `sb-<ref>-auth-token` (single) or
+  // `sb-<ref>-auth-token.0`, `sb-<ref>-auth-token.1`, ... (chunked when JWT is large).
+  // OAuth logins / users with large metadata trigger chunking, so we must match both.
+  return request.cookies.getAll().some((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name));
 }
 
 export async function middleware(request: NextRequest) {
