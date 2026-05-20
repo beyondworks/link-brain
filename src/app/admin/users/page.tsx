@@ -16,16 +16,22 @@ async function getUsers(): Promise<UserRow[]> {
   const users = data as { id: string; auth_id: string }[];
   const userIds = users.map((u) => u.id);
 
-  // Clip counts + auth users (parallel)
-  const [clipCountResult, authListResult] = await Promise.all([
+  // Clip counts + auth users (parallel).
+  // Tuple cast: Promise.all narrows the RPC result to `never` because the
+  // `as never` chain above hides the return type; restore it explicitly.
+  type ClipCountRow = { user_id: string; clip_count: number };
+  const [clipCountResult, authListResult] = (await Promise.all([
     (db as never as typeof supabaseAdmin)
       .rpc('get_user_clip_counts' as never, { p_user_ids: userIds } as never),
     supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
-  ]);
+  ])) as [
+    { data: ClipCountRow[] | null },
+    Awaited<ReturnType<typeof supabaseAdmin.auth.admin.listUsers>>,
+  ];
 
   const clipCounts: Record<string, number> = {};
   if (clipCountResult.data) {
-    for (const row of clipCountResult.data as { user_id: string; clip_count: number }[]) {
+    for (const row of clipCountResult.data) {
       clipCounts[row.user_id] = row.clip_count;
     }
   }
