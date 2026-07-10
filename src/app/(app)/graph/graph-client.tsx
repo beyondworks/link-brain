@@ -45,7 +45,7 @@ interface GraphData {
   edges: GraphEdge[];
 }
 
-export default function GraphPage() {
+export function GraphClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<GraphData>({ nodes: [], edges: [] });

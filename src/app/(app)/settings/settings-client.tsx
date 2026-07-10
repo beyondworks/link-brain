@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -25,13 +24,23 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   User,
   Palette,
   Globe,
   Settings,
-  Bell,
   Database,
   Key,
   Trash2,
@@ -135,32 +144,6 @@ function PlanActions({ tier }: { tier: string }) {
   );
 }
 
-const NOTIF_STORAGE_KEY = 'linkbrain-notifications';
-
-interface NotifSettings {
-  emailNotif: boolean;
-  aiNotif: boolean;
-  followerNotif: boolean;
-}
-
-function loadNotifSettings(): NotifSettings {
-  try {
-    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as NotifSettings;
-  } catch {
-    // localStorage 접근 불가 시 기본값 사용
-  }
-  return { emailNotif: true, aiNotif: true, followerNotif: false };
-}
-
-function saveNotifSettings(settings: NotifSettings) {
-  try {
-    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(settings));
-  } catch {
-    // localStorage 접근 불가 시 무시
-  }
-}
-
 // API 키 뷰 타입 (key_hash 제외)
 interface ApiKeyView {
   id: string;
@@ -176,9 +159,10 @@ export function SettingsClient() {
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  // 알림 상태
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [aiNotif, setAiNotif] = useState(true);
+  // 계정 삭제 상태
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // 언어 상태
   const [language, setLanguage] = useState('ko');
@@ -213,13 +197,6 @@ export function SettingsClient() {
     }
   }, [user]);
 
-  // 알림 설정 localStorage 초기화
-  useEffect(() => {
-    const saved = loadNotifSettings();
-    setEmailNotif(saved.emailNotif);
-    setAiNotif(saved.aiNotif);
-  }, []);
-
   // API 키 목록 로드
   const loadApiKeys = useCallback(async () => {
     setApiKeysLoading(true);
@@ -239,15 +216,30 @@ export function SettingsClient() {
     void loadApiKeys();
   }, [loadApiKeys]);
 
-  function handleNotifChange(
-    key: keyof NotifSettings,
-    setter: React.Dispatch<React.SetStateAction<boolean>>,
-    value: boolean,
-  ) {
-    setter(value);
-    const current = loadNotifSettings();
-    saveNotifSettings({ ...current, [key]: value });
-    toast.success('알림 설정이 변경되었습니다');
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      const res = await fetch('/api/v1/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE' }),
+      });
+      const json = (await res.json()) as {
+        success: boolean;
+        error?: { message: string };
+      };
+      if (!res.ok || !json.success) {
+        toast.error(json.error?.message ?? '계정 삭제에 실패했습니다. 다시 시도해 주세요.');
+        setDeletingAccount(false);
+        return;
+      }
+      toast.success('계정이 삭제되었습니다');
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch {
+      toast.error('계정 삭제에 실패했습니다. 다시 시도해 주세요.');
+      setDeletingAccount(false);
+    }
   }
 
   async function handleLanguageChange(value: string) {
@@ -626,40 +618,6 @@ export function SettingsClient() {
           </div>
         </section>
 
-        {/* Notifications section */}
-        <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-400 rounded-2xl border border-border bg-card p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="icon-glow relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 ring-1 ring-amber-500/20">
-              <Bell size={15} className="text-amber-500" />
-            </div>
-            <h2 className="text-base font-semibold text-foreground">알림</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">이메일 알림</p>
-                <p className="text-xs text-muted-foreground">주간 인사이트 요약 이메일</p>
-              </div>
-              <Switch
-                checked={emailNotif}
-                onCheckedChange={(v) => handleNotifChange('emailNotif', setEmailNotif, v)}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">AI 분석 완료</p>
-                <p className="text-xs text-muted-foreground">클립 AI 분석이 완료되면 알림</p>
-              </div>
-              <Switch
-                checked={aiNotif}
-                onCheckedChange={(v) => handleNotifChange('aiNotif', setAiNotif, v)}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground/60 pt-2">이 설정은 이 기기에만 적용됩니다.</p>
-          </div>
-        </section>
-
         {/* Data & Export section */}
         <section className="card-glow card-inner-glow animate-fade-in-up animation-delay-500 rounded-2xl border border-border bg-card p-6">
           <div className="mb-5 flex items-center gap-3">
@@ -1024,15 +982,63 @@ export function SettingsClient() {
           </div>
 
           <p className="mb-4 text-xs text-muted-foreground">
-            계정 삭제를 원하시면 아래 이메일로 문의해 주세요. 모든 클립, 컬렉션, 설정이 영구적으로 삭제됩니다.
+            계정을 삭제하면 모든 클립, 컬렉션, 설정이 영구적으로 삭제되며 복구할 수 없습니다.
           </p>
-          <a
-            href="mailto:beyondworks.br@gmail.com?subject=계정 삭제 요청"
-            className="inline-flex items-center gap-2 rounded-xl border border-destructive/40 px-4 py-2 text-sm text-destructive transition-all hover:bg-destructive/10 hover:border-destructive/60"
+          <AlertDialog
+            open={deleteDialogOpen}
+            onOpenChange={(open) => {
+              if (deletingAccount) return;
+              setDeleteDialogOpen(open);
+              if (!open) setDeleteConfirmText('');
+            }}
           >
-            <Trash2 size={15} />
-            계정 삭제 문의
-          </a>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 rounded-xl border-destructive/40 text-destructive transition-all hover:bg-destructive/10 hover:border-destructive/60 hover:text-destructive"
+              >
+                <Trash2 size={15} />
+                계정 삭제
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-md rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-base font-semibold">
+                  <Trash2 size={16} className="text-destructive" />
+                  정말 계정을 삭제하시겠습니까?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm text-muted-foreground">
+                  모든 클립, 컬렉션, API 키, 구독 정보가 즉시 영구 삭제됩니다. 이
+                  작업은 되돌릴 수 없습니다. 계속하려면 아래에{' '}
+                  <span className="font-semibold text-destructive">삭제</span>를
+                  입력하세요.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="삭제"
+                className="rounded-xl focus-visible:ring-destructive/30"
+                disabled={deletingAccount}
+                aria-label="계정 삭제 확인 입력"
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl" disabled={deletingAccount}>
+                  취소
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="rounded-xl bg-destructive text-white hover:bg-destructive/90"
+                  disabled={deleteConfirmText !== '삭제' || deletingAccount}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void handleDeleteAccount();
+                  }}
+                >
+                  {deletingAccount ? '삭제 중...' : '영구 삭제'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </section>
 
       </div>

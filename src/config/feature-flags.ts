@@ -4,7 +4,8 @@
  * Tier-based gating is handled by use-feature-access hook.
  */
 export const FEATURE_FLAGS = {
-  KNOWLEDGE_GRAPH: true,
+  // 정식 런칭 스코프에서 제외 — 코드는 보존, 재활성화 시 true로 변경
+  KNOWLEDGE_GRAPH: false,
   ANNOTATIONS: true,
   READING_PROGRESS: true,
   SMART_AUTO_TAGGING: true,
