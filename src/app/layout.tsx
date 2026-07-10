@@ -10,6 +10,7 @@ import { ThemeColorSync } from '@/components/layout/theme-color-sync';
 import { ThemeColorScript } from '@/components/layout/theme-color-script';
 import { NativeProvider } from '@/components/native/native-provider';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const inter = Inter({
@@ -118,6 +119,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             </SupabaseProvider>
           </QueryProvider>
         </NativeProvider>
+        <Analytics />
       </body>
     </html>
   );

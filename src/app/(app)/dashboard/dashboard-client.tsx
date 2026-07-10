@@ -26,7 +26,6 @@ import { DashboardSettings } from '@/components/dashboard/dashboard-settings';
 import { useDashboardPreferences } from '@/lib/hooks/use-dashboard-preferences';
 import { SearchResultsOverlay } from '@/components/layout/search-results-overlay';
 import { UpgradeBanner } from '@/components/plan/upgrade-banner';
-import { BetaFeedback } from '@/components/dashboard/beta-feedback';
 
 import { cn } from '@/lib/utils';
 import type { ClipData } from '@/types/database';
@@ -432,11 +431,6 @@ export function DashboardClient() {
           {widgets.recentActivity && <RecentActivity userId={publicUser.id} />}
         </div>
       )}
-
-      {/* Beta feedback widget */}
-      <div className="animate-fade-in-up animation-delay-100 mb-6">
-        <BetaFeedback />
-      </div>
 
       {/* Active category filter indicator */}
       {filters.categoryId && (

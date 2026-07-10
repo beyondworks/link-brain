@@ -26,7 +26,6 @@ const SHORTCUT_GROUPS = [
       { keys: ['G', 'A'], description: '아카이브' },
       { keys: ['G', 'S'], description: 'Content Studio' },
       { keys: ['G', 'I'], description: '인사이트' },
-      { keys: ['G', 'G'], description: '지식 그래프' },
     ],
   },
   {

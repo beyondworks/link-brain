@@ -40,31 +40,44 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  // Has auth cookie → must validate / refresh session via Supabase.
-  const { supabaseResponse, user } = await updateSession(request);
+  // Has auth cookie → validate / refresh session via Supabase.
+  const { supabaseResponse, user, authStatus } = await updateSession(request);
 
-  if (isProtected && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  // Fail-open on auth timeout/error — let client-side SupabaseProvider re-verify.
+  // Only act on definitive results to prevent transient Supabase latency from
+  // bouncing cookie-holding users to /login (= mobile background "force logout").
+  if (authStatus === 'ok') {
+    if (isProtected && !user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('next', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
 
-  if (isAuthRoute && user) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = '/dashboard';
-    dashboardUrl.search = '';
-    return NextResponse.redirect(dashboardUrl);
+    if (isAuthRoute && user) {
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.search = '';
+      return NextResponse.redirect(dashboardUrl);
+    }
   }
 
   return supabaseResponse;
 }
 
+// Force Node.js runtime so we can rely on Fluid Compute instance reuse
+// instead of the Edge runtime cold-start path.
+export const runtime = 'nodejs';
+
 export const config = {
   matcher: [
     /*
-     * Match all request paths except static files and Next.js internals.
+     * Match page routes only. Excludes:
+     * - /api/*  → each API route runs its own withAuth(getUser); no need to
+     *            double-hit Supabase from middleware. This was the main cause
+     *            of MIDDLEWARE_INVOCATION_TIMEOUT under load.
+     * - Next.js internals, static assets, PWA manifest, service worker, icons.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/internal|api/webhooks|manifest\\.json|sw\\.js|icons/|video/|images/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4|woff2?)$).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|icons/|video/|images/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4|woff2?)$).*)',
   ],
 };

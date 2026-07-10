@@ -4,6 +4,8 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateChatCompletion } from '@/lib/ai/openai';
+import { chat } from '@/lib/ai/provider-client';
+import type { ResolvedAIConfig } from '@/lib/ai/model-resolver';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
 import { fetchScreenshot } from '@/lib/services/screenshot-service';
@@ -116,14 +118,43 @@ const getOrCreateCategory = async (
 // ─── AI metadata generation ────────────────────────────────────────────────────
 
 /**
- * Generate clip metadata using OpenAI.
+ * Run a metadata completion honoring the user's resolved AI config.
+ * - Server-key OpenAI (or no config): generateChatCompletion with the resolved model
+ *   so temperature/maxTokens are preserved.
+ * - User key or non-OpenAI provider: multi-provider chat() with the user's config.
+ */
+const runMetadataCompletion = async (
+  aiConfig: ResolvedAIConfig | undefined,
+  system: string,
+  user: string,
+  opts: { temperature: number; maxTokens: number }
+): Promise<string> => {
+  if (aiConfig && (aiConfig.isUserKey || aiConfig.provider !== 'openai')) {
+    return chat(aiConfig, system, user);
+  }
+  return generateChatCompletion(
+    [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    {
+      model: aiConfig?.model ?? 'gpt-4o-mini',
+      temperature: opts.temperature,
+      maxTokens: opts.maxTokens,
+    }
+  );
+};
+
+/**
+ * Generate clip metadata using the resolved AI provider.
  * Only called when rawText is non-empty.
  */
 export const generateClipMetadata = async (
   rawText: string,
   url: string,
   platform: string,
-  language = 'KR'
+  language = 'KR',
+  aiConfig?: ResolvedAIConfig
 ): Promise<ClipMetadata | null> => {
   if (!rawText || rawText.trim().length === 0) {
     return null;
@@ -142,17 +173,10 @@ export const generateClipMetadata = async (
       language,
     });
 
-    const responseText = await generateChatCompletion(
-      [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      {
-        model: 'gpt-4o-mini',
-        temperature: isYouTube ? 0.3 : 0.1,
-        maxTokens,
-      }
-    );
+    const responseText = await runMetadataCompletion(aiConfig, system, user, {
+      temperature: isYouTube ? 0.3 : 0.1,
+      maxTokens,
+    });
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -187,18 +211,16 @@ export const generateClipMetadata = async (
 const generateMetadataFromUrl = async (
   url: string,
   platform: string,
-  language = 'KR'
+  language = 'KR',
+  aiConfig?: ResolvedAIConfig
 ): Promise<ClipMetadata | null> => {
   try {
     const { system, user } = buildUrlMetadataPrompt({ url, platform, language });
 
-    const responseText = await generateChatCompletion(
-      [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      { model: 'gpt-4o-mini', temperature: 0, maxTokens: 300 }
-    );
+    const responseText = await runMetadataCompletion(aiConfig, system, user, {
+      temperature: 0,
+      maxTokens: 300,
+    });
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
@@ -466,7 +488,7 @@ export interface EnrichClipContentInput {
  */
 export const enrichClipContent = async (
   input: EnrichClipContentInput,
-  options?: { language?: string }
+  options?: { language?: string; aiConfig?: ResolvedAIConfig }
 ): Promise<ProcessNewClipResult> => {
   const { clipId, url, sourceType, userId } = input;
   const language = options?.language ?? 'KR';
@@ -476,10 +498,10 @@ export const enrichClipContent = async (
   // AI metadata
   let metadata: ClipMetadata | null = null;
   if (rawMarkdown.trim().length > 0) {
-    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
+    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language, options?.aiConfig);
   }
   if (!metadata) {
-    metadata = await generateMetadataFromUrl(url, aiPlatform, language);
+    metadata = await generateMetadataFromUrl(url, aiPlatform, language, options?.aiConfig);
   }
 
   const prepared = prepareClipContent(
@@ -531,10 +553,13 @@ export const enrichClipContent = async (
   if (contentError) {
     console.error('[ClipService] clip_contents insert error:', contentError);
     // Mark clip as partial so it can be retried — do not leave it as 'ready' with no content
-    await db
+    const { error: partialError } = await db
       .from('clips')
       .update({ processing_status: 'partial' })
       .eq('id', clipId);
+    if (partialError) {
+      console.error('[ClipService] Failed to mark clip partial:', partialError);
+    }
   }
 
   // Auto-tag (non-fatal)
@@ -640,10 +665,13 @@ export const processNewClip = async (
   if (contentError) {
     console.error('[ClipService] clip_contents insert error:', contentError);
     // Mark clip as partial so it can be retried — do not leave it as 'ready' with no content
-    await db
+    const { error: partialError } = await db
       .from('clips')
       .update({ processing_status: 'partial' })
       .eq('id', clipId);
+    if (partialError) {
+      console.error('[ClipService] Failed to mark clip partial:', partialError);
+    }
   }
 
   // Auto-tag asynchronously (non-fatal)

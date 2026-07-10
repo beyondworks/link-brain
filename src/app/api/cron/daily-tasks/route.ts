@@ -51,6 +51,10 @@ export async function GET(req: NextRequest) {
       .select('id, url, platform, user_id')
       .lt('retry_count', MAX_RETRY)
       .or(`processing_status.eq.failed,and(processing_status.eq.pending,created_at.lt.${fiveMinutesAgo})`)
+      // Permanent fetch outcomes must never be re-queued: a 404 will always 404,
+      // and a WAF-blocked page will keep serving the same challenge.
+      .not('processing_error', 'ilike', 'FETCH_NOT_FOUND%')
+      .not('processing_error', 'ilike', 'FETCH_BLOCKED%')
       .order('updated_at', { ascending: true })
       .limit(BATCH_SIZE);
 

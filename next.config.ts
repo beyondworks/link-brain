@@ -1,5 +1,6 @@
 import path from 'path';
 import type { NextConfig } from 'next';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -52,4 +53,10 @@ const nextConfig: NextConfig = {
   trailingSlash: !!process.env.CAPACITOR_BUILD,
 };
 
-export default nextConfig;
+// Sentry wrapping is a no-op unless SENTRY_AUTH_TOKEN/DSN are configured;
+// source-map upload only runs on CI/Vercel builds with the auth token present.
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  disableLogger: true,
+  telemetry: false,
+});

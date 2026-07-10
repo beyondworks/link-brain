@@ -1,3 +1,11 @@
+> **[lean-projects 회사 소속]** 사업부 saas · 운영 헌장(../../CLAUDE.md)·PM 플레이북(../../_company/PM-PLAYBOOK.md) 상속.
+> 이 세션은 이 프로젝트의 **PM**이다 (담당자 미정).
+> vault_folder: linkbrain
+> 옵시디언 맥락 공유는 lean-native의 AI-Sessions-Vault를 쓴다(한 그룹·두 계열사). "옵시디언 참조/저장"은 lean-native 절차(AGENTS self-check → boot/save/reference → vault-lint 게이트)를 따른다. lean-native 규약·wiki·log는 **불가침**, 출처는 PM 이름(PM 이름)으로 구분.
+> 아래는 프로젝트 고유 규칙(원본 보존).
+
+---
+
 # Linkbrain v2
 
 > 글로벌 규칙은 `~/.claude/CLAUDE.md`. 이 파일은 프로젝트 고유 규칙.
