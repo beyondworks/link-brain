@@ -187,7 +187,7 @@ export function ClipList({
         ids.map((id) => {
           const clip = clipMap.get(id);
           if (!clip) return Promise.resolve();
-          return toggleFavorite.mutateAsync({ clipId: id, isFavorite: clip.is_favorite ?? false });
+          return toggleFavorite.mutateAsync({ clipId: id, isFavorite: clip.is_favorite ?? false, silent: true });
         })
       );
       toast.success(`${ids.length}개 클립의 즐겨찾기가 변경되었습니다.`);
@@ -205,7 +205,7 @@ export function ClipList({
         ids.map((id) => {
           const clip = clipMap.get(id);
           if (!clip) return Promise.resolve();
-          return toggleArchive.mutateAsync({ clipId: id, isArchived: clip.is_archived ?? false });
+          return toggleArchive.mutateAsync({ clipId: id, isArchived: clip.is_archived ?? false, silent: true });
         })
       );
       toast.success(`${ids.length}개 클립이 아카이브되었습니다.`);
@@ -232,7 +232,7 @@ export function ClipList({
         ids.map((id) => {
           const clip = clipMap.get(id);
           if (!clip) return Promise.resolve();
-          return toggleHidden.mutateAsync({ clipId: id, isHidden: clip.is_hidden ?? false });
+          return toggleHidden.mutateAsync({ clipId: id, isHidden: clip.is_hidden ?? false, silent: true });
         })
       );
       toast.success(allSelectedHidden
@@ -249,7 +249,7 @@ export function ClipList({
     // Single delete from context menu
     if (singleDeleteTarget) {
       try {
-        await deleteClip.mutateAsync({ clipId: singleDeleteTarget });
+        await deleteClip.mutateAsync({ clipId: singleDeleteTarget, silent: true });
         toast.success('클립이 삭제되었습니다.');
       } catch {
         toast.error('클립 삭제에 실패했습니다.');
@@ -260,7 +260,7 @@ export function ClipList({
     }
     const ids = Array.from(selectedClipIds);
     try {
-      await Promise.all(ids.map((id) => deleteClip.mutateAsync({ clipId: id })));
+      await Promise.all(ids.map((id) => deleteClip.mutateAsync({ clipId: id, silent: true })));
       toast.success(`${ids.length}개 클립이 삭제되었습니다.`);
       clearSelection();
       setDeleteDialogOpen(false);

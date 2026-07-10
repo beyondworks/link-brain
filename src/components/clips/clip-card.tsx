@@ -48,6 +48,7 @@ export const ClipCard = memo(function ClipCard({
   const retryClip = useRetryClip();
   const prefetchClip = usePrefetchClip();
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
+  const isRetrying = retryClip.isPending || clip.processing_status === 'processing';
 
   const longPressHandlers = useLongPress({
     onLongPress: (touchPos) => {
@@ -286,10 +287,15 @@ export const ClipCard = memo(function ClipCard({
               <TooltipTrigger asChild>
                 <button
                   onClick={handleReprocess}
-                  className="animate-fade-in-up animation-delay-600 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110"
+                  disabled={retryClip.isPending}
+                  className="animate-fade-in-up animation-delay-600 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-spring hover:bg-white/30 hover:scale-110 disabled:opacity-60 disabled:hover:scale-100"
                   aria-label="재처리"
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  {retryClip.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent><p>재처리</p></TooltipContent>
@@ -297,8 +303,9 @@ export const ClipCard = memo(function ClipCard({
           </div>
         </div>
 
-        {/* Processing status overlay — only when clip has no title (no pre-analyzed data) */}
-        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (() => {
+        {/* Processing status overlay — only when clip has no title (no pre-analyzed data).
+            'partial' is excluded: a partial clip has real content and must render like ready. */}
+        {clip.processing_status && clip.processing_status !== 'ready' && clip.processing_status !== 'partial' && !clip.title && (() => {
           // Treat clips stuck in pending/processing for >5 min as failed
           const isStale = (clip.processing_status === 'pending' || clip.processing_status === 'processing')
             && clip.created_at
@@ -334,7 +341,13 @@ export const ClipCard = memo(function ClipCard({
           </p>
         )}
 
-        {(clip.processing_status === 'failed' || (
+        {clip.processing_status === 'partial' && (
+          <span className="inline-flex w-fit items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+            일부 저장됨
+          </span>
+        )}
+
+        {(retryClip.isPending || clip.processing_status === 'failed' || clip.processing_status === 'partial' || (
           (clip.processing_status === 'pending' || clip.processing_status === 'processing')
           && clip.created_at
           && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000
@@ -344,10 +357,20 @@ export const ClipCard = memo(function ClipCard({
               e.stopPropagation();
               retryClip.mutate({ clipId: clip.id });
             }}
-            className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 dark:text-amber-400"
+            disabled={isRetrying}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 transition-spring hover:bg-amber-500/20 disabled:opacity-60 disabled:hover:bg-amber-500/10 dark:text-amber-400"
           >
-            <RotateCcw className="h-3 w-3" />
-            재시도
+            {isRetrying ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                재시도중...
+              </>
+            ) : (
+              <>
+                <RotateCcw className="h-3 w-3" />
+                재시도
+              </>
+            )}
           </button>
         )}
 

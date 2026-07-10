@@ -75,7 +75,10 @@ export interface ImageAlbum {
 
 // ─── Clips ───────────────────────────────────────────────────────────────────
 
-export type ClipProcessingStatus = 'pending' | 'processing' | 'ready' | 'failed';
+// 'partial' = the fetch/extraction succeeded only partially; the clip has usable
+// content and must render like 'ready', but is flagged so the UI can surface a
+// small "일부 저장됨" badge and keep the retry affordance available.
+export type ClipProcessingStatus = 'pending' | 'processing' | 'ready' | 'partial' | 'failed';
 
 export interface ClipData {
   id: string;

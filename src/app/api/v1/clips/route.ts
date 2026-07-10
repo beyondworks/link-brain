@@ -208,57 +208,67 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
 
     const clipId = (clipRow as { id: string }).id;
 
-    // 3. Handle collectionIds
-    if (body.collectionIds && body.collectionIds.length > 0) {
-      const joinRows = body.collectionIds.map((cid: string) => ({
-        clip_id: clipId,
-        collection_id: cid,
-      }));
-      await db.from('clip_collections').insert(joinRows);
-    }
+    // The clip row is already committed. Everything below is best-effort
+    // post-insert work — if any of it throws, the clip still exists, so we must
+    // NOT surface a 500 (that produces a false "save failed" toast on the client
+    // while the clip is sitting in the list). Wrap it so we always reach the
+    // success response after a successful insert.
+    try {
+      // 3. Handle collectionIds
+      if (body.collectionIds && body.collectionIds.length > 0) {
+        const joinRows = body.collectionIds.map((cid: string) => ({
+          clip_id: clipId,
+          collection_id: cid,
+        }));
+        await db.from('clip_collections').insert(joinRows);
+      }
 
-    // 4. Trigger background processing (after response is sent)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    const internalSecret = process.env.INTERNAL_API_SECRET;
+      // 4. Trigger background processing (after response is sent)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+      const internalSecret = process.env.INTERNAL_API_SECRET;
 
-    if (process.env.NODE_ENV === 'production' && baseUrl.startsWith('http://localhost')) {
-      // Misconfigured deployment — the trigger below would silently fail and the
-      // clip would sit in 'pending' until the recovery cron. Make it visible.
-      console.error('[API v1 Clips] No NEXT_PUBLIC_APP_URL/VERCEL_URL in production — background trigger will fail');
-    }
+      if (process.env.NODE_ENV === 'production' && baseUrl.startsWith('http://localhost')) {
+        // Misconfigured deployment — the trigger below would silently fail and the
+        // clip would sit in 'pending' until the recovery cron. Make it visible.
+        console.error('[API v1 Clips] No NEXT_PUBLIC_APP_URL/VERCEL_URL in production — background trigger will fail');
+      }
 
-    if (baseUrl && internalSecret) {
-      after(async () => {
-        try {
-          await fetch(`${baseUrl}/api/internal/process-clip`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-internal-secret': internalSecret,
-            },
-            body: JSON.stringify({
-              clipId,
-              url,
-              platform: detectedPlatform,
-              userId: auth.publicUserId,
-            }),
-          });
-        } catch (err) {
-          console.error('[API v1 Clips] Background processing trigger failed:', err);
-          // Keep status 'pending' so the recovery cron re-queues it, but record why
-          await db
-            .from('clips')
-            .update({ processing_error: 'Background trigger failed — awaiting cron retry' })
-            .eq('id', clipId);
-        }
-      });
-    } else {
-      console.error('[API v1 Clips] INTERNAL_API_SECRET missing — background processing disabled');
-      await db
-        .from('clips')
-        .update({ processing_error: 'Background trigger unavailable: missing internal secret' })
-        .eq('id', clipId);
+      if (baseUrl && internalSecret) {
+        after(async () => {
+          try {
+            await fetch(`${baseUrl}/api/internal/process-clip`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-internal-secret': internalSecret,
+              },
+              body: JSON.stringify({
+                clipId,
+                url,
+                platform: detectedPlatform,
+                userId: auth.publicUserId,
+              }),
+            });
+          } catch (err) {
+            console.error('[API v1 Clips] Background processing trigger failed:', err);
+            // Keep status 'pending' so the recovery cron re-queues it, but record why
+            await db
+              .from('clips')
+              .update({ processing_error: 'Background trigger failed — awaiting cron retry' })
+              .eq('id', clipId);
+          }
+        });
+      } else {
+        console.error('[API v1 Clips] INTERNAL_API_SECRET missing — background processing disabled');
+        await db
+          .from('clips')
+          .update({ processing_error: 'Background trigger unavailable: missing internal secret' })
+          .eq('id', clipId);
+      }
+    } catch (postInsertErr) {
+      // Never fail the request after the clip is committed — the row exists.
+      console.error('[API v1 Clips] Post-insert work failed (clip already saved):', postInsertErr);
     }
 
     // 5. Return immediately with the pending clip

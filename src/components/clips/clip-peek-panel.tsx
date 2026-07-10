@@ -26,6 +26,7 @@ import {
   BookmarkPlus,
   Download,
   ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -246,11 +247,16 @@ function PeekContent({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg transition-spring hover:bg-muted"
+                className="h-8 w-8 rounded-lg transition-spring hover:bg-muted disabled:opacity-60"
                 onClick={() => retryClip.mutate({ clipId: clip.id })}
+                disabled={retryClip.isPending}
                 aria-label="재처리"
               >
-                <RotateCcw size={15} className="text-muted-foreground" />
+                {retryClip.isPending ? (
+                  <Loader2 size={15} className="animate-spin text-muted-foreground" />
+                ) : (
+                  <RotateCcw size={15} className="text-muted-foreground" />
+                )}
               </Button>
             </>
           )}

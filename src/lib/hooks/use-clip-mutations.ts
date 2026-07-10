@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { ClipData } from '@/types/database';
 import { hapticLight, hapticWarning } from '@/lib/native/haptics';
+import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 interface ClipPage {
   data: ClipData[];
@@ -48,7 +49,7 @@ export function useToggleFavorite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clipId, isFavorite }: { clipId: string; isFavorite: boolean }) => {
+    mutationFn: async ({ clipId, isFavorite }: { clipId: string; isFavorite: boolean; silent?: boolean }) => {
       const { error } = await supabase
         .from('clips')
         .update({ is_favorite: !isFavorite } as never)
@@ -75,15 +76,15 @@ export function useToggleFavorite() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, { silent }, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('즐겨찾기 변경에 실패했습니다.');
+      if (!silent) toast.error(getErrorMessage(err, '즐겨찾기 변경에 실패했습니다.'));
     },
 
-    onSuccess: (_data, { isFavorite }) => {
-      toast.success(isFavorite ? '즐겨찾기에서 제거됨' : '즐겨찾기에 추가됨');
+    onSuccess: (_data, { isFavorite, silent }) => {
+      if (!silent) toast.success(isFavorite ? '즐겨찾기에서 제거됨' : '즐겨찾기에 추가됨');
     },
 
     onSettled: (_data, _err, { clipId }) => {
@@ -100,7 +101,7 @@ export function useToggleArchive() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clipId, isArchived }: { clipId: string; isArchived: boolean }) => {
+    mutationFn: async ({ clipId, isArchived }: { clipId: string; isArchived: boolean; silent?: boolean }) => {
       const { error } = await supabase
         .from('clips')
         .update({ is_archived: !isArchived } as never)
@@ -127,15 +128,15 @@ export function useToggleArchive() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, { silent }, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('아카이브 변경에 실패했습니다.');
+      if (!silent) toast.error(getErrorMessage(err, '아카이브 변경에 실패했습니다.'));
     },
 
-    onSuccess: (_data, { isArchived }) => {
-      toast.success(isArchived ? '아카이브에서 제거됨' : '아카이브에 추가됨');
+    onSuccess: (_data, { isArchived, silent }) => {
+      if (!silent) toast.success(isArchived ? '아카이브에서 제거됨' : '아카이브에 추가됨');
     },
 
     onSettled: () => {
@@ -150,7 +151,7 @@ export function useToggleHidden() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clipId, isHidden }: { clipId: string; isHidden: boolean }) => {
+    mutationFn: async ({ clipId, isHidden }: { clipId: string; isHidden: boolean; silent?: boolean }) => {
       const { error } = await supabase
         .from('clips')
         .update({ is_hidden: !isHidden } as never)
@@ -174,15 +175,15 @@ export function useToggleHidden() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, { silent }, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('숨김 변경에 실패했습니다.');
+      if (!silent) toast.error(getErrorMessage(err, '숨김 변경에 실패했습니다.'));
     },
 
-    onSuccess: (_data, { isHidden }) => {
-      toast.success(isHidden ? '홈에 다시 표시됩니다.' : '홈에서 숨겨졌습니다.');
+    onSuccess: (_data, { isHidden, silent }) => {
+      if (!silent) toast.success(isHidden ? '홈에 다시 표시됩니다.' : '홈에서 숨겨졌습니다.');
     },
 
     onSettled: () => {
@@ -225,11 +226,11 @@ export function useTogglePin() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('고정 변경에 실패했습니다.');
+      toast.error(getErrorMessage(err, '고정 변경에 실패했습니다.'));
     },
 
     onSuccess: (_data, { isPinned }) => {
@@ -274,11 +275,11 @@ export function useToggleReadLater() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('나중에 읽기 변경에 실패했습니다.');
+      toast.error(getErrorMessage(err, '나중에 읽기 변경에 실패했습니다.'));
     },
 
     onSuccess: (_data, { isReadLater }) => {
@@ -309,15 +310,31 @@ export function useMarkAsRead() {
     },
 
     onMutate: async ({ clipId }) => {
+      await queryClient.cancelQueries({ queryKey: ['clips'] });
+
+      const previousEntries = queryClient.getQueriesData<ClipsInfiniteData>({
+        queryKey: ['clips'],
+      });
+
       queryClient.setQueriesData<ClipsInfiniteData>({ queryKey: ['clips'] }, (old) =>
         updateClipInInfiniteData(old, clipId, (clip) => ({
           ...clip,
           is_read: true,
         }))
       );
+
+      return { previousEntries };
+    },
+
+    // Silent rollback — read-marking is a background side effect, no toast needed.
+    onError: (_err, _vars, context) => {
+      context?.previousEntries?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
     },
 
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['clips'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-stats'] });
     },
   });
@@ -329,7 +346,7 @@ export function useDeleteClip() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ clipId }: { clipId: string }) => {
+    mutationFn: async ({ clipId }: { clipId: string; silent?: boolean }) => {
       const { error } = await supabase.from('clips').delete().eq('id', clipId);
       if (error) throw error;
       return { clipId };
@@ -350,15 +367,15 @@ export function useDeleteClip() {
       return { previousEntries };
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, { silent }, context) => {
       context?.previousEntries?.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      toast.error('클립 삭제에 실패했습니다.');
+      if (!silent) toast.error(getErrorMessage(err, '클립 삭제에 실패했습니다.'));
     },
 
-    onSuccess: () => {
-      toast.success('클립이 삭제되었습니다.');
+    onSuccess: (_data, { silent }) => {
+      if (!silent) toast.success('클립이 삭제되었습니다.');
     },
 
     onSettled: () => {

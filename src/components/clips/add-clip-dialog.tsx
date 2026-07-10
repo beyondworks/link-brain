@@ -48,20 +48,6 @@ function isValidUrl(value: string): boolean {
   }
 }
 
-function normalizeUrl(value: string): string {
-  try {
-    const parsed = new URL(value.trim());
-    parsed.hostname = parsed.hostname.toLowerCase();
-    // Remove trailing slash from pathname
-    if (parsed.pathname !== '/') {
-      parsed.pathname = parsed.pathname.replace(/\/+$/, '');
-    }
-    return parsed.toString();
-  } catch {
-    return value.trim();
-  }
-}
-
 interface DuplicateClip {
   id: string;
   title: string | null;
@@ -124,11 +110,14 @@ export function AddClipDialog() {
     setIsDuplicateChecking(true);
     const timer = setTimeout(async () => {
       try {
-        const normalized = normalizeUrl(url);
+        // Use the same raw trimmed URL the save will send (handleSave/handleQuickSave
+        // POST url.trim(), and the server dup-check matches on the raw url). Normalizing
+        // here caused the client check to miss/mismatch real duplicates.
+        const trimmedUrl = url.trim();
         const { data } = await supabase
           .from('clips')
           .select('id, title, url')
-          .eq('url', normalized)
+          .eq('url', trimmedUrl)
           .eq('user_id', authUser.id)
           .maybeSingle();
 

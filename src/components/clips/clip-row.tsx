@@ -139,7 +139,7 @@ export const ClipRow = memo(function ClipRow({
             <span className="text-lg font-black text-muted-foreground/30">{firstLetter}</span>
           </div>
         )}
-        {clip.processing_status && clip.processing_status !== 'ready' && !clip.title && (() => {
+        {clip.processing_status && clip.processing_status !== 'ready' && clip.processing_status !== 'partial' && !clip.title && (() => {
           const isStale = (clip.processing_status === 'pending' || clip.processing_status === 'processing')
             && clip.created_at
             && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000;
@@ -173,6 +173,13 @@ export const ClipRow = memo(function ClipRow({
             && Date.now() - new Date(clip.created_at).getTime() > 5 * 60 * 1000;
           if (clip.processing_status === 'failed' || isStale) {
             return <p className="mt-0.5 text-[11px] font-medium text-amber-500">{isStale ? '처리 시간 초과' : '추출 실패'} — 재시도 가능</p>;
+          }
+          if (clip.processing_status === 'partial') {
+            return (
+              <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                일부 저장됨
+              </span>
+            );
           }
           if (clip.processing_status === 'pending' || clip.processing_status === 'processing') {
             return <p className="mt-0.5 text-[11px] font-medium text-muted-foreground/60">분석 중...</p>;
@@ -324,10 +331,15 @@ export const ClipRow = memo(function ClipRow({
           <TooltipTrigger asChild>
             <button
               onClick={(e) => { e.stopPropagation(); retryClip.mutate({ clipId: clip.id }); }}
-              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110"
+              disabled={retryClip.isPending}
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-spring hover:bg-accent hover:text-foreground hover:scale-110 disabled:opacity-60 disabled:hover:scale-100"
               aria-label="재처리"
             >
-              <RotateCcw className="h-4 w-4" />
+              {retryClip.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
             </button>
           </TooltipTrigger>
           <TooltipContent><p>재처리</p></TooltipContent>

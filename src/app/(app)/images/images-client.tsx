@@ -789,7 +789,11 @@ function ImageTile({
       {clip.processing_status && clip.processing_status !== 'ready' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <span className="text-[10px] font-medium text-white/90">
-            {clip.processing_status === 'failed' ? '실패' : '분석중...'}
+            {clip.processing_status === 'failed'
+              ? '실패'
+              : clip.processing_status === 'partial'
+                ? '일부 저장됨'
+                : '분석중...'}
           </span>
         </div>
       )}
