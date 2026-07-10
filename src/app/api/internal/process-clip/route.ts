@@ -105,20 +105,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Enrich clip with AI metadata + content
-    await enrichClipContent({
-      clipId,
-      url,
-      sourceType,
-      platform,
-      rawText: fetchedContent.rawText,
-      htmlContent: fetchedContent.htmlContent,
-      images: fetchedContent.images,
-      userId,
-      author: fetchedContent.author,
-      authorAvatar: fetchedContent.authorAvatar,
-      authorHandle: fetchedContent.authorHandle,
-      embeddedLinks: fetchedContent.embeddedLinks,
-    });
+    await enrichClipContent(
+      {
+        clipId,
+        url,
+        sourceType,
+        platform,
+        rawText: fetchedContent.rawText,
+        htmlContent: fetchedContent.htmlContent,
+        images: fetchedContent.images,
+        userId,
+        author: fetchedContent.author,
+        authorAvatar: fetchedContent.authorAvatar,
+        authorHandle: fetchedContent.authorHandle,
+        embeddedLinks: fetchedContent.embeddedLinks,
+      },
+      { aiConfig }
+    );
 
     // Generate embedding (fire-and-forget, non-blocking)
     try {
@@ -145,26 +148,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error(`[ProcessClip] Failed for clip ${clipId}:`, err);
 
-    // Mark as failed with error message + increment retry_count
+    // Mark as failed + increment retry_count atomically (RPC, no read-then-write race)
     const errorMessage = err instanceof Error ? err.message : 'Unknown processing error';
 
-    // Read current retry_count then increment
-    const { data: current } = await db
-      .from('clips')
-      .select('retry_count')
-      .eq('id', clipId)
-      .single();
-
-    const currentRetry = (current as { retry_count: number } | null)?.retry_count ?? 0;
-
-    await db
-      .from('clips')
-      .update({
-        processing_status: 'failed',
-        processing_error: errorMessage.substring(0, 500),
-        retry_count: currentRetry + 1,
-      })
-      .eq('id', clipId);
+    const { error: rpcError } = await db.rpc('mark_clip_failed', {
+      p_clip_id: clipId,
+      p_error: errorMessage,
+    });
+    if (rpcError) {
+      console.error(`[ProcessClip] mark_clip_failed RPC error for clip ${clipId}:`, rpcError);
+    }
 
     return NextResponse.json(
       { error: 'Processing failed', clipId, message: errorMessage },

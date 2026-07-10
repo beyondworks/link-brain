@@ -434,6 +434,7 @@ export type Database = {
           author_handle: string | null
           category_id: string | null
           created_at: string
+          fetch_method: string | null
           fts: unknown
           id: string
           image: string | null
@@ -467,6 +468,7 @@ export type Database = {
           author_handle?: string | null
           category_id?: string | null
           created_at?: string
+          fetch_method?: string | null
           fts?: unknown
           id?: string
           image?: string | null
@@ -500,6 +502,7 @@ export type Database = {
           author_handle?: string | null
           category_id?: string | null
           created_at?: string
+          fetch_method?: string | null
           fts?: unknown
           id?: string
           image?: string | null
@@ -1375,6 +1378,10 @@ export type Database = {
       }
     }
     Functions: {
+      mark_clip_failed: {
+        Args: { p_clip_id: string; p_error: string }
+        Returns: undefined
+      }
       deduct_credit:
         | {
             Args: {

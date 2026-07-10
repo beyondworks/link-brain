@@ -222,6 +222,12 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
       || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     const internalSecret = process.env.INTERNAL_API_SECRET;
 
+    if (process.env.NODE_ENV === 'production' && baseUrl.startsWith('http://localhost')) {
+      // Misconfigured deployment — the trigger below would silently fail and the
+      // clip would sit in 'pending' until the recovery cron. Make it visible.
+      console.error('[API v1 Clips] No NEXT_PUBLIC_APP_URL/VERCEL_URL in production — background trigger will fail');
+    }
+
     if (baseUrl && internalSecret) {
       after(async () => {
         try {
@@ -240,8 +246,19 @@ async function handleCreate(req: NextRequest, auth: AuthContext): Promise<NextRe
           });
         } catch (err) {
           console.error('[API v1 Clips] Background processing trigger failed:', err);
+          // Keep status 'pending' so the recovery cron re-queues it, but record why
+          await db
+            .from('clips')
+            .update({ processing_error: 'Background trigger failed — awaiting cron retry' })
+            .eq('id', clipId);
         }
       });
+    } else {
+      console.error('[API v1 Clips] INTERNAL_API_SECRET missing — background processing disabled');
+      await db
+        .from('clips')
+        .update({ processing_error: 'Background trigger unavailable: missing internal secret' })
+        .eq('id', clipId);
     }
 
     // 5. Return immediately with the pending clip
