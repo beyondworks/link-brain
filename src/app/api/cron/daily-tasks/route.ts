@@ -34,13 +34,19 @@ export async function GET(req: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
+  // scope=retry → run only the stuck/failed clip recovery (section 2).
+  // Called every 15min by GitHub Actions; the full daily run keeps all sections.
+  const retryOnly = req.nextUrl.searchParams.get('scope') === 'retry';
+
   // ── 1. Aggregate content patterns ──
-  try {
-    const count = await aggregateContentPatterns();
-    results.aggregatePatterns = { count };
-  } catch (err) {
-    console.error('[Cron/DailyTasks] AggregatePatterns error:', err);
-    results.aggregatePatterns = { error: 'Failed' };
+  if (!retryOnly) {
+    try {
+      const count = await aggregateContentPatterns();
+      results.aggregatePatterns = { count };
+    } catch (err) {
+      console.error('[Cron/DailyTasks] AggregatePatterns error:', err);
+      results.aggregatePatterns = { error: 'Failed' };
+    }
   }
 
   // ── 2. Retry failed clips ──
@@ -103,7 +109,7 @@ export async function GET(req: NextRequest) {
 
   // ── 3. Grant credits (1st of month only) ──
   const dayOfMonth = new Date().getUTCDate();
-  if (dayOfMonth === 1) {
+  if (!retryOnly && dayOfMonth === 1) {
     try {
       const { data: candidates, error: queryError } = await db
         .from('notification_preferences')

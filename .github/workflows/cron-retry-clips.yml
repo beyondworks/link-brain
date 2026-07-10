@@ -1,0 +1,21 @@
+name: "Cron: Retry Stuck Clips"
+
+# Frequent recovery for stuck/failed clips (Vercel Hobby crons are daily-only).
+# Hits daily-tasks with scope=retry so only the clip-recovery section runs.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      APP_URL: ${{ secrets.APP_URL }}
+    steps:
+      - name: Trigger clip retry cron
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/daily-tasks?scope=retry"

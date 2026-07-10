@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/daily-tasks",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/cron/notifications",
