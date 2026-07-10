@@ -1,102 +1,74 @@
 /**
- * Naver Blog Fetcher — Platform-specific fetcher for Naver Blog
+ * Naver Blog Fetcher — tiered escalation for Naver Blog posts.
  *
- * Handles:
- * 1. Mobile URL conversion (desktop -> mobile for no-iframe extraction)
- * 2. Jina Reader primary extraction
- * 3. Puppeteer fallback
- * 4. Naver-specific normalization
+ * Chain: mobile HTML (iPhone UA, no-iframe variant, Defuddle-parsed) →
+ * Jina Reader on the mobile URL → OG-meta. normalizeNaverBlog is applied
+ * exactly once, inside whichever step produces the content.
  */
 
+import { runEscalationChain, type FetchStep, type StepOutcome } from './escalation';
+import { validateFetchResponse } from './validation';
+import { parseWithDefuddle } from './defuddle-extractor';
 import { normalizeNaverBlog } from './normalizers/naver';
-// Puppeteer not available in serverless v2 — import removed
-import { validateUrl } from './url-validator';
-import { fetchWithTimeout, extractImagesFromMarkdown } from './utils';
+import { toNaverMobileUrl } from './url-transforms';
+import { fetchWithTimeout } from './utils';
+import {
+    IPHONE_UA,
+    mapHttpErrorToVerdict,
+    runJinaStep,
+    runOgMetaStep,
+} from './step-helpers';
+import type { FetchResult } from './fetch-result';
 import type { FetchedUrlContent, PlatformFetcher } from './types';
 
-/**
- * Convert Naver Blog URL to mobile version for better extraction
- * Mobile version doesn't use iframes
- */
-const convertToNaverMobile = (url: string): string => {
-    if (url.includes('m.blog.naver.com')) {
-        return url;
+const runMobileHtml = async (url: string, mobileUrl: string): Promise<StepOutcome> => {
+    const res = await fetchWithTimeout(
+        mobileUrl,
+        {
+            headers: {
+                'User-Agent': IPHONE_UA,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9',
+                'Referer': 'https://m.naver.com/',
+            },
+        },
+        15000,
+    );
+    if (!res.ok) return { verdict: mapHttpErrorToVerdict(res.status), httpStatus: res.status };
+
+    const html = await res.text();
+    const gate = validateFetchResponse({ httpStatus: res.status, body: html });
+    if (gate.verdict === 'challenge' || gate.verdict === 'auth_gate' ||
+        gate.verdict === 'rate_limited' || gate.verdict === 'not_found') {
+        return { verdict: gate.verdict, detail: gate.detail, httpStatus: res.status };
     }
-    return url.replace('blog.naver.com', 'm.blog.naver.com');
+
+    const parsed = await parseWithDefuddle(html, mobileUrl);
+    const normalized = normalizeNaverBlog(parsed.rawText || '');
+    if (!normalized) return { verdict: 'empty' };
+
+    const content: FetchedUrlContent = { ...parsed, rawText: normalized, finalUrl: url };
+    const { verdict } = validateFetchResponse({ httpStatus: 200, body: normalized });
+    return { verdict: verdict === 'ok' ? 'ok' : 'weak', content };
 };
-
-/**
- * Extract content using Jina Reader API (Naver-specific)
- */
-const extractWithJina = async (url: string): Promise<FetchedUrlContent> => {
-    try {
-        const jinaUrl = `https://r.jina.ai/${url}`;
-        const jinaApiKey = process.env.JINA_API_KEY;
-
-        const headers: Record<string, string> = { 'Accept': 'application/json' };
-        if (jinaApiKey) headers['Authorization'] = `Bearer ${jinaApiKey}`;
-
-        const response = await fetchWithTimeout(jinaUrl, { headers }, 20000);
-
-        if (!response.ok) {
-            console.warn(`[Naver Fetcher/Jina] API returned ${response.status}`);
-            return { rawText: '', images: [] };
-        }
-
-        const data = await response.json() as { data?: { content?: string }; content?: string };
-        const rawContent = data.data?.content || data.content || '';
-
-        if (!rawContent || rawContent.length < 20) {
-            return { rawText: '', images: [] };
-        }
-
-        const images = extractImagesFromMarkdown(rawContent);
-
-        return { rawText: rawContent, images };
-    } catch (error) {
-        console.error('[Naver Fetcher/Jina] Error:', error);
-        return { rawText: '', images: [] };
-    }
-};
-
-// ============================================================================
-// MAIN FETCHER
-// ============================================================================
 
 export class NaverFetcher implements PlatformFetcher {
-    async fetch(url: string): Promise<FetchedUrlContent> {
-        const urlValidation = validateUrl(url);
-        if (!urlValidation.valid) {
-            console.error(`[Naver Fetcher] SSRF blocked: ${urlValidation.error}`);
-            return { rawText: '', images: [] };
-        }
+    async fetch(url: string): Promise<FetchResult> {
+        const mobileUrl = toNaverMobileUrl(url);
 
-        try {
-            const mobileUrl = convertToNaverMobile(url);
-
-            // Strategy 1: Jina Reader with mobile URL
-            const jinaResult = await extractWithJina(mobileUrl);
-
-            if (jinaResult.rawText && jinaResult.rawText.length > 50) {
-                const normalizedText = normalizeNaverBlog(jinaResult.rawText);
-                return {
-                    ...jinaResult,
-                    rawText: normalizedText,
-                    finalUrl: url
-                };
-            }
-
-            // Puppeteer not available in serverless — skip to fallback
-            console.warn('[Naver Fetcher] Jina weak, Puppeteer unavailable in v2');
-            return {
-                ...jinaResult,
-                rawText: normalizeNaverBlog(jinaResult.rawText || ''),
-                finalUrl: url
-            };
-
-        } catch (error) {
-            console.error('[Naver Fetcher] Error:', error);
-            return { rawText: '', images: [] };
-        }
+        const steps: FetchStep[] = [
+            { method: 'naver:mobile-html', tier: 'html', run: () => runMobileHtml(url, mobileUrl) },
+            {
+                method: 'naver:jina',
+                tier: 'reader',
+                run: async () => {
+                    const outcome = await runJinaStep(mobileUrl, { clean: normalizeNaverBlog });
+                    if (outcome.content) outcome.content.finalUrl = url;
+                    return outcome;
+                },
+            },
+            { method: 'og-meta', tier: 'html', run: () => runOgMetaStep(url) },
+        ];
+        return runEscalationChain(steps);
     }
 }

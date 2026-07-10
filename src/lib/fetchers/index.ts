@@ -3,10 +3,17 @@
  */
 
 // Main entry point
-export { fetchUrlContent } from './orchestrator';
+export { fetchUrlContent, fetchUrlContentDetailed } from './orchestrator';
 
 // Types
 export type { FetchedUrlContent, PlatformFetcher, PlatformFetcherOptions } from './types';
+export type {
+    FetchResult,
+    FetchMethod,
+    FetchVerdict,
+    FetchAttempt,
+    FetchErrorCode,
+} from './fetch-result';
 
 // Platform detection
 export { detectPlatform } from './platform-detector';
@@ -37,7 +44,8 @@ export { YouTubeFetcher } from './youtube-fetcher';
 export { ThreadsFetcher } from './threads-fetcher';
 export { InstagramFetcher } from './instagram-fetcher';
 export { NaverFetcher } from './naver-fetcher';
-export { SocialFetcher } from './social-fetcher';
+export { TwitterFetcher } from './twitter-fetcher';
+export { RedditFetcher } from './reddit-fetcher';
 
 // Feature flags
 export { ENABLE_WEB_FALLBACK_MERGE, ENABLE_THREADS_AUTHOR_ONLY_CHAIN } from './feature-flags';

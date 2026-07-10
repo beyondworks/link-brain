@@ -2,6 +2,8 @@
  * Fetcher Types — Shared interfaces for platform-specific fetchers
  */
 
+import type { FetchResult } from './fetch-result';
+
 export interface FetchedUrlContent {
     rawText: string;
     rawTextOriginal?: string;
@@ -25,5 +27,5 @@ export interface PlatformFetcherOptions {
 }
 
 export interface PlatformFetcher {
-    fetch(url: string, options?: PlatformFetcherOptions): Promise<FetchedUrlContent>;
+    fetch(url: string, options?: PlatformFetcherOptions): Promise<FetchResult>;
 }
