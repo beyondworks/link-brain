@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 /**
  * Explore는 익명 공개 라이브러리다 — 저장한 사용자를 식별할 수 있는 필드
@@ -22,16 +22,27 @@ export interface ExploreClip {
 
 export type ExploreSort = 'recent' | 'popular' | 'trending';
 
-export const EXPLORE_CATEGORIES = [
-  { key: 'all', label: '전체' },
-  { key: '기술', label: '기술' },
-  { key: '디자인', label: '디자인' },
-  { key: '비즈니스', label: '비즈니스' },
-  { key: '학습', label: '학습' },
-  { key: '기타', label: '기타' },
-] as const;
+/** 'all' 또는 실제 카테고리 이름 — 칩 목록은 서버 집계로 동적 로드 */
+export type ExploreCategoryKey = string;
 
-export type ExploreCategoryKey = (typeof EXPLORE_CATEGORIES)[number]['key'];
+interface ExploreCategoriesResponse {
+  success: boolean;
+  data: { categories: { name: string; count: number }[] };
+}
+
+/** 공개 클립이 실제로 속한 카테고리 상위 목록 (탐색 필터 칩용) */
+export function useExploreCategories() {
+  return useQuery({
+    queryKey: ['explore', 'categories'],
+    queryFn: async (): Promise<{ name: string; count: number }[]> => {
+      const res = await fetch('/api/v1/explore/categories');
+      if (!res.ok) return [];
+      const json = (await res.json()) as ExploreCategoriesResponse;
+      return json.data?.categories ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 interface ApiMeta {
   total: number;
