@@ -1,49 +1,113 @@
 /**
  * API v1 - Insights
  *
- * GET /api/v1/insights  - Server-side aggregated stats for the insights page
+ * GET /api/v1/insights?period=week|month|year
+ *
+ * Returns a consumption retrospective for the selected period (saved vs read
+ * with a previous-period comparison, activity series, category/platform
+ * distribution, reading debt) plus the all-time library tiles.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { withAuth, type AuthContext } from '@/lib/api/middleware';
 import { sendSuccess, errors } from '@/lib/api/response';
+import {
+  parsePeriod,
+  resolvePeriodRange,
+  periodGranularity,
+  buildActivitySeries,
+  changePercent,
+  type InsightsPeriod,
+  type InsightsGranularity,
+  type ActivityBucket,
+} from '@/lib/insights/period';
+import { fetchPeriodStats, type DebtClip } from '@/lib/insights/period-stats';
 
 export interface InsightsData {
+  // ── selected period ──
+  period: InsightsPeriod;
+  granularity: InsightsGranularity;
+  range: { from: string; to: string };
+  periodStats: {
+    saved: number;
+    read: number;
+    prevSaved: number;
+    prevRead: number;
+    savedChangePct: number | null;
+    readChangePct: number | null;
+  };
+  activity: ActivityBucket[];
+  categoryBreakdown: { name: string | null; count: number }[];
+  platformBreakdown: { platform: string; count: number }[];
+  readingDebt: { count: number; clips: DebtClip[] };
+
+  // ── all-time library ──
   totalClips: number;
   totalFavorites: number;
   totalArchived: number;
   readRate: number;
-  platformBreakdown: { platform: string; count: number }[];
-  recentActivity: { date: string; count: number }[];
   topTags: { name: string; count: number }[];
   aiAnalyzedCount: number;
   unanalyzedCount: number;
 }
 
-async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResponse> {
+async function fetchTopTags(userId: string): Promise<{ name: string; count: number }[]> {
+  const { data: clipRows } = await supabaseAdmin
+    .from('clips')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_archived', false);
+
+  const clipIds = ((clipRows ?? []) as { id: string }[]).map((r) => r.id);
+  if (clipIds.length === 0) return [];
+
+  const { data: clipTagRows } = await supabaseAdmin
+    .from('clip_tags')
+    .select('tag_id')
+    .in('clip_id', clipIds.slice(0, 1000)); // cap to avoid URL length limit
+
+  const tagRowsRaw = (clipTagRows ?? []) as { tag_id: string }[];
+  if (tagRowsRaw.length === 0) return [];
+
+  const tagIdCounts = new Map<string, number>();
+  for (const { tag_id } of tagRowsRaw) {
+    tagIdCounts.set(tag_id, (tagIdCounts.get(tag_id) ?? 0) + 1);
+  }
+
+  const { data: tagRows } = await supabaseAdmin
+    .from('tags')
+    .select('id, name')
+    .in('id', [...tagIdCounts.keys()]);
+
+  return ((tagRows ?? []) as { id: string; name: string }[])
+    .map(({ id, name }) => ({ name, count: tagIdCounts.get(id) ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+}
+
+async function handleGet(req: NextRequest, auth: AuthContext): Promise<NextResponse> {
   const userId = auth.publicUserId;
+  const period = parsePeriod(req.nextUrl.searchParams.get('period'));
+  const range = resolvePeriodRange(period);
 
   try {
-    // Run independent count queries in parallel
     const [
       totalResult,
       favoritesResult,
       archivedResult,
       readResult,
       aiAnalyzedResult,
-      platformResult,
-      recentResult,
-      tagsResult,
+      topTags,
+      current,
+      previous,
     ] = await Promise.all([
-      // Total clips (non-archived)
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('is_archived', false),
 
-      // Total favorites
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
@@ -51,14 +115,12 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
         .eq('is_favorite', true)
         .eq('is_archived', false),
 
-      // Total archived
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('is_archived', true),
 
-      // Read clips (is_read = true)
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
@@ -66,7 +128,6 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
         .eq('is_archived', false)
         .eq('is_read', true),
 
-      // AI analyzed clips (non-null summary)
       supabaseAdmin
         .from('clips')
         .select('*', { count: 'exact', head: true })
@@ -75,110 +136,39 @@ async function handleGet(_req: NextRequest, auth: AuthContext): Promise<NextResp
         .not('summary', 'is', null)
         .neq('summary', ''),
 
-      // Platform breakdown
-      supabaseAdmin
-        .from('clips')
-        .select('platform')
-        .eq('user_id', userId)
-        .eq('is_archived', false)
-        .not('platform', 'is', null),
-
-      // Recent activity: clips from last 30 days
-      supabaseAdmin
-        .from('clips')
-        .select('created_at')
-        .eq('user_id', userId)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: true }),
-
-      // User's clip IDs for tag lookup
-      supabaseAdmin
-        .from('clips')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('is_archived', false),
+      fetchTopTags(userId),
+      fetchPeriodStats(userId, range.from, range.to),
+      fetchPeriodStats(userId, range.prevFrom, range.prevTo),
     ]);
 
     const totalClips = totalResult.count ?? 0;
-    const totalFavorites = favoritesResult.count ?? 0;
-    const totalArchived = archivedResult.count ?? 0;
     const readCount = readResult.count ?? 0;
     const aiAnalyzedCount = aiAnalyzedResult.count ?? 0;
-    const unanalyzedCount = Math.max(0, totalClips - aiAnalyzedCount);
-
-    // Top tags: two-step (clip_tags has no FK relationships defined)
-    const clipIds = ((tagsResult.data ?? []) as { id: string }[]).map((r) => r.id);
-    let topTags: { name: string; count: number }[] = [];
-    if (clipIds.length > 0) {
-      const { data: clipTagRows } = await supabaseAdmin
-        .from('clip_tags')
-        .select('tag_id')
-        .in('clip_id', clipIds.slice(0, 1000)); // cap to avoid URL length limit
-
-      if (clipTagRows && clipTagRows.length > 0) {
-        const tagIds = [...new Set((clipTagRows as { tag_id: string }[]).map((r) => r.tag_id))];
-        const tagIdCounts = new Map<string, number>();
-        for (const { tag_id } of clipTagRows as { tag_id: string }[]) {
-          tagIdCounts.set(tag_id, (tagIdCounts.get(tag_id) ?? 0) + 1);
-        }
-
-        const { data: tagRows } = await supabaseAdmin
-          .from('tags')
-          .select('id, name')
-          .in('id', tagIds);
-
-        if (tagRows) {
-          topTags = (tagRows as { id: string; name: string }[])
-            .map(({ id, name }) => ({ name, count: tagIdCounts.get(id) ?? 0 }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
-        }
-      }
-    }
-
-    // Read rate: percentage of non-archived clips marked as read
-    const readRate = totalClips > 0 ? Math.round((readCount / totalClips) * 100) : 0;
-
-    // Platform breakdown: group and count
-    const platformMap = new Map<string, number>();
-    if (platformResult.data) {
-      for (const row of platformResult.data as { platform: string | null }[]) {
-        if (row.platform) {
-          platformMap.set(row.platform, (platformMap.get(row.platform) ?? 0) + 1);
-        }
-      }
-    }
-    const platformBreakdown = Array.from(platformMap.entries())
-      .map(([platform, count]) => ({ platform, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Daily activity for the last 30 days
-    const activityMap = new Map<string, number>();
-    if (recentResult.data) {
-      for (const row of recentResult.data as { created_at: string }[]) {
-        const date = row.created_at.slice(0, 10); // YYYY-MM-DD
-        activityMap.set(date, (activityMap.get(date) ?? 0) + 1);
-      }
-    }
-    // Fill in all 30 days (including zeros)
-    const recentActivity: { date: string; count: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-      const dateStr = d.toISOString().slice(0, 10);
-      recentActivity.push({ date: dateStr, count: activityMap.get(dateStr) ?? 0 });
-    }
 
     const data: InsightsData = {
+      period,
+      granularity: periodGranularity(period),
+      range: { from: range.from.toISOString(), to: range.to.toISOString() },
+      periodStats: {
+        saved: current.saved,
+        read: current.read,
+        prevSaved: previous.saved,
+        prevRead: previous.read,
+        savedChangePct: changePercent(current.saved, previous.saved),
+        readChangePct: changePercent(current.read, previous.read),
+      },
+      activity: buildActivitySeries(current.activity, period, range),
+      categoryBreakdown: current.categories,
+      platformBreakdown: current.platforms,
+      readingDebt: { count: current.debtCount, clips: current.debtClips },
+
       totalClips,
-      totalFavorites,
-      totalArchived,
-      readRate,
-      platformBreakdown,
-      recentActivity,
+      totalFavorites: favoritesResult.count ?? 0,
+      totalArchived: archivedResult.count ?? 0,
+      readRate: totalClips > 0 ? Math.round((readCount / totalClips) * 100) : 0,
       topTags,
       aiAnalyzedCount,
-      unanalyzedCount,
+      unanalyzedCount: Math.max(0, totalClips - aiAnalyzedCount),
     };
 
     return sendSuccess(data);

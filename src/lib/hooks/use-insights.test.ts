@@ -29,11 +29,17 @@ describe('useInsights', () => {
     mockUseSupabase.mockReturnValue({ user: { id: 'user-1' } });
   });
 
-  it('calls useQuery with ["insights", userId] query key', () => {
+  it('calls useQuery with ["insights", userId, period] query key (month by default)', () => {
     useInsights();
     expect(mockUseQuery).toHaveBeenCalledOnce();
     const opts = mockUseQuery.mock.calls[0][0];
-    expect(opts.queryKey).toEqual(['insights', 'user-1']);
+    expect(opts.queryKey).toEqual(['insights', 'user-1', 'month']);
+  });
+
+  it('includes the selected period in the query key', () => {
+    useInsights('year');
+    const opts = mockUseQuery.mock.calls[0][0];
+    expect(opts.queryKey).toEqual(['insights', 'user-1', 'year']);
   });
 
   it('is enabled when user is present', () => {
@@ -70,11 +76,11 @@ describe('useInsights', () => {
       json: () => Promise.resolve({ success: true, data: mockData }),
     } as unknown as Response);
 
-    useInsights();
+    useInsights('week');
     const opts = mockUseQuery.mock.calls[0][0];
     const result = await opts.queryFn();
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/v1/insights');
+    expect(global.fetch).toHaveBeenCalledWith('/api/v1/insights?period=week');
     expect(result).toEqual(mockData);
   });
 
