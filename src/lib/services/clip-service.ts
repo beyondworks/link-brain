@@ -15,6 +15,11 @@ import {
   rebuildSocialBody,
 } from '@/lib/ai/social-extract';
 import { fetchScreenshot } from '@/lib/services/screenshot-service';
+import {
+  isEphemeralImageUrl,
+  mirrorImageToStorage,
+  mirrorEphemeralImages,
+} from '@/lib/services/image-mirror';
 import { extractYouTubeVideoId } from '@/lib/utils/clip-content';
 import { CATEGORY_COLORS } from '@/config/constants';
 import type { Category, Tag } from '@/types/database';
@@ -551,6 +556,18 @@ export const enrichClipContent = async (
     thumbnailImage = await fetchScreenshot(url);
   }
 
+  // Ephemeral CDN images (Instagram/Facebook signed URLs) expire within days —
+  // mirror them into our Storage so thumbnails and galleries stay alive.
+  let displayContent = prepared.truncDisplay;
+  if (thumbnailImage && isEphemeralImageUrl(thumbnailImage)) {
+    thumbnailImage = (await mirrorImageToStorage(thumbnailImage, clipId, 0)) ?? thumbnailImage;
+  }
+  const galleryMatch = displayContent.match(/<!-- CLIP_GALLERY:([^>]*) -->/);
+  if (galleryMatch && /cdninstagram|fbcdn/.test(galleryMatch[1])) {
+    const mirrored = await mirrorEphemeralImages(galleryMatch[1].split('|'), clipId);
+    displayContent = displayContent.replace(galleryMatch[0], `<!-- CLIP_GALLERY:${mirrored.join('|')} -->`);
+  }
+
   const categoryId = await getOrCreateCategory(userId, prepared.categoryName);
 
   // UPDATE existing clip row with enriched data
@@ -581,7 +598,7 @@ export const enrichClipContent = async (
     .insert({
       clip_id: clipId,
       html_content: prepared.truncHtml || null,
-      content_markdown: prepared.truncDisplay || null,
+      content_markdown: displayContent || null,
       raw_markdown: prepared.truncRaw || null,
     });
 
