@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -32,13 +33,15 @@ export function ExploreCardSkeleton() {
 export function ExploreCard({ clip }: { clip: ExploreClip }) {
   const platformLabel = PLATFORM_LABELS_EN[clip.platform] ?? clip.platform;
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
+  // 죽은 이미지 URL(만료·삭제)은 깨진 아이콘 대신 글자 폴백으로
+  const [imgFailed, setImgFailed] = useState(false);
 
   return (
     <Link href={`/p/${clip.id}`} className="h-full">
       <Card className="group flex h-full flex-col overflow-hidden rounded-2xl border-border/60 p-0 gap-0 transition-spring hover:border-border hover:shadow-card-hover">
         {/* Thumbnail */}
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
-          {clip.thumbnailUrl ? (
+          {clip.thumbnailUrl && !imgFailed ? (
             <Image
               src={clip.thumbnailUrl}
               alt={clip.title ?? ''}
@@ -46,6 +49,7 @@ export function ExploreCard({ clip }: { clip: ExploreClip }) {
               unoptimized={!isProxiableImageUrl(clip.thumbnailUrl)}
               className="img-zoom object-cover"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <div

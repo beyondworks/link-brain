@@ -11,6 +11,11 @@ import { getErrorMessage } from '@/lib/utils/get-error-message';
 
 const PAGE_SIZE = 30;
 
+// Every clips column EXCEPT `fts` — the search tsvector is hundreds of KB per
+// page and made list queries ~1s. Never select('*') on clips from the client.
+const CLIP_COLUMNS =
+  'id, user_id, url, title, summary, image, platform, source_type, author, author_handle, author_avatar, category_id, is_favorite, is_read_later, is_archived, is_public, is_read, is_hidden, notes, read_time, remind_at, views, likes_count, ai_score, processing_status, processing_error, processed_at, fetch_method, retry_count, created_at, updated_at';
+
 interface UseClipsOptions {
   filters?: ClipFilters;
   sortBy?: ClipSortBy;
@@ -37,7 +42,7 @@ export function useClips(options: UseClipsOptions = {}) {
 
       let query = supabase
         .from('clips')
-        .select('*')
+        .select(CLIP_COLUMNS)
         .eq('user_id', user.id)
         .order(sortBy, { ascending: sortOrder === 'asc' })
         .range(pageParam, pageParam + PAGE_SIZE - 1);
@@ -153,7 +158,7 @@ export function useClip(clipId: string | null, initialData?: ClipData | null) {
 
       const { data, error } = await supabase
         .from('clips')
-        .select('*, clip_contents(*), clip_images(*)')
+        .select(`${CLIP_COLUMNS}, clip_contents(*), clip_images(*)`)
         .eq('id', clipId)
         .single();
 
@@ -189,7 +194,7 @@ export function usePrefetchClip() {
         queryFn: async () => {
           const { data, error } = await supabase
             .from('clips')
-            .select('*, clip_contents(*), clip_images(*)')
+            .select(`${CLIP_COLUMNS}, clip_contents(*), clip_images(*)`)
             .eq('id', clipId)
             .single();
           if (error) throw new Error(getErrorMessage(error, '클립을 불러오지 못했습니다.'));
