@@ -1382,6 +1382,18 @@ export type Database = {
         Args: { p_clip_id: string; p_error: string }
         Returns: undefined
       }
+      // Hand-added — see supabase/migrations/034_explore_popularity.sql
+      increment_clip_views: {
+        Args: { p_clip_id: string }
+        Returns: undefined
+      }
+      get_explore_popularity: {
+        Args: { p_urls: string[] }
+        Returns: {
+          save_count: number
+          url: string
+        }[]
+      }
       deduct_credit:
         | {
             Args: {
@@ -1415,6 +1427,10 @@ export type Database = {
           title: string
           url: string
         }[]
+      }
+      get_insights_stats: {
+        Args: { p_from: string; p_to: string; p_user_id: string }
+        Returns: Json
       }
       get_nav_counts: { Args: { p_user_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }

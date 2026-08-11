@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import { after } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, ArrowLeft, Heart } from 'lucide-react';
+import { ExternalLink, ArrowLeft, Eye } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { getGradient } from '@/config/constants';
+import { ImportClipButton } from '@/components/explore/import-clip-button';
 
 interface Props {
   params: Promise<{ clipId: string }>;
@@ -31,9 +33,33 @@ async function getPublicClip(clipId: string) {
     image: string | null;
     platform: string | null;
     author: string | null;
-    likes_count: number;
+    views: number;
     created_at: string;
   };
+}
+
+/**
+ * 조회수는 이 공개 페이지가 열릴 때만 올라간다 (탐색 카드 → /p/{id} 진입 포함).
+ * 응답을 막지 않도록 after()로 미룬다. 실패해도 페이지는 정상 렌더링.
+ */
+function countView(clipId: string): void {
+  after(async () => {
+    // ponytail: read-then-write increment — view counts are approximate by
+    // nature; swap to the increment_clip_views RPC once migration 034 lands.
+    const { data } = await db
+      .from('clips')
+      .select('views')
+      .eq('id', clipId)
+      .eq('is_public', true)
+      .single();
+    if (!data) return;
+    const { error } = await db
+      .from('clips')
+      .update({ views: (data.views ?? 0) + 1 })
+      .eq('id', clipId)
+      .eq('is_public', true);
+    if (error) console.error('[PublicClipPage] View count failed:', error);
+  });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -68,6 +94,8 @@ export default async function PublicClipPage({ params }: Props) {
   const clip = await getPublicClip(clipId);
 
   if (!clip) notFound();
+
+  countView(clip.id);
 
   const firstLetter = (clip.title ?? clip.url).charAt(0).toUpperCase();
   const gradient = getGradient(clip.id);
@@ -163,10 +191,12 @@ export default async function PublicClipPage({ params }: Props) {
             </span>
           )}
           <span suppressHydrationWarning>{formatRelativeTime(clip.created_at)}</span>
-          <span className="flex items-center gap-1">
-            <Heart className="h-3.5 w-3.5" />
-            {clip.likes_count}
-          </span>
+          {clip.views > 0 && (
+            <span className="flex items-center gap-1">
+              <Eye className="h-3.5 w-3.5" />
+              {clip.views}
+            </span>
+          )}
         </div>
 
         {/* Summary */}
@@ -188,9 +218,16 @@ export default async function PublicClipPage({ params }: Props) {
               원문 보기
             </a>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/signup?clip=${clipId}`}>내 브레인에 추가</Link>
-          </Button>
+          <ImportClipButton
+            clipId={clipId}
+            size="default"
+            variant="outline"
+            signedOutFallback={
+              <Button variant="outline" asChild>
+                <Link href={`/signup?clip=${clipId}`}>내 브레인에 추가</Link>
+              </Button>
+            }
+          />
         </div>
       </main>
     </div>

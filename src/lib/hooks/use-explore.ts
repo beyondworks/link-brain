@@ -2,6 +2,10 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 
+/**
+ * Explore는 익명 공개 라이브러리다 — 저장한 사용자를 식별할 수 있는 필드
+ * (userId, author 등)는 응답에도 이 타입에도 존재하지 않는다.
+ */
 export interface ExploreClip {
   id: string;
   title: string | null;
@@ -10,8 +14,8 @@ export interface ExploreClip {
   platform: string;
   thumbnailUrl: string | null;
   createdAt: string;
-  userId: string;
-  likesCount: number;
+  /** 같은 URL을 저장한 서로 다른 사용자 수 */
+  saveCount: number;
   views: number;
   category: string | null;
 }
@@ -47,10 +51,12 @@ const PAGE_SIZE = 20;
 async function fetchExploreClips({
   category,
   sort,
+  search,
   page,
 }: {
   category: ExploreCategoryKey;
   sort: ExploreSort;
+  search: string;
   page: number;
 }): Promise<ApiResponse> {
   const params = new URLSearchParams({
@@ -60,6 +66,9 @@ async function fetchExploreClips({
   });
   if (category !== 'all') {
     params.set('category', category);
+  }
+  if (search.trim()) {
+    params.set('search', search.trim());
   }
 
   const res = await fetch(`/api/v1/explore?${params.toString()}`);
@@ -72,14 +81,17 @@ async function fetchExploreClips({
 export function useExploreClips({
   category,
   sort,
+  search = '',
 }: {
   category: ExploreCategoryKey;
   sort: ExploreSort;
+  /** 서버에서 title/summary ilike로 필터링된다 (호출부에서 debounce) */
+  search?: string;
 }) {
   return useInfiniteQuery({
-    queryKey: ['explore', 'clips', category, sort],
+    queryKey: ['explore', 'clips', category, sort, search.trim()],
     queryFn: ({ pageParam }) =>
-      fetchExploreClips({ category, sort, page: pageParam as number }),
+      fetchExploreClips({ category, sort, search, page: pageParam as number }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.meta.hasMore) return undefined;
