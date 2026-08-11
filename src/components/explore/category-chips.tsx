@@ -36,7 +36,7 @@ export function CategoryChips({ selected, onChange }: CategoryChipsProps) {
               'inline-flex shrink-0 items-center rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
               selected === key
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-surface text-muted hover:bg-surface-hover hover:text-foreground'
+                : 'border border-border bg-surface text-foreground/80 hover:border-border-hover hover:bg-surface-hover hover:text-foreground'
             )}
           >
             {label}
