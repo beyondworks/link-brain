@@ -8,8 +8,12 @@ export const buildClipMetadataPrompt = (params: {
   platform: string;
   rawText: string;
   language: string; // 'KR' | 'EN'
+  /** Post author's handle — lets the model tell author follow-ups from other users' comments. */
+  authorHandle?: string;
+  /** Numbered paragraphs; when set, the model also selects which ones are the real post. */
+  numberedParagraphs?: string;
 }): { system: string; user: string; maxTokens: number } => {
-  const { url, platform, rawText, language } = params;
+  const { url, platform, rawText, language, authorHandle, numberedParagraphs } = params;
   const langName = language === 'KR' ? 'Korean' : 'English';
   const isYouTube =
     platform === 'youtube' ||
@@ -65,13 +69,35 @@ Return ONLY valid JSON.`,
       'Write 3-5 sentences that cover the main topic, key arguments or points, and any notable conclusions or takeaways.';
   }
 
+  // Social pages arrive polluted: the author's other posts, other users'
+  // comments and login-wall chrome sit in the same text. The model marks which
+  // numbered paragraphs are the real post; we rebuild from those indices.
+  const socialExtract = numberedParagraphs
+    ? {
+        contentBlock: numberedParagraphs,
+        rules: `
+- The CONTENT is a scraped social page split into numbered paragraphs
+- Only SOME paragraphs belong to this post. Exclude: other posts by the same author,
+  other users' comments, navigation/footer/login prompts ("Continue with Instagram",
+  "Say more with Threads", "Join Threads...", copyright, "Report a problem")
+- The post body is a CONTIGUOUS run starting at paragraph 0. Once foreign content
+  appears (a comment or a different post), later paragraphs belong to the post ONLY
+  if they are the author's follow-up comments — never add them to keepLines
+- Summarize ONLY the paragraphs you list in keepLines`,
+        fields: `,
+  "keepLines": [paragraph numbers forming the ORIGINAL POST body, in order],
+  "authorFollowUpLines": [paragraph numbers that are follow-up comments by the post author${authorHandle ? ` (@${authorHandle})` : ''}, in order; [] if none]`,
+        extraTokens: 250,
+      }
+    : { contentBlock: contentSlice, rules: '', fields: '', extraTokens: 0 };
+
   return {
     system:
       'You are a content summarizer that creates informative summaries to help users understand saved articles without reading the full text.',
     user: `You are a content summarizer. Analyze the article content below and create informative metadata.
 
 RULES:
-- Base your summary STRICTLY on the CONTENT below — do not invent information
+- Base your summary STRICTLY on the CONTENT below — do not invent information${socialExtract.rules}
 - Write a summary that helps someone decide whether to read the full article
 - Include the main topic, key points, and any notable conclusions
 - Remove duplicate paragraphs — use each idea only once
@@ -83,7 +109,7 @@ Platform: ${platform}
 
 CONTENT:
 """
-${contentSlice}
+${socialExtract.contentBlock}
 """
 
 Generate JSON:
@@ -93,7 +119,7 @@ Generate JSON:
   "keywords": ["5-7 relevant keywords in ${langName}"],
   "category": "Choose the MOST relevant from: Design, Dev, AI, Product, Business, Marketing, Finance, Stock, Investment, Crypto, Health, Fitness, Education, Science, News, Entertainment, Music, Gaming, Travel, Food, Lifestyle, Sports, Fashion, Art, Photography, Automation, Productivity, Career, Startup, Other",
   "sentiment": "positive | neutral | negative",
-  "type": "article | video | image | social_post | website"
+  "type": "article | video | image | social_post | website"${socialExtract.fields}
 }
 
 CATEGORY HINTS:
@@ -106,7 +132,7 @@ CATEGORY HINTS:
 - Productivity: 생산성, 효율, 시간관리, 습관, 노션, productivity, efficiency, time management
 
 Return ONLY valid JSON, no markdown or explanations.`,
-    maxTokens: contentLength > 1000 ? 600 : 400,
+    maxTokens: (contentLength > 1000 ? 600 : 400) + socialExtract.extraTokens,
   };
 };
 

@@ -8,6 +8,12 @@ import { chat } from '@/lib/ai/provider-client';
 import type { ResolvedAIConfig } from '@/lib/ai/model-resolver';
 import { indexClipEmbedding } from '@/lib/ai/embeddings';
 import { buildClipMetadataPrompt, buildUrlMetadataPrompt } from '@/lib/ai/prompts';
+import {
+  isSocialPlatform,
+  splitParagraphsForExtraction,
+  numberParagraphs,
+  rebuildSocialBody,
+} from '@/lib/ai/social-extract';
 import { fetchScreenshot } from '@/lib/services/screenshot-service';
 import { extractYouTubeVideoId } from '@/lib/utils/clip-content';
 import { CATEGORY_COLORS } from '@/config/constants';
@@ -42,6 +48,10 @@ export interface ClipMetadata {
   category: string;
   sentiment: 'positive' | 'neutral' | 'negative';
   type: 'article' | 'video' | 'image' | 'social_post' | 'website';
+  /** Social posts only: paragraph indices the model kept as the real post body. */
+  keepLines?: number[];
+  /** Social posts only: paragraph indices that are the author's own follow-ups. */
+  authorFollowUpLines?: number[];
 }
 
 // ─── Utility helpers ───────────────────────────────────────────────────────────
@@ -154,7 +164,8 @@ export const generateClipMetadata = async (
   url: string,
   platform: string,
   language = 'KR',
-  aiConfig?: ResolvedAIConfig
+  aiConfig?: ResolvedAIConfig,
+  authorHandle?: string
 ): Promise<ClipMetadata | null> => {
   if (!rawText || rawText.trim().length === 0) {
     return null;
@@ -166,11 +177,19 @@ export const generateClipMetadata = async (
       url.includes('youtube.com') ||
       url.includes('youtu.be');
 
+    // Social pages need the model to also point out which paragraphs are the
+    // real post — regex cleaning can't separate them from the author's other posts.
+    const paragraphs = isSocialPlatform(platform)
+      ? splitParagraphsForExtraction(rawText)
+      : [];
+
     const { system, user, maxTokens } = buildClipMetadataPrompt({
       url,
       platform,
       rawText,
       language,
+      authorHandle,
+      numberedParagraphs: paragraphs.length > 1 ? numberParagraphs(paragraphs) : undefined,
     });
 
     const responseText = await runMetadataCompletion(aiConfig, system, user, {
@@ -198,6 +217,10 @@ export const generateClipMetadata = async (
       category: aiData.category || 'Other',
       sentiment: aiData.sentiment || 'neutral',
       type: aiData.type || 'website',
+      keepLines: Array.isArray(aiData.keepLines) ? aiData.keepLines : undefined,
+      authorFollowUpLines: Array.isArray(aiData.authorFollowUpLines)
+        ? aiData.authorFollowUpLines
+        : undefined,
     };
   } catch (error) {
     console.error('[AI Metadata] Generation failed:', error);
@@ -421,6 +444,16 @@ function prepareClipContent(input: ClipContentInput, metadata: ClipMetadata | nu
   if (sourceType === 'web' && !displayMarkdown.trim()) {
     displayMarkdown = summary;
   }
+
+  // Social posts: show only the paragraphs the model identified as this post
+  // (plus the author's own follow-ups). raw_markdown keeps the full scrape.
+  if (metadata?.keepLines && isSocialPlatform(input.platform || sourceType)) {
+    const cleaned = rebuildSocialBody(splitParagraphsForExtraction(rawMarkdown), {
+      keepLines: metadata.keepLines,
+      authorFollowUpLines: metadata.authorFollowUpLines,
+    });
+    if (cleaned) displayMarkdown = cleaned;
+  }
   if (
     sourceType === 'youtube' &&
     isYtDetailedSummaryEnabled() &&
@@ -498,7 +531,9 @@ export const enrichClipContent = async (
   // AI metadata
   let metadata: ClipMetadata | null = null;
   if (rawMarkdown.trim().length > 0) {
-    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language, options?.aiConfig);
+    metadata = await generateClipMetadata(
+      rawMarkdown, url, aiPlatform, language, options?.aiConfig, input.authorHandle ?? input.author
+    );
   }
   if (!metadata) {
     metadata = await generateMetadataFromUrl(url, aiPlatform, language, options?.aiConfig);
@@ -604,7 +639,9 @@ export const processNewClip = async (
   // AI metadata
   let metadata: ClipMetadata | null = null;
   if (rawMarkdown.trim().length > 0) {
-    metadata = await generateClipMetadata(rawMarkdown, url, aiPlatform, language);
+    metadata = await generateClipMetadata(
+      rawMarkdown, url, aiPlatform, language, undefined, input.authorHandle ?? input.author
+    );
   }
   if (!metadata) {
     metadata = await generateMetadataFromUrl(url, aiPlatform, language);
