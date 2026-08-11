@@ -44,20 +44,29 @@ export interface ChatWithToolsResponse {
   finishReason: string;
 }
 
+/** 생성 옵션 — 지정하지 않으면 기존 기본값(토큰 4000, 프로바이더 기본 온도)을 쓴다 */
+export interface GenerationOptions {
+  temperature?: number;
+  maxTokens?: number;
+}
+
+const DEFAULT_MAX_TOKENS = 4000;
+
 // ─── Non-Streaming Chat ─────────────────────────────────────────────────────
 
 export async function chat(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): Promise<string> {
   switch (config.provider) {
     case 'anthropic':
-      return chatAnthropic(config, systemPrompt, userPrompt);
+      return chatAnthropic(config, systemPrompt, userPrompt, options);
     case 'google':
-      return chatGoogle(config, systemPrompt, userPrompt);
+      return chatGoogle(config, systemPrompt, userPrompt, options);
     default:
-      return chatOpenAI(config, systemPrompt, userPrompt);
+      return chatOpenAI(config, systemPrompt, userPrompt, options);
   }
 }
 
@@ -67,16 +76,17 @@ export async function* chatStream(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): AsyncGenerator<string> {
   switch (config.provider) {
     case 'anthropic':
-      yield* chatStreamAnthropic(config, systemPrompt, userPrompt);
+      yield* chatStreamAnthropic(config, systemPrompt, userPrompt, options);
       break;
     case 'google':
-      yield* chatStreamGoogle(config, systemPrompt, userPrompt);
+      yield* chatStreamGoogle(config, systemPrompt, userPrompt, options);
       break;
     default:
-      yield* chatStreamOpenAI(config, systemPrompt, userPrompt);
+      yield* chatStreamOpenAI(config, systemPrompt, userPrompt, options);
       break;
   }
 }
@@ -131,19 +141,33 @@ function openaiHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-function openaiTokenParams(model: string, maxTokens: number): Record<string, number> {
-  const isNew =
+/** gpt-5 / o-시리즈는 max_tokens 대신 max_completion_tokens를 쓰고 temperature 커스텀을 거부한다 */
+function isReasoningModel(model: string): boolean {
+  return (
     model.startsWith('gpt-5') ||
     model.startsWith('o1') ||
     model.startsWith('o3') ||
-    model.startsWith('o4');
-  return isNew ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens };
+    model.startsWith('o4')
+  );
+}
+
+function openaiTokenParams(model: string, maxTokens: number): Record<string, number> {
+  return isReasoningModel(model)
+    ? { max_completion_tokens: maxTokens }
+    : { max_tokens: maxTokens };
+}
+
+/** 온도 지정이 가능한 모델에만 temperature를 붙인다 */
+function openaiTempParams(model: string, options?: GenerationOptions): Record<string, number> {
+  if (options?.temperature === undefined || isReasoningModel(model)) return {};
+  return { temperature: options.temperature };
 }
 
 async function chatOpenAI(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): Promise<string> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -155,7 +179,8 @@ async function chatOpenAI(
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      ...openaiTokenParams(config.model, 4000),
+      ...openaiTokenParams(config.model, options?.maxTokens ?? DEFAULT_MAX_TOKENS),
+      ...openaiTempParams(config.model, options),
     }),
   });
 
@@ -173,6 +198,7 @@ async function* chatStreamOpenAI(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): AsyncGenerator<string> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -184,6 +210,8 @@ async function* chatStreamOpenAI(
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
+      ...openaiTokenParams(config.model, options?.maxTokens ?? DEFAULT_MAX_TOKENS),
+      ...openaiTempParams(config.model, options),
     }),
   });
 
@@ -327,13 +355,15 @@ async function chatAnthropic(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: anthropicHeaders(config.apiKey),
     body: JSON.stringify({
       model: config.model,
-      max_tokens: 4000,
+      max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+      ...(options?.temperature === undefined ? {} : { temperature: options.temperature }),
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     }),
@@ -353,13 +383,15 @@ async function* chatStreamAnthropic(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): AsyncGenerator<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: anthropicHeaders(config.apiKey),
     body: JSON.stringify({
       model: config.model,
-      max_tokens: 4000,
+      max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+      ...(options?.temperature === undefined ? {} : { temperature: options.temperature }),
       stream: true,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -450,6 +482,13 @@ function geminiUrl(model: string, apiKey: string, stream: boolean): string {
   return stream ? `${base}&alt=sse` : base;
 }
 
+function geminiGenerationConfig(options?: GenerationOptions): Record<string, number> {
+  return {
+    maxOutputTokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+    ...(options?.temperature === undefined ? {} : { temperature: options.temperature }),
+  };
+}
+
 /** Convert OpenAI messages to Gemini format */
 function toGeminiContents(messages: ChatMessage[]): {
   systemInstruction: { parts: Array<{ text: string }> } | undefined;
@@ -535,6 +574,7 @@ async function chatGoogle(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): Promise<string> {
   const res = await fetch(geminiUrl(config.model, config.apiKey, false), {
     method: 'POST',
@@ -542,7 +582,7 @@ async function chatGoogle(
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig: { maxOutputTokens: 4000 },
+      generationConfig: geminiGenerationConfig(options),
     }),
   });
 
@@ -565,6 +605,7 @@ async function* chatStreamGoogle(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): AsyncGenerator<string> {
   const res = await fetch(geminiUrl(config.model, config.apiKey, true), {
     method: 'POST',
@@ -572,7 +613,7 @@ async function* chatStreamGoogle(
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig: { maxOutputTokens: 4000 },
+      generationConfig: geminiGenerationConfig(options),
     }),
   });
 

@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 /* ─── Block types ────────────────────────────────────────────────────── */
 
 type Block =
+  | { type: 'h1'; text: string }
   | { type: 'h2'; text: string }
   | { type: 'h3'; text: string }
   | { type: 'h4'; text: string }
@@ -72,6 +73,11 @@ export function parseMarkdown(md: string): Block[] {
     }
     if (line.startsWith('## ')) {
       blocks.push({ type: 'h2', text: line.slice(3) });
+      i++;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      blocks.push({ type: 'h1', text: line.slice(2) });
       i++;
       continue;
     }
@@ -192,6 +198,12 @@ function InlineCode({ text }: { text: string }) {
 
 function MarkdownBlock({ block }: { block: Block }) {
   switch (block.type) {
+    case 'h1':
+      return (
+        <h1 className="pt-1 text-xl font-bold leading-snug tracking-tight text-foreground">
+          {block.text}
+        </h1>
+      );
     case 'h2':
       return (
         <div className="flex items-center gap-3 pt-2">

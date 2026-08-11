@@ -10,6 +10,7 @@ import {
   type ChatMessage,
   type ToolDefinition,
   type ChatWithToolsResponse,
+  type GenerationOptions,
 } from '@/lib/ai/provider-client';
 
 // ─── ResolvedAIConfig 기반 스트리밍 ─────────────────────────────────────────
@@ -18,8 +19,9 @@ export async function* streamAI(
   config: ResolvedAIConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: GenerationOptions,
 ): AsyncGenerator<string> {
-  yield* providerChatStream(config, systemPrompt, userPrompt);
+  yield* providerChatStream(config, systemPrompt, userPrompt, options);
 }
 
 // ─── ResolvedAIConfig 기반 비스트리밍 ───────────────────────────────────────
@@ -87,4 +89,4 @@ export async function callOpenAI(
 }
 
 // Re-export types for consumers
-export type { ChatMessage, ToolDefinition, ChatWithToolsResponse };
+export type { ChatMessage, ToolDefinition, ChatWithToolsResponse, GenerationOptions };

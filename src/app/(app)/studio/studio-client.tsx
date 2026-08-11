@@ -10,6 +10,7 @@ import { useClips } from '@/lib/hooks/use-clips';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -19,28 +20,16 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import {
-  Sparkles,
-  Wand2,
-  FileText,
-  AtSign,
-  Camera,
-  Mail,
-  BarChart2,
-  Lightbulb,
-  Presentation,
-  Youtube,
-  Link2,
-  Check,
-  X,
-  Loader2,
-} from 'lucide-react';
+import { Sparkles, Wand2, Link2, Check, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/utils/get-error-message';
 import { usePlan } from '@/lib/hooks/use-plan';
 import { StudioClipPickerDialog } from './studio-clip-picker-dialog';
 import { UpgradePrompt } from '@/components/plan/upgrade-prompt';
 import type { HistoryItem } from './studio-output-panel';
+import { STUDIO_META, TONE_OPTIONS } from './studio-meta';
+import { STUDIO_FORMATS, STUDIO_LENGTHS, isStudioLength, type StudioLength } from '@/lib/ai/studio-formats';
+import { parseStreamResult } from '@/lib/ai/stream-error';
 import dynamic from 'next/dynamic';
 
 const StudioOutputPanel = dynamic(
@@ -49,89 +38,6 @@ const StudioOutputPanel = dynamic(
     loading: () => <Skeleton className="h-48 rounded-2xl shimmer" />,
   }
 );
-
-// ─── 콘텐츠 타입 메타데이터 ───────────────────────────────────────────────────
-
-type StudioTypeMeta = {
-  label: string;
-  icon: React.ElementType;
-  gradient: string;
-  iconColor: string;
-  description: string;
-};
-
-const STUDIO_META: Record<ContentStudioType, StudioTypeMeta> = {
-  blog_post: {
-    label: '블로그 포스트',
-    icon: FileText,
-    gradient: 'from-primary/20 to-primary/5',
-    iconColor: 'text-primary',
-    description: 'SEO 최적 아티클',
-  },
-  threads_post: {
-    label: 'Threads 포스트',
-    icon: AtSign,
-    gradient: 'from-sky-500/20 to-sky-500/5',
-    iconColor: 'text-sky-500',
-    description: '짧고 임팩트 있게',
-  },
-  instagram_feed: {
-    label: '인스타그램 피드',
-    icon: Camera,
-    gradient: 'from-pink-500/20 to-pink-500/5',
-    iconColor: 'text-pink-500',
-    description: '캐러셀 슬라이드',
-  },
-  newsletter: {
-    label: '뉴스레터',
-    icon: Mail,
-    gradient: 'from-violet-500/20 to-violet-500/5',
-    iconColor: 'text-violet-500',
-    description: '구독자용 메일',
-  },
-  executive_summary: {
-    label: '요약 보고서',
-    icon: BarChart2,
-    gradient: 'from-amber-500/20 to-amber-500/5',
-    iconColor: 'text-amber-500',
-    description: '핵심만 빠르게',
-  },
-  key_concepts: {
-    label: '핵심 포인트',
-    icon: Lightbulb,
-    gradient: 'from-yellow-500/20 to-yellow-500/5',
-    iconColor: 'text-yellow-500',
-    description: '주요 개념 추출',
-  },
-  presentation_text: {
-    label: '발표용 텍스트',
-    icon: Presentation,
-    gradient: 'from-orange-500/20 to-orange-500/5',
-    iconColor: 'text-orange-500',
-    description: '슬라이드+발표 노트',
-  },
-  youtube_script: {
-    label: '유튜브 대본',
-    icon: Youtube,
-    gradient: 'from-red-500/20 to-red-500/5',
-    iconColor: 'text-red-500',
-    description: '영상 스크립트',
-  },
-};
-
-const TONE_OPTIONS = [
-  { value: 'professional', label: '전문적' },
-  { value: 'casual', label: '친근한' },
-  { value: 'academic', label: '학술적' },
-  { value: 'creative', label: '창의적' },
-  { value: 'concise', label: '간결한' },
-];
-
-const LENGTH_OPTIONS = [
-  { value: 'short', label: '짧게 (200자 내외)' },
-  { value: 'medium', label: '중간 (500자 내외)' },
-  { value: 'long', label: '길게 (1000자 이상)' },
-];
 
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
@@ -142,7 +48,8 @@ export function StudioClient() {
   const [selectedType, setSelectedType] = useState<ContentStudioType>('blog_post');
   const [selectedClipIds, setSelectedClipIds] = useState<Set<string>>(new Set());
   const [tone, setTone] = useState('professional');
-  const [length, setLength] = useState('medium');
+  const [length, setLength] = useState<StudioLength>('medium');
+  const [includeSources, setIncludeSources] = useState(true);
   const [output, setOutput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [clipPickerOpen, setClipPickerOpen] = useState(false);
@@ -172,7 +79,7 @@ export function StudioClient() {
       const restoredType = latest.content_type as ContentStudioType;
       setSelectedType(STUDIO_META[restoredType] ? restoredType : 'blog_post');
       setTone(latest.tone ?? 'professional');
-      setLength(latest.length ?? 'medium');
+      setLength(isStudioLength(latest.length) ? latest.length : 'medium');
       restoredRef.current = true;
     }
   }, [generations, output]);
@@ -201,7 +108,8 @@ export function StudioClient() {
           url: `studio://${Date.now()}`,
           title: `[${meta.label}] ${new Date().toLocaleDateString('ko-KR')}`,
           summary: output.slice(0, 300),
-          platform: 'studio',
+          // clips_platform_check(마이그레이션 016)이 허용하는 값만 가능 — 'studio'는 없음
+          platform: 'web',
         }),
       });
       if (!res.ok) {
@@ -240,6 +148,7 @@ export function StudioClient() {
           type: selectedType,
           tone,
           length,
+          includeSources,
         }),
       });
 
@@ -259,23 +168,30 @@ export function StudioClient() {
       }
 
       const decoder = new TextDecoder();
-      let generated = '';
+      let raw = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        generated += chunk;
-        setOutput((prev) => prev + chunk);
+        raw += decoder.decode(value, { stream: true });
+        // 오류 마커는 화면에도 노출하지 않는다
+        setOutput(parseStreamResult(raw).text);
       }
 
-      // Save to DB
-      if (generated) {
+      const { text, error } = parseStreamResult(raw);
+
+      // 스트림이 오류로 끝났으면 저장하지 않는다 (실패한 결과가 기록에 남는 것 방지)
+      if (error) {
+        toast.error(`AI 생성이 중단되었습니다: ${error}`);
+        return;
+      }
+
+      if (text) {
         saveGeneration.mutate({
           content_type: selectedType,
           tone,
           length,
           source_clip_ids: Array.from(selectedClipIds),
-          output: generated,
+          output: text,
         });
       }
     } catch (err: unknown) {
@@ -486,21 +402,37 @@ export function StudioClient() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-foreground">콘텐츠 길이</Label>
-                <Select value={length} onValueChange={setLength}>
+                <Label className="text-sm font-medium text-foreground">콘텐츠 분량</Label>
+                <Select
+                  value={length}
+                  onValueChange={(v) => { if (isStudioLength(v)) setLength(v); }}
+                >
                   <SelectTrigger className="rounded-xl focus:ring-primary/30">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {LENGTH_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
+                    {STUDIO_LENGTHS.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {STUDIO_FORMATS[selectedType].pickerLabels[value]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {STUDIO_FORMATS[selectedType].targets[length]}
+                </p>
               </div>
             </div>
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2.5">
+              <Checkbox
+                checked={includeSources}
+                onCheckedChange={(v) => setIncludeSources(v === true)}
+              />
+              <span className="text-sm text-foreground">
+                결과물 끝에 &lsquo;참고한 클립&rsquo; 출처 목록 추가
+              </span>
+            </label>
           </section>
 
           {/* ── 4. 생성 버튼 ─────────────────────────────────────────── */}
@@ -536,10 +468,6 @@ export function StudioClient() {
           {/* ── 5. 결과 + 이전 생성 기록 ─────────────────────────────── */}
           <StudioOutputPanel
             output={output}
-            onCopy={() => {
-              void navigator.clipboard.writeText(output);
-              toast.success('클립보드에 복사되었습니다.');
-            }}
             onReset={() => setOutput('')}
             onSave={() => saveClipMutation.mutate()}
             isSaving={saveClipMutation.isPending}
